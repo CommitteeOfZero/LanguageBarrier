@@ -210,3 +210,10 @@ FakesAssemblies/
 GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
+
+##### manual additions
+dinput8-Debug/
+dinput8-Release/
+contrib/
+data/*.h
+*.opendb

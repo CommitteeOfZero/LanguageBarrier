@@ -1,0 +1,17 @@
+{
+    "general": {
+        "fixTranslation": true,
+        "replaceCGs": true,
+        "hideAutoSkipButtons": false
+    },
+    "text": {
+        "fixDialogueTextWrapping": true,
+        "fixPhoneText": true,
+        "selectedDialogueFont": "modifiedSmall"
+    },
+    "fmv": {
+        "enableKaraokeSubs": true,
+        "enableJpVideoSubs": true,
+        "use720pFMVAudio": true
+    }
+}
