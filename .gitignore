@@ -215,5 +215,5 @@ ModelManifest.xml
 dinput8-Debug/
 dinput8-Release/
 contrib/
-data/*.h
+LanguageBarrier/data/*.h
 *.opendb
