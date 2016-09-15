@@ -79,9 +79,11 @@ bin2h -cz defaultConfigJsonStr &lt; "$(ProjectDir)data\config.json" &gt; "$(Proj
 bin2h -cz defaultFontreplacementJsonStr &lt; "$(ProjectDir)data\fontreplacement.json" &gt; "$(ProjectDir)data\defaultFontreplacementJsonStr.h"
 bin2h -cz defaultSignaturesJsonStr &lt; "$(ProjectDir)data\signatures.json" &gt; "$(ProjectDir)data\defaultSignaturesJsonStr.h"
 bin2h -cz defaultFmvJsonStr &lt; "$(ProjectDir)data\fmv.json" &gt; "$(ProjectDir)data\defaultFmvJsonStr.h"
+bin2h -cz defaultFileredirectionJsonStr &lt; "$(ProjectDir)data\fileredirection.json" &gt; "$(ProjectDir)data\defaultFileredirectionJsonStr.h"
 copy /Y "$(ProjectDir)data\fontreplacement.json" "$(TargetDir)languagebarrier"
 copy /Y "$(ProjectDir)data\signatures.json" "$(TargetDir)languagebarrier"
 copy /Y "$(ProjectDir)data\fmv.json" "$(TargetDir)languagebarrier"
+copy /Y "$(ProjectDir)data\fileredirection.json" "$(TargetDir)languagebarrier"
 rem We don't copy config.json so that doesn't get overwritten when someone installs an update
 endlocal</Command>
     </PreBuildEvent>
@@ -114,9 +116,11 @@ bin2h -cz defaultConfigJsonStr &lt; "$(ProjectDir)data\config.json" &gt; "$(Proj
 bin2h -cz defaultFontreplacementJsonStr &lt; "$(ProjectDir)data\fontreplacement.json" &gt; "$(ProjectDir)data\defaultFontreplacementJsonStr.h"
 bin2h -cz defaultSignaturesJsonStr &lt; "$(ProjectDir)data\signatures.json" &gt; "$(ProjectDir)data\defaultSignaturesJsonStr.h"
 bin2h -cz defaultFmvJsonStr &lt; "$(ProjectDir)data\fmv.json" &gt; "$(ProjectDir)data\defaultFmvJsonStr.h"
+bin2h -cz defaultFileredirectionJsonStr &lt; "$(ProjectDir)data\fileredirection.json" &gt; "$(ProjectDir)data\defaultFileredirectionJsonStr.h"
 copy /Y "$(ProjectDir)data\fontreplacement.json" "$(TargetDir)languagebarrier"
 copy /Y "$(ProjectDir)data\signatures.json" "$(TargetDir)languagebarrier"
 copy /Y "$(ProjectDir)data\fmv.json" "$(TargetDir)languagebarrier"
+copy /Y "$(ProjectDir)data\fileredirection.json" "$(TargetDir)languagebarrier"
 rem We don't copy config.json so that doesn't get overwritten when someone installs an update
 endlocal</Command>
     </PreBuildEvent>

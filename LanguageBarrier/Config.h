@@ -8,6 +8,7 @@
 #include "data\defaultFontreplacementJsonStr.h"
 #include "data\defaultSignaturesJsonStr.h"
 #include "data\defaultFmvJsonStr.h"
+#include "data\defaultFileredirectionJsonStr.h"
 #include "lbjson.h"
 
 namespace lb {
@@ -54,6 +55,11 @@ class Config {
     static Config s(defaultFmvJsonStr, "languagebarrier\\fmv.json");
     return s;
   }
+  static Config& fileredirection() {
+    static Config s(defaultFileredirectionJsonStr,
+                    "languagebarrier\\fileredirection.json");
+    return s;
+  }
 
   json j;
 
@@ -66,6 +72,7 @@ class Config {
     fontreplacement();
     sigs();
     fmv();
+    fileredirection();
   };
 };
 }
