@@ -3,6 +3,7 @@
 #include <ass/ass.h>
 #include <unordered_map>
 #include "BinkMod.h"
+#include "Config.h"
 
 // warning: this creates messageboxes with loglevel verbose
 // have fun watching videos with this on
@@ -129,19 +130,26 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
   const char* tmp = name;
   if (strrchr(tmp, '\\')) tmp = strrchr(tmp, '\\') + 1;
   if (strrchr(tmp, '/')) tmp = strrchr(tmp, '/') + 1;
-  size_t length =
-      strlen(tmp) + strlen("languagebarrier\\subs\\") + strlen(".ass") + 1;
-  char* subName = (char*)calloc(length, 1);
-  snprintf(subName, length, "languagebarrier\\subs\\%s.ass", tmp);
 
+  std::string subFileName;
+  // TODO: support more than one track?
+  // note: case sensitive
+  if (Config::config().j["fmv"]["enableJpVideoSubs"].get<bool>() == true && Config::subs().j["jpVideo"].count(tmp) == 1)
+      subFileName = Config::subs().j["jpVideo"][tmp].get<std::string>();
+  if (Config::config().j["fmv"]["enableKaraokeSubs"].get<bool>() == true && Config::subs().j["karaoke"].count(tmp) == 1)
+      subFileName = Config::subs().j["karaoke"][tmp].get<std::string>();
+  if (!subFileName.empty())
   {
+    std::stringstream ssSubPath;
+    ssSubPath << "languagebarrier\\subs\\" << subFileName;
+    std::string subPath = ssSubPath.str();
     std::stringstream logstr;
-    logstr << "Using sub track " << subName << " if available.";
+    logstr << "Using sub track " << subPath << " if available.";
     LanguageBarrierLog(logstr.str());
+    char* cSubPath = &subPath[0];
+    state->AssTrack = ass_read_file(AssHandler, cSubPath, "UTF-8");
   }
 
-  state->AssTrack = ass_read_file(AssHandler, subName, "UTF-8");
-  free(subName);
   return bnk;
 }
 

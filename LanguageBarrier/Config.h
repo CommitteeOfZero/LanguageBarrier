@@ -7,6 +7,7 @@
 #include "data\defaultConfigJsonStr.h"
 #include "data\defaultFontreplacementJsonStr.h"
 #include "data\defaultSignaturesJsonStr.h"
+#include "data\defaultSubsJsonStr.h"
 #include "lbjson.h"
 
 namespace lb {
@@ -25,9 +26,10 @@ class Config {
     tmp1 << ss;
     json tmp2;
     try {
-        std::ifstream infile(filename);
-        tmp2 << infile;
-    } catch(...) {}
+      std::ifstream infile(filename);
+      tmp2 << infile;
+    } catch (...) {
+    }
     j = json_merge(tmp1, tmp2);
     j = tmp1;
     save();
@@ -48,6 +50,10 @@ class Config {
                     "languagebarrier\\signatures.json");
     return s;
   }
+  static Config& subs() {
+    static Config s(defaultSubsJsonStr, "languagebarrier\\subs.json");
+    return s;
+  }
 
   json j;
 
@@ -59,6 +65,7 @@ class Config {
     config();
     fontreplacement();
     sigs();
+    subs();
   };
 };
 }
