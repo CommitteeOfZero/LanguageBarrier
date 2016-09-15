@@ -134,12 +134,14 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
   std::string subFileName;
   // TODO: support more than one track?
   // note: case sensitive
-  if (Config::config().j["fmv"]["enableJpVideoSubs"].get<bool>() == true && Config::subs().j["jpVideo"].count(tmp) == 1)
-      subFileName = Config::subs().j["jpVideo"][tmp].get<std::string>();
-  if (Config::config().j["fmv"]["enableKaraokeSubs"].get<bool>() == true && Config::subs().j["karaoke"].count(tmp) == 1)
-      subFileName = Config::subs().j["karaoke"][tmp].get<std::string>();
-  if (!subFileName.empty())
-  {
+  if (Config::config().j["fmv"]["enableJpVideoSubs"].get<bool>() == true &&
+      Config::subs().j["jpVideo"].count(tmp) == 1)
+    subFileName = Config::subs().j["jpVideo"][tmp].get<std::string>();
+  if (Config::config().j["fmv"]["enableKaraokeSubs"].get<bool>() == true &&
+      Config::subs().j["karaoke"].count(tmp) == 1)
+    subFileName = Config::subs().j["karaoke"][tmp].get<std::string>();
+
+  if (!subFileName.empty()) {
     std::stringstream ssSubPath;
     ssSubPath << "languagebarrier\\subs\\" << subFileName;
     std::string subPath = ssSubPath.str();
