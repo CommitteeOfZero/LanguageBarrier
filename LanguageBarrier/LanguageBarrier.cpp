@@ -37,7 +37,6 @@ void LanguageBarrierInit() {
     }
     gameInit();
   }
-  // gameLoadTexture(0xF7, (void *)0x12345678, 0x200);
 }
 // TODO: make this better
 void LanguageBarrierLog(const std::string &text) {
