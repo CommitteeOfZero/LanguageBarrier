@@ -18,6 +18,7 @@ static uintptr_t gameExeTextureLoadInit2 = NULL;
 static uintptr_t gameExeGslPngload = NULL;
 static uintptr_t gameExeMpkMount = NULL;
 static uintptr_t gameExePpLotsOfState = NULL;
+static uintptr_t gameExePCurrentBgm = NULL;
 // scroll height is +6A78
 
 namespace lb {
@@ -33,6 +34,7 @@ void gameInit() {
   gameExeGslPngload = sigScan("game", "gslPngload");
   gameExeMpkMount = sigScan("game", "mpkMount");
   gameExeEarlyInit = (EarlyInitProc)sigScan("game", "earlyInit");
+  gameExePCurrentBgm = *((uint32_t *)sigScan("game", "useOfPCurrentBgm"));
 
   // TODO: fault tolerance - we don't need to call it quits entirely just
   // because one *feature* can't work
@@ -114,4 +116,6 @@ void *gameMountMpk(char *mountpoint, char *directory, char *filename) {
   }
   return retval;
 }
+// TODO: figure out how to turn looping off
+void gameSetBgm(uint32_t fileId) { *(uint32_t *)gameExePCurrentBgm = fileId; }
 }

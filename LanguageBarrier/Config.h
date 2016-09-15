@@ -7,7 +7,7 @@
 #include "data\defaultConfigJsonStr.h"
 #include "data\defaultFontreplacementJsonStr.h"
 #include "data\defaultSignaturesJsonStr.h"
-#include "data\defaultSubsJsonStr.h"
+#include "data\defaultFmvJsonStr.h"
 #include "lbjson.h"
 
 namespace lb {
@@ -50,8 +50,8 @@ class Config {
                     "languagebarrier\\signatures.json");
     return s;
   }
-  static Config& subs() {
-    static Config s(defaultSubsJsonStr, "languagebarrier\\subs.json");
+  static Config& fmv() {
+    static Config s(defaultFmvJsonStr, "languagebarrier\\fmv.json");
     return s;
   }
 
@@ -65,7 +65,7 @@ class Config {
     config();
     fontreplacement();
     sigs();
-    subs();
+    fmv();
   };
 };
 }

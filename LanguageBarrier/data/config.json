@@ -13,6 +13,6 @@
     "fmv": {
         "enableKaraokeSubs": true,
         "enableJpVideoSubs": true,
-        "use720pFMVAudio": true
+        "useHqAudio": true
     }
 }

@@ -73,7 +73,7 @@
     <None Include="data\fontreplacement.json">
       <Filter>Data</Filter>
     </None>
-    <None Include="data\subs.json">
+    <None Include="data\fmv.json">
       <Filter>Data</Filter>
     </None>
   </ItemGroup>

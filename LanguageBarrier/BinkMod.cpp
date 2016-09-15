@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include "BinkMod.h"
 #include "Config.h"
+#include "Game.h"
 
 // warning: this creates messageboxes with loglevel verbose
 // have fun watching videos with this on
@@ -30,14 +31,17 @@ typedef int32_t(__stdcall* BINKCOPYTOBUFFER)(BINK* bnk, void* dest,
                                              uint32_t destheight,
                                              uint32_t destx, uint32_t desty,
                                              uint32_t flags);
+typedef int32_t(__stdcall* BINKSETVOLUME)(BINK* bnk, int32_t unk1, int32_t volume);
 static BINKOPEN BinkOpen = NULL;
 static BINKCLOSE BinkClose = NULL;
 static BINKCOPYTOBUFFER BinkCopyToBuffer = NULL;
+static BINKSETVOLUME BinkSetVolume = NULL;
 
 typedef struct {
   ASS_Renderer* AssRenderer;
   ASS_Track* AssTrack;
   bool renderedSinceLastInit;
+  uint32_t bgmId;
 } BinkModState_t;
 
 static std::unordered_map<BINK*, BinkModState_t*> stateMap;
@@ -48,6 +52,7 @@ void __stdcall BinkCloseHook(BINK* bnk);
 int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
                                        uint32_t destheight, uint32_t destx,
                                        uint32_t desty, uint32_t flags);
+int32_t __stdcall BinkSetVolumeHook(BINK* bnk, int32_t unk1, int32_t volume);
 #ifdef BINKMODDEBUG
 void msg_callback(int level, const char* fmt, va_list va, void* data);
 #endif
@@ -82,7 +87,9 @@ bool initLibass() {
 }
 
 bool binkModInit() {
-  if (!createEnableApiHook(L"bink2w32", "_BinkOpen@8", BinkOpenHook,
+  if (!createEnableApiHook(L"bink2w32", "_BinkSetVolume@12", BinkSetVolumeHook,
+                           (LPVOID*)&BinkSetVolume) ||
+      !createEnableApiHook(L"bink2w32", "_BinkOpen@8", BinkOpenHook,
                            (LPVOID*)&BinkOpen) ||
       !createEnableApiHook(L"bink2w32", "_BinkClose@4", BinkCloseHook,
                            (LPVOID*)&BinkClose) ||
@@ -125,21 +132,36 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
   BinkModState_t* state = (BinkModState_t*)calloc(1, sizeof(BinkModState_t));
   stateMap.emplace(bnk, state);
 
-  if (!initLibassRenderer(state)) return bnk;
-
   const char* tmp = name;
   if (strrchr(tmp, '\\')) tmp = strrchr(tmp, '\\') + 1;
   if (strrchr(tmp, '/')) tmp = strrchr(tmp, '/') + 1;
+
+  if (Config::config().j["fmv"]["useHqAudio"].get<bool>() == true &&
+      Config::fmv().j["hqAudio"].count(tmp) == 1) {
+    // TODO: temporarily set BGM volume to match movie volume, then revert in
+    // BinkCloseHook
+    // TODO: support using audio from 720p Bink videos in 1080p
+    // ...meh, if the music's fine who cares
+    uint32_t bgmId = Config::fmv().j["hqAudio"][tmp].get<uint32_t>();
+    gameSetBgm(bgmId);
+    // we'll disable Bink audio in BinkSetVolumeHook. If we tried to do it here,
+    // the game would just override it. If we tried to use BinkSetSoundOnOff,
+    // the video wouldn't show (maybe the game thinks there's been an error).
+    state->bgmId = bgmId;
+  }
+  else state->bgmId = 0;
+
+  if (!initLibassRenderer(state)) return bnk;
 
   std::string subFileName;
   // TODO: support more than one track?
   // note: case sensitive
   if (Config::config().j["fmv"]["enableJpVideoSubs"].get<bool>() == true &&
-      Config::subs().j["jpVideo"].count(tmp) == 1)
-    subFileName = Config::subs().j["jpVideo"][tmp].get<std::string>();
+      Config::fmv().j["subs"]["jpVideo"].count(tmp) == 1)
+    subFileName = Config::fmv().j["subs"]["jpVideo"][tmp].get<std::string>();
   if (Config::config().j["fmv"]["enableKaraokeSubs"].get<bool>() == true &&
-      Config::subs().j["karaoke"].count(tmp) == 1)
-    subFileName = Config::subs().j["karaoke"][tmp].get<std::string>();
+      Config::fmv().j["subs"]["karaoke"].count(tmp) == 1)
+    subFileName = Config::fmv().j["subs"]["karaoke"][tmp].get<std::string>();
 
   if (!subFileName.empty()) {
     std::stringstream ssSubPath;
@@ -166,6 +188,11 @@ void __stdcall BinkCloseHook(BINK* bnk) {
   if (state->AssTrack) {
     ass_free_track(state->AssTrack);
   }
+  if (state->bgmId) {
+    // Not cargoculting: the game doesn't always set a new BGM after playing a
+    // video
+    gameSetBgm(BGM_CLEAR);
+  }
   free(state);
   stateMap.erase(bnk);
 }
@@ -177,6 +204,7 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
     return BinkCopyToBuffer(bnk, dest, destpitch, destheight, destx, desty,
                             flags);
   BinkModState_t* state = stateMap[bnk];
+
   if (!(state->AssRenderer) || !(state->AssTrack))
     return BinkCopyToBuffer(bnk, dest, destpitch, destheight, destx, desty,
                             flags);
@@ -236,5 +264,11 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
   SimdFree(frame);
 
   return retval;
+}
+int32_t __stdcall BinkSetVolumeHook(BINK* bnk, int32_t unk1, int32_t volume) {
+  if (stateMap.count(bnk) == 0) return BinkSetVolume(bnk, unk1, volume);
+  BinkModState_t* state = stateMap[bnk];
+  if (state->bgmId) return BinkSetVolume(bnk, unk1, 0);
+  return BinkSetVolume(bnk, unk1, volume);
 }
 }

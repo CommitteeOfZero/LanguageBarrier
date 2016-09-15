@@ -1,0 +1,19 @@
+{
+    "__schema_version": 1,
+    "subs": {
+        "karaoke": {
+            "op.bk2": "OP.bk2.ass"
+        },
+        "jpVideo": { }
+    },
+    "hqAudio": {
+        "op.bk2": 68,
+        "ar.bk2": 81,
+        "op2.bk2": 82,
+        "ending_c.bk2": 72,
+        "ending_f.bk2": 72,
+        "ending_m.bk2": 72,
+        "ending_r.bk2": 72,
+        "ending_s.bk2": 72
+    }
+}
