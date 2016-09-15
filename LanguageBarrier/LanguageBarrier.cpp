@@ -70,4 +70,46 @@ bool scanCreateEnableHook(char *category, char *name, uintptr_t *ppTarget,
 
   return true;
 }
+bool createEnableApiHook(LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour,
+                         LPVOID *ppOriginal) {
+  MH_STATUS mhStatus;
+  LPVOID pTarget;
+  mhStatus =
+      MH_CreateHookApiEx(pszModule, pszProcName, pDetour, ppOriginal, &pTarget);
+  if (mhStatus != MH_OK) {
+    std::stringstream logstr;
+    logstr << "Failed to create API hook " << pszModule << "." << pszProcName
+           << ": " << MH_StatusToString(mhStatus);
+    return false;
+  }
+  mhStatus = MH_EnableHook(pTarget);
+  if (mhStatus != MH_OK) {
+    std::stringstream logstr;
+    logstr << "Failed to enable API hook " << pszModule << "." << pszProcName
+           << ": " << MH_StatusToString(mhStatus);
+    return false;
+  }
+
+  std::stringstream logstr;
+  logstr << "Successfully hooked " << pszModule << "." << pszProcName;
+
+  return true;
+}
+//-------------------------------------------------------------------------
+MH_STATUS MH_CreateHookApiEx(LPCWSTR pszModule, LPCSTR pszProcName,
+                             LPVOID pDetour, LPVOID *ppOriginal,
+                             LPVOID *ppTarget) {
+  HMODULE hModule;
+  LPVOID pTarget;
+
+  hModule = GetModuleHandleW(pszModule);
+  if (hModule == NULL) return MH_ERROR_MODULE_NOT_FOUND;
+
+  pTarget = (LPVOID)GetProcAddress(hModule, pszProcName);
+  if (pTarget == NULL) return MH_ERROR_FUNCTION_NOT_FOUND;
+
+  if (ppTarget != NULL) *ppTarget = pTarget;
+
+  return MH_CreateHook(pTarget, pDetour, ppOriginal);
+}
 }

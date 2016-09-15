@@ -15,6 +15,11 @@ void LanguageBarrierInit();
 void LanguageBarrierLog(const std::string &text);
 bool scanCreateEnableHook(char *category, char *name, uintptr_t *ppTarget,
                           LPVOID pDetour, LPVOID *ppOriginal);
+bool createEnableApiHook(LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour,
+                         LPVOID *ppOriginal);
+// until TsudaKageyu updates his NuGet package...
+MH_STATUS MH_CreateHookApiEx(LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour,
+                        LPVOID *ppOriginal, LPVOID *ppTarget);
 }
 
 #endif  // !__LANGUAGEBARRIER_H__
