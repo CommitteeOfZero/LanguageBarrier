@@ -55,6 +55,7 @@ bool scanCreateEnableHook(char *category, char *name, uintptr_t *ppTarget,
     std::stringstream logstr;
     logstr << "Failed to create hook " << name << ": "
            << MH_StatusToString(mhStatus);
+    LanguageBarrierLog(logstr.str());
     return false;
   }
   mhStatus = MH_EnableHook((LPVOID)*ppTarget);
@@ -62,11 +63,13 @@ bool scanCreateEnableHook(char *category, char *name, uintptr_t *ppTarget,
     std::stringstream logstr;
     logstr << "Failed to enable hook " << name << ": "
            << MH_StatusToString(mhStatus);
+    LanguageBarrierLog(logstr.str());
     return false;
   }
 
   std::stringstream logstr;
   logstr << "Successfully hooked " << name;
+  LanguageBarrierLog(logstr.str());
 
   return true;
 }
@@ -80,6 +83,7 @@ bool createEnableApiHook(LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour,
     std::stringstream logstr;
     logstr << "Failed to create API hook " << pszModule << "." << pszProcName
            << ": " << MH_StatusToString(mhStatus);
+    LanguageBarrierLog(logstr.str());
     return false;
   }
   mhStatus = MH_EnableHook(pTarget);
@@ -87,11 +91,13 @@ bool createEnableApiHook(LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour,
     std::stringstream logstr;
     logstr << "Failed to enable API hook " << pszModule << "." << pszProcName
            << ": " << MH_StatusToString(mhStatus);
+    LanguageBarrierLog(logstr.str());
     return false;
   }
 
   std::stringstream logstr;
   logstr << "Successfully hooked " << pszModule << "." << pszProcName;
+  LanguageBarrierLog(logstr.str());
 
   return true;
 }
