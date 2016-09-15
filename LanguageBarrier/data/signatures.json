@@ -1,4 +1,5 @@
 {
+    "__schema_version": 1,
     "game": {
         "textureLoadInit1": {
             "pattern": "55 8B EC 51 0F B6 4D 08 69 C9 68 10 00 00 6A 00 8D 45 FC 50",

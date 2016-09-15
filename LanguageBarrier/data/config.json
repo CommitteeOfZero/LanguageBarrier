@@ -1,4 +1,5 @@
 {
+    "__schema_version": 1,
     "general": {
         "fixTranslation": true,
         "replaceCGs": true,
