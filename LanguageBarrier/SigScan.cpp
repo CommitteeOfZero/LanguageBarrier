@@ -130,7 +130,7 @@ uintptr_t sigScan(char* category, char* sigName, bool isData = false) {
   json sig = Config::sigs().j[category][sigName];
   std::string sPattern = sig["pattern"].get<std::string>();
   const char* pattern = sPattern.c_str();
-  size_t offset = sig["pattern"].get<size_t>();
+  size_t offset = sig["offset"].get<size_t>();
 
   logstr << sPattern << std::endl;
 
