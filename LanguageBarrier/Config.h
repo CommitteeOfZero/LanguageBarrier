@@ -23,12 +23,12 @@ class Config {
     ss << defaultStr;
     json tmp1;
     tmp1 << ss;
-    /*json tmp2;
+    json tmp2;
     try {
         std::ifstream infile(filename);
         tmp2 << infile;
-    } catch (...) {}
-    j = json_merge(tmp1, tmp2);*/
+    } catch(...) {}
+    j = json_merge(tmp1, tmp2);
     j = tmp1;
     save();
   };
