@@ -2,12 +2,14 @@
 #include "MinHook.h"
 #include "Game.h"
 #include "SigScan.h"
+#include "BinkMod.h"
 
 typedef int(__cdecl *EarlyInitProc)(int unk0, int unk1);
 static EarlyInitProc gameExeEarlyInit = NULL;
 static EarlyInitProc gameExeEarlyInitReal = NULL;
 
-typedef int(__thiscall *MpkFopenByIdProc)(void *pThis, void *mpkObject, int fileId, int unk3);
+typedef int(__thiscall *MpkFopenByIdProc)(void *pThis, void *mpkObject,
+                                          int fileId, int unk3);
 static MpkFopenByIdProc gameExeMpkFopenById = NULL;
 static MpkFopenByIdProc gameExeMpkFopenByIdReal = NULL;
 
@@ -16,10 +18,12 @@ static uintptr_t gameExeTextureLoadInit2 = NULL;
 static uintptr_t gameExeGslPngload = NULL;
 static uintptr_t gameExeMpkMount = NULL;
 static uintptr_t gameExePpLotsOfState = NULL;
+// scroll height is +6A78
 
 namespace lb {
 int __cdecl earlyInitHook(int unk0, int unk1);
-int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, void *mpkObject, int fileId, int unk3);
+int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, void *mpkObject,
+                                int fileId, int unk3);
 
 void gameInit() {
   // TODO: maybe just scan for all signatures inside SigScan?
@@ -30,12 +34,16 @@ void gameInit() {
   gameExeMpkMount = sigScan("game", "mpkMount");
   gameExeEarlyInit = (EarlyInitProc)sigScan("game", "earlyInit");
 
+  // TODO: fault tolerance - we don't need to call it quits entirely just
+  // because one *feature* can't work
   if (!scanCreateEnableHook("game", "earlyInit", (uintptr_t *)&gameExeEarlyInit,
                             (LPVOID)&earlyInitHook,
                             (LPVOID *)&gameExeEarlyInitReal))
     return;
 
   gameExePpLotsOfState = *((uint32_t *)sigScan("game", "useOfPpLotsOfState"));
+
+  binkModInit();
 }
 
 // earlyInit is called after all the subsystems have been initialised but before
@@ -45,23 +53,24 @@ void gameInit() {
 int __cdecl earlyInitHook(int unk0, int unk1) {
   int retval = gameExeEarlyInitReal(unk0, unk1);
 
-  if (!scanCreateEnableHook("game", "mpkFopenById", (uintptr_t *)&gameExeMpkFopenById,
-      (LPVOID)&mpkFopenByIdHook,
-      (LPVOID *)&gameExeMpkFopenByIdReal))
-      return retval;
+  if (!scanCreateEnableHook(
+          "game", "mpkFopenById", (uintptr_t *)&gameExeMpkFopenById,
+          (LPVOID)&mpkFopenByIdHook, (LPVOID *)&gameExeMpkFopenByIdReal))
+    return retval;
 
   return retval;
 }
 
-int __fastcall mpkFopenByIdHook(void * pThis, void * EDX, void * mpkObject, int fileId, int unk3)
-{
+int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, void *mpkObject,
+                                int fileId, int unk3) {
 #ifdef _DEBUG
-    std::stringstream logstr;
-    uint8_t *mpkFilename = (uint8_t *)mpkObject + 1;
-    logstr << "mpkFopenById(" << mpkFilename << ".mpk, 0x" << std::hex << fileId << ")";
-    LanguageBarrierLog(logstr.str());
+  std::stringstream logstr;
+  uint8_t *mpkFilename = (uint8_t *)mpkObject + 1;
+  logstr << "mpkFopenById(" << mpkFilename << ".mpk, 0x" << std::hex << fileId
+         << ")";
+  LanguageBarrierLog(logstr.str());
 #endif
-    return gameExeMpkFopenByIdReal(pThis, mpkObject, fileId, unk3);
+  return gameExeMpkFopenByIdReal(pThis, mpkObject, fileId, unk3);
 }
 
 // TODO: I probably shouldn't be writing these in assembly given it looks like

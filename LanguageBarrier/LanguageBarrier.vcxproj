@@ -118,6 +118,7 @@ endlocal</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BinkMod.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="LanguageBarrier.h" />
@@ -126,7 +127,7 @@ endlocal</Command>
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Bink.cpp" />
+    <ClCompile Include="BinkMod.cpp" />
     <ClCompile Include="dinput8.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='dinput8-Debug|Win32'">false</CompileAsManaged>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='dinput8-Debug|Win32'">

@@ -38,6 +38,9 @@
     <ClInclude Include="lbjson.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BinkMod.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LanguageBarrier.cpp">
@@ -52,10 +55,10 @@
     <ClCompile Include="SigScan.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Bink.cpp">
+    <ClCompile Include="lbjson.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="lbjson.cpp">
+    <ClCompile Include="BinkMod.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
