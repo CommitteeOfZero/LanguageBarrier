@@ -1,6 +1,11 @@
 #include "LanguageBarrier.h"
+#include "MinHook.h"
 #include "Game.h"
 #include "SigScan.h"
+
+typedef int(__cdecl *EarlyInitProc)(int unk0, int unk1);
+static EarlyInitProc gameExeEarlyInit = NULL;
+static EarlyInitProc gameExeEarlyInitReal = NULL;
 
 static uintptr_t gameExeTextureLoadInit1 = NULL;
 static uintptr_t gameExeTextureLoadInit2 = NULL;
@@ -10,6 +15,8 @@ static uintptr_t gameExeMpkFopenById = NULL;
 static uintptr_t gameExePpLotsOfState = NULL;
 
 namespace lb {
+int __cdecl earlyInitHook(int unk0, int unk1);
+
 void gameInit() {
   // TODO: maybe just scan for all signatures inside SigScan?
   // auto-initialisation, similarly to Config.h
@@ -18,9 +25,23 @@ void gameInit() {
   gameExeGslPngload = sigScan("game", "gslPngload");
   gameExeMpkMount = sigScan("game", "mpkMount");
   gameExeMpkFopenById = sigScan("game", "mpkFopenById");
+  gameExeEarlyInit = (EarlyInitProc)sigScan("game", "earlyInit");
+
+  if (!scanCreateEnableHook("game", "earlyInit", (uintptr_t *)&gameExeEarlyInit,
+                            (LPVOID)&earlyInitHook,
+                            (LPVOID *)&gameExeEarlyInitReal))
+    return;
 
   gameExePpLotsOfState = *((uint32_t *)sigScan("game", "useOfPpLotsOfState"));
 }
+
+int __cdecl earlyInitHook(int unk0, int unk1)
+{
+    int retval = gameExeEarlyInitReal(unk0, unk1);
+   
+    return retval;
+}
+
 // TODO: I probably shouldn't be writing these in assembly given it looks like
 // they're all cdecl or thiscall anyway
 void gameLoadTexture(uint8_t textureId, void *buffer, size_t sz) {

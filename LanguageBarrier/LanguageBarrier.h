@@ -13,6 +13,8 @@
 namespace lb {
 void LanguageBarrierInit();
 void LanguageBarrierLog(const std::string &text);
+bool scanCreateEnableHook(char *category, char *name, uintptr_t *ppTarget,
+                          LPVOID pDetour, LPVOID *ppOriginal);
 }
 
 #endif  // !__LANGUAGEBARRIER_H__

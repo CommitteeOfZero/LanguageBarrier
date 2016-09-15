@@ -23,6 +23,10 @@
         "useOfPpLotsOfState": {
             "pattern": "C7 82 74 6A 00 00 00 00 00 00 A1 ?? ?? ?? ?? 8B 80 5C 6A 00 00 6B C0 34",
             "offset": 11
+        },
+        "earlyInit": {
+            "pattern": "55 8B EC 53 8B 5D 0C 56 8B 75 08 57 6A 00",
+            "offset": 0
         }
     }
 }
