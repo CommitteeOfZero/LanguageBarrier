@@ -9,6 +9,7 @@
 #include <wchar.h>
 #include <string>
 #include <sstream>
+#include "MinHook.h"
 
 namespace lb {
 void LanguageBarrierInit();
