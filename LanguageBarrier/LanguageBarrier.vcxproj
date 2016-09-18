@@ -76,11 +76,9 @@
       <Command>setlocal enableextensions
 md "$(TargetDir)languagebarrier"
 bin2h -cz defaultConfigJsonStr &lt; "$(ProjectDir)data\config.json" &gt; "$(ProjectDir)data\defaultConfigJsonStr.h"
-bin2h -cz defaultFontreplacementJsonStr &lt; "$(ProjectDir)data\fontreplacement.json" &gt; "$(ProjectDir)data\defaultFontreplacementJsonStr.h"
 bin2h -cz defaultSignaturesJsonStr &lt; "$(ProjectDir)data\signatures.json" &gt; "$(ProjectDir)data\defaultSignaturesJsonStr.h"
 bin2h -cz defaultFmvJsonStr &lt; "$(ProjectDir)data\fmv.json" &gt; "$(ProjectDir)data\defaultFmvJsonStr.h"
 bin2h -cz defaultFileredirectionJsonStr &lt; "$(ProjectDir)data\fileredirection.json" &gt; "$(ProjectDir)data\defaultFileredirectionJsonStr.h"
-copy /Y "$(ProjectDir)data\fontreplacement.json" "$(TargetDir)languagebarrier"
 copy /Y "$(ProjectDir)data\signatures.json" "$(TargetDir)languagebarrier"
 copy /Y "$(ProjectDir)data\fmv.json" "$(TargetDir)languagebarrier"
 copy /Y "$(ProjectDir)data\fileredirection.json" "$(TargetDir)languagebarrier"
@@ -113,11 +111,9 @@ endlocal</Command>
       <Command>setlocal enableextensions
 md "$(TargetDir)languagebarrier"
 bin2h -cz defaultConfigJsonStr &lt; "$(ProjectDir)data\config.json" &gt; "$(ProjectDir)data\defaultConfigJsonStr.h"
-bin2h -cz defaultFontreplacementJsonStr &lt; "$(ProjectDir)data\fontreplacement.json" &gt; "$(ProjectDir)data\defaultFontreplacementJsonStr.h"
 bin2h -cz defaultSignaturesJsonStr &lt; "$(ProjectDir)data\signatures.json" &gt; "$(ProjectDir)data\defaultSignaturesJsonStr.h"
 bin2h -cz defaultFmvJsonStr &lt; "$(ProjectDir)data\fmv.json" &gt; "$(ProjectDir)data\defaultFmvJsonStr.h"
 bin2h -cz defaultFileredirectionJsonStr &lt; "$(ProjectDir)data\fileredirection.json" &gt; "$(ProjectDir)data\defaultFileredirectionJsonStr.h"
-copy /Y "$(ProjectDir)data\fontreplacement.json" "$(TargetDir)languagebarrier"
 copy /Y "$(ProjectDir)data\signatures.json" "$(TargetDir)languagebarrier"
 copy /Y "$(ProjectDir)data\fmv.json" "$(TargetDir)languagebarrier"
 copy /Y "$(ProjectDir)data\fileredirection.json" "$(TargetDir)languagebarrier"
@@ -153,7 +149,6 @@ endlocal</Command>
   </ItemGroup>
   <ItemGroup>
     <None Include="data\config.json" />
-    <None Include="data\fontreplacement.json" />
     <None Include="data\signatures.json" />
     <None Include="data\fmv.json" />
     <None Include="packages.config" />

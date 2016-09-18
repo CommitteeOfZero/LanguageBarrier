@@ -5,7 +5,6 @@
 #include <sstream>
 #include <stdexcept>
 #include "data\defaultConfigJsonStr.h"
-#include "data\defaultFontreplacementJsonStr.h"
 #include "data\defaultSignaturesJsonStr.h"
 #include "data\defaultFmvJsonStr.h"
 #include "data\defaultFileredirectionJsonStr.h"
@@ -41,11 +40,6 @@ class Config {
     static Config s(defaultConfigJsonStr, "languageBarrier\\config.json");
     return s;
   };
-  static Config& fontreplacement() {
-    static Config s(defaultFontreplacementJsonStr,
-                    "languagebarrier\\fontreplacement.json");
-    return s;
-  };
   static Config& sigs() {
     static Config s(defaultSignaturesJsonStr,
                     "languagebarrier\\signatures.json");
@@ -69,7 +63,6 @@ class Config {
   };
   static void init() {
     config();
-    fontreplacement();
     sigs();
     fmv();
     fileredirection();

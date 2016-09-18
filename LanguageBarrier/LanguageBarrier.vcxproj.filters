@@ -76,9 +76,6 @@
       <Filter>Data</Filter>
     </None>
     <None Include="packages.config" />
-    <None Include="data\fontreplacement.json">
-      <Filter>Data</Filter>
-    </None>
     <None Include="data\fmv.json">
       <Filter>Data</Filter>
     </None>
