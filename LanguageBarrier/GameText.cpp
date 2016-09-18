@@ -130,7 +130,8 @@ void gameTextInit() {
   in.read(&((*outlineBuffer)[0]), outlineBuffer->size());
   in.close();
   gameLoadTexture(0xF7, &((*outlineBuffer)[0]), outlineBuffer->size());
-  // the game loads this asynchronously - I'm not sure how to be notified it's done and I can free the buffer
+  // the game loads this asynchronously - I'm not sure how to be notified it's
+  // done and I can free the buffer
 
   MH_CreateHook((LPVOID)gameExeDrawDialogue, drawDialogueHook,
                 (LPVOID *)&gameExeDrawDialogueReal);
