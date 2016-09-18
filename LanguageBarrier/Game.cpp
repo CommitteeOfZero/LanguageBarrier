@@ -6,6 +6,7 @@
 #include "SigScan.h"
 #include "BinkMod.h"
 #include "Config.h"
+#include "GameText.h"
 
 typedef int(__cdecl *EarlyInitProc)(int unk0, int unk1);
 static EarlyInitProc gameExeEarlyInit = NULL;
@@ -53,6 +54,8 @@ void gameInit() {
     return;
 
   gameExePpLotsOfState = *((uint32_t *)sigScan("game", "useOfPpLotsOfState"));
+
+  gameTextInit();
 
   binkModInit();
 }

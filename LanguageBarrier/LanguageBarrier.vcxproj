@@ -129,6 +129,7 @@ endlocal</Command>
     <ClInclude Include="BinkMod.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="Game.h" />
+    <ClInclude Include="GameText.h" />
     <ClInclude Include="LanguageBarrier.h" />
     <ClInclude Include="lbjson.h" />
     <ClInclude Include="SigScan.h" />
@@ -145,6 +146,7 @@ endlocal</Command>
       </PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Game.cpp" />
+    <ClCompile Include="GameText.cpp" />
     <ClCompile Include="LanguageBarrier.cpp" />
     <ClCompile Include="lbjson.cpp" />
     <ClCompile Include="SigScan.cpp" />

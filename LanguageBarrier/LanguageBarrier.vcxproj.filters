@@ -41,6 +41,9 @@
     <ClInclude Include="BinkMod.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="GameText.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LanguageBarrier.cpp">
@@ -59,6 +62,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="BinkMod.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GameText.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
