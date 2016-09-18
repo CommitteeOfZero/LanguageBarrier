@@ -1,10 +1,19 @@
 #include "LanguageBarrier.h"
 #include "GameText.h"
+#include "Game.h"
+#include <fstream>
 
 typedef void(__cdecl *DrawDialogueProc)(int fontNumber, int pageNumber,
                                         int opacity, int xOffset, int yOffset);
 static DrawDialogueProc gameExeDrawDialogue = (DrawDialogueProc)0x44B500;
 static DrawDialogueProc gameExeDrawDialogueReal = NULL;
+
+typedef int(__cdecl *DialogueLayoutRelatedProc)(int unk0, int *unk1, int *unk2,
+                                                 int unk3, int unk4, int unk5,
+                                                 int unk6, int yOffset,
+                                                 int lineHeight);
+static DialogueLayoutRelatedProc gameExeDialogueLayoutRelated = (DialogueLayoutRelatedProc)0x448790;
+static DialogueLayoutRelatedProc gameExeDialogueLayoutRelatedReal = NULL;
 
 typedef void(__cdecl *DrawGlyphProc)(int textureId, float glyphInTextureStartX,
                                      float glyphInTextureStartY,
@@ -58,11 +67,44 @@ static uint8_t *gameExeGlyphWidthsFont2 = (uint8_t *)0x52E058;
 namespace lb {
 void __cdecl drawDialogueHook(int fontNumber, int pageNumber, uint32_t opacity,
                               int xOffset, int yOffset);
+int __cdecl dialogueLayoutRelatedHook(int unk0, int *unk1, int *unk2,
+    int unk3, int unk4, int unk5,
+    int unk6, int yOffset,
+    int lineHeight);
 
 void gameTextInit() {
+    uint8_t widths[231];
+    FILE *widthsfile = fopen("languagebarrier\\widths.bin", "rb");
+    fread(widths, 1, 231, widthsfile);
+    fclose(widthsfile);
+    memcpy(gameExeGlyphWidthsFont1, widths, 231);
+    memcpy(gameExeGlyphWidthsFont2, widths, 231);
+
+    std::string contents;
+    std::ifstream in("languagebarrier\\font-outline.png", std::ios::in | std::ios::binary);
+    in.seekg(0, std::ios::end);
+    contents.resize(in.tellg());
+    in.seekg(0, std::ios::beg);
+    in.read(&contents[0], contents.size());
+    in.close();
+
+    gameLoadTexture(0xF7, &contents[0], contents.size());
+    //gameLoadTexture()
+
   MH_CreateHook((LPVOID)gameExeDrawDialogue, drawDialogueHook,
                 (LPVOID *)&gameExeDrawDialogueReal);
   MH_EnableHook((LPVOID)gameExeDrawDialogue);
+  MH_CreateHook((LPVOID)gameExeDialogueLayoutRelated, dialogueLayoutRelatedHook,
+      (LPVOID *)&gameExeDialogueLayoutRelatedReal);
+  MH_EnableHook((LPVOID)gameExeDialogueLayoutRelated);
+}
+
+int __cdecl dialogueLayoutRelatedHook(int unk0, int *unk1, int *unk2,
+    int unk3, int unk4, int unk5,
+    int unk6, int yOffset,
+    int lineHeight)
+{
+    return gameExeDialogueLayoutRelatedReal(unk0, unk1, unk2, unk3, unk4, unk5, unk6, yOffset + 12, lineHeight - 3);
 }
 
 void __cdecl drawDialogueHook(int fontNumber, int pageNumber, uint32_t opacity,
@@ -75,6 +117,21 @@ void __cdecl drawDialogueHook(int fontNumber, int pageNumber, uint32_t opacity,
       int displayStartY = (page->charDisplayY[i] + yOffset) * COORDS_MULTIPLIER;
 
       uint32_t _opacity = (page->charDisplayOpacity[i] * opacity) >> 8;
+
+      if (page->charOutlineColor[i] != -1 && page->glyphRow[i] <= 3)
+      {
+          gameExeDrawGlyph(
+              0xF7,
+              GLYPH_WIDTH * page->glyphCol[i] * COORDS_MULTIPLIER,
+              GLYPH_HEIGHT * page->glyphRow[i] * COORDS_MULTIPLIER,
+              page->glyphOrigWidth[i] * COORDS_MULTIPLIER + 8.0f,
+              page->glyphOrigHeight[i] * COORDS_MULTIPLIER, 
+              displayStartX - 4.0f,
+              displayStartY,
+              displayStartX + (COORDS_MULTIPLIER * page->glyphDisplayWidth[i]) + 4.0f,
+              displayStartY + (COORDS_MULTIPLIER * page->glyphDisplayHeight[i]),
+              page->charOutlineColor[i], _opacity);
+      }
 
       gameExeDrawGlyph(
           fontNumber + FIRST_FONT_ID,

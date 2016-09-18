@@ -55,8 +55,6 @@ void gameInit() {
 
   gameExePpLotsOfState = *((uint32_t *)sigScan("game", "useOfPpLotsOfState"));
 
-  gameTextInit();
-
   binkModInit();
 }
 
@@ -81,6 +79,8 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
           "game", "mpkFopenById", (uintptr_t *)&gameExeMpkFopenById,
           (LPVOID)&mpkFopenByIdHook, (LPVOID *)&gameExeMpkFopenByIdReal))
     return retval;
+
+  gameTextInit();
 
   return retval;
 }
@@ -121,22 +121,13 @@ int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, void *mpkObject,
 // they're all cdecl or thiscall anyway
 void gameLoadTexture(uint8_t textureId, void *buffer, size_t sz) {
   __asm {
-    push 0
-    call gameExeTextureLoadInit1
-    add esp, 4
     push ebx
-    push 0
-    lea ebx, [sz]
-    push ebx
-    lea ebx, [buffer]
-    push ebx
-    call gameExeTextureLoadInit2
     push [sz]
     push [buffer]
     movzx ebx, [textureId]
     push ebx
     call gameExeGslPngload
-    add esp, 0x18
+    add esp, 0xC
     pop ebx
   }
 }
