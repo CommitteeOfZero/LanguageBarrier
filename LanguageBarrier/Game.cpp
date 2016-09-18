@@ -80,7 +80,9 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
           (LPVOID)&mpkFopenByIdHook, (LPVOID *)&gameExeMpkFopenByIdReal))
     return retval;
 
-  gameTextInit();
+  if (Config::config().j["general"]["improveTextDisplay"].get<bool>() == true) {
+    gameTextInit();
+  }
 
   return retval;
 }

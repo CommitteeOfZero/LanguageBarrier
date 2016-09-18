@@ -3,12 +3,8 @@
     "general": {
         "fixTranslation": true,
         "replaceCGs": true,
-        "hideAutoSkipButtons": false
-    },
-    "text": {
-        "fixDialogueTextWrapping": true,
-        "fixPhoneText": true,
-        "selectedDialogueFont": "modifiedSmall"
+        "hideAutoSkipButtons": false,
+        "improveTextDisplay": true
     },
     "fmv": {
         "enableKaraokeSubs": true,
