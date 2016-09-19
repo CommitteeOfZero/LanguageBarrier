@@ -3,6 +3,30 @@
 #include "Game.h"
 #include <fstream>
 
+typedef struct __declspec(align(4)) {
+  char gap0[316];
+  int somePageNumber;
+  char gap140[16];
+  char *pString;
+} sc3_t;
+
+// this is my own, not from the game
+typedef struct {
+  int lines;
+  int length;
+  int textureStartX[512];
+  int textureStartY[512];
+  int textureWidth[512];
+  int textureHeight[512];
+  int displayStartX[512];
+  int displayStartY[512];
+  int displayEndX[512];
+  int displayEndY[512];
+  int color[512];
+  int glyph[512];
+  char *sc3StringNext;
+} processedSc3String_t;
+
 typedef void(__cdecl *DrawDialogueProc)(int fontNumber, int pageNumber,
                                         int opacity, int xOffset, int yOffset);
 static DrawDialogueProc gameExeDrawDialogue = (DrawDialogueProc)0x44B500;
@@ -29,6 +53,17 @@ typedef void(__cdecl *DrawGlyphProc)(int textureId, float glyphInTextureStartX,
                                      float displayEndX, float displayEndY,
                                      int color, uint32_t opacity);
 static DrawGlyphProc gameExeDrawGlyph = (DrawGlyphProc)0x42F950;
+
+typedef int(__cdecl *DrawPhoneTextProc)(int textureId, int xOffset, int yOffset,
+                                        int lineLength, char *sc3string,
+                                        int lineSkipCount, int lineDisplayCount,
+                                        int usePrimaryColor, int baseGlyphSize,
+                                        int opacity);
+static DrawPhoneTextProc gameExeDrawPhoneText = (DrawPhoneTextProc)0x444F70;
+static DrawPhoneTextProc gameExeDrawPhoneTextReal = NULL;
+
+typedef int(__cdecl *Sc3EvalProc)(sc3_t *sc3, int *pOutResult);
+static Sc3EvalProc gameExeSc3Eval = (Sc3EvalProc)0x4181D0;
 
 static uintptr_t gameExeDialogueLayoutWidthLookup1 = NULL;
 static uintptr_t gameExeDialogueLayoutWidthLookup1Return = NULL;
@@ -114,6 +149,14 @@ void __cdecl drawDialogue2Hook(int fontNumber, int pageNumber,
 int __cdecl dialogueLayoutRelatedHook(int unk0, int *unk1, int *unk2, int unk3,
                                       int unk4, int unk5, int unk6, int yOffset,
                                       int lineHeight);
+int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
+                              int lineLength, char *sc3string,
+                              int lineSkipCount, int lineDisplayCount,
+                              int usePrimaryColor, int baseGlyphSize,
+                              int opacity);
+void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
+                      int lineCount, int baseGlyphSize,
+                      processedSc3String_t *result, bool measureOnly);
 
 void gameTextInit() {
   FILE *widthsfile = fopen("languagebarrier\\widths.bin", "rb");
@@ -142,6 +185,9 @@ void gameTextInit() {
   MH_CreateHook((LPVOID)gameExeDialogueLayoutRelated, dialogueLayoutRelatedHook,
                 (LPVOID *)&gameExeDialogueLayoutRelatedReal);
   MH_EnableHook((LPVOID)gameExeDialogueLayoutRelated);
+  MH_CreateHook((LPVOID)gameExeDrawPhoneText, drawPhoneTextHook,
+                (LPVOID *)&gameExeDrawPhoneTextReal);
+  MH_EnableHook((LPVOID)gameExeDrawPhoneText);
 
   scanCreateEnableHook("game", "dialogueLayoutWidthLookup1",
                        &gameExeDialogueLayoutWidthLookup1,
@@ -209,5 +255,111 @@ void __cdecl drawDialogue2Hook(int fontNumber, int pageNumber,
                                uint32_t opacity) {
   // dunno if this is ever actually called but might as well
   drawDialogueHook(fontNumber, pageNumber, opacity, 0, 0);
+}
+
+void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
+                      int lineCount, int baseGlyphSize,
+                      processedSc3String_t *result, bool measureOnly) {
+  sc3_t sc3;
+  int sc3evalResult;
+
+  memset(result, 0, sizeof(processedSc3String_t));
+
+  int curLineLength = 0;
+  char c;
+
+  while (result->lines < lineCount) {
+    c = *sc3string;
+    switch (c) {
+      case -1:
+        result->lines = 0xFF;
+        goto ret;
+      case 0:
+        // linebreak
+        result->lines++;
+        sc3string++;
+        curLineLength = 0;
+        break;
+      case 4:
+        // embedded sc3 expression
+        sc3.pString = sc3string + 1;
+        gameExeSc3Eval(&sc3, &sc3evalResult);
+        sc3string = sc3.pString;
+        break;
+      case 9:
+      case 0x1E:
+      case 0xB:
+        // I forget what these are but they're not relevant for us.
+        sc3string++;
+        break;
+      default:
+        if (c & 0x80 == 0)
+        // if I read this correctly, the game originally just spins in an
+        // infinite loop forever here
+        // and I don't like that
+        {
+          result->lines = 0xFF;
+          goto ret;
+        }
+
+        int i = result->length;
+        int glyphId = sc3string[1] + ((c & 0x7f) << 8);
+        sc3string += 2;
+        int glyphWidth = (baseGlyphSize * widths[glyphId]) / GLYPH_WIDTH;
+        curLineLength += glyphWidth;
+        if (curLineLength + glyphWidth > lineLength) {
+          curLineLength = glyphWidth;
+          result->lines++;
+        }
+        if (result->lines < lineCount) {
+          result->length++;
+          if (!measureOnly) {
+            result->glyph[i] = glyphId;
+            result->textureStartX[i] =
+                GLYPH_WIDTH * COORDS_MULTIPLIER * (glyphId % FONT_ROW_LENGTH);
+            result->textureStartY[i] =
+                GLYPH_HEIGHT * COORDS_MULTIPLIER * (glyphId / FONT_ROW_LENGTH);
+            result->textureWidth[i] = widths[glyphId] * COORDS_MULTIPLIER;
+            result->textureHeight[i] = GLYPH_HEIGHT * COORDS_MULTIPLIER;
+            result->displayStartX[i] =
+                (xOffset + (curLineLength - glyphWidth)) * COORDS_MULTIPLIER;
+            result->displayStartY[i] =
+                (yOffset + (result->lines * baseGlyphSize)) * COORDS_MULTIPLIER;
+            result->displayEndX[i] =
+                (xOffset + curLineLength) * COORDS_MULTIPLIER;
+            result->displayEndY[i] =
+                (yOffset + ((result->lines + 1) * baseGlyphSize)) *
+                COORDS_MULTIPLIER;
+          }
+        }
+    }
+  }
+ret:
+  result->lines = min(result->lines, lineCount);
+  result->sc3StringNext = sc3string;
+}
+
+int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
+                              int lineLength, char *sc3string,
+                              int lineSkipCount, int lineDisplayCount,
+                              int usePrimaryColor, int baseGlyphSize,
+                              int opacity) {
+  processedSc3String_t str;
+
+  if (!lineLength) lineLength = 1280;
+
+  processSc3String(xOffset, yOffset, lineLength, sc3string, lineSkipCount,
+                   baseGlyphSize, &str, true);
+  processSc3String(xOffset, yOffset, lineLength, str.sc3StringNext,
+                   lineDisplayCount, baseGlyphSize, &str, false);
+
+  for (int i = 0; i < str.length; i++) {
+    gameExeDrawGlyph(textureId, str.textureStartX[i], str.textureStartY[i],
+                     str.textureWidth[i], str.textureHeight[i],
+                     str.displayStartX[i], str.displayStartY[i],
+                     str.displayEndX[i], str.displayEndY[i], 0x80808080,
+                     opacity);
+  }
+  return str.lines;
 }
 }
