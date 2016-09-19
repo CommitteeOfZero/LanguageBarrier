@@ -111,6 +111,7 @@ static dialoguePage_t *gameExeDialoguePages = (dialoguePage_t *)0x164D680;
 
 static uint8_t *gameExeGlyphWidthsFont1 = (uint8_t *)0x52C7F0;
 static uint8_t *gameExeGlyphWidthsFont2 = (uint8_t *)0x52E058;
+static int *gameExeColors = (int *)0x52E1E8;
 
 static uint8_t widths[8000];
 
@@ -152,10 +153,10 @@ int __cdecl dialogueLayoutRelatedHook(int unk0, int *unk1, int *unk2, int unk3,
 int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
                               int lineLength, char *sc3string,
                               int lineSkipCount, int lineDisplayCount,
-                              int usePrimaryColor, int baseGlyphSize,
+                              int color, int baseGlyphSize,
                               int opacity);
 void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
-                      int lineCount, int baseGlyphSize,
+                      int lineCount, int color, int baseGlyphSize,
                       processedSc3String_t *result, bool measureOnly);
 
 void gameTextInit() {
@@ -258,7 +259,7 @@ void __cdecl drawDialogue2Hook(int fontNumber, int pageNumber,
 }
 
 void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
-                      int lineCount, int baseGlyphSize,
+                      int lineCount, int color, int baseGlyphSize,
                       processedSc3String_t *result, bool measureOnly) {
   sc3_t sc3;
   int sc3evalResult;
@@ -267,6 +268,7 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
 
   int curLineLength = 0;
   char c;
+  int currentColor = color;
 
   while (result->lines < lineCount) {
     c = *sc3string;
@@ -285,6 +287,10 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
         sc3.pString = sc3string + 1;
         gameExeSc3Eval(&sc3, &sc3evalResult);
         sc3string = sc3.pString;
+        if (color)
+            currentColor = gameExeColors[2 * sc3evalResult];
+        else
+            currentColor = gameExeColors[2 * sc3evalResult + 1];
         break;
       case 9:
       case 0x1E:
@@ -330,6 +336,7 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
             result->displayEndY[i] =
                 (yOffset + ((result->lines + 1) * baseGlyphSize)) *
                 COORDS_MULTIPLIER;
+            result->color[i] = currentColor;
           }
         }
     }
@@ -342,22 +349,22 @@ ret:
 int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
                               int lineLength, char *sc3string,
                               int lineSkipCount, int lineDisplayCount,
-                              int usePrimaryColor, int baseGlyphSize,
+                              int color, int baseGlyphSize,
                               int opacity) {
   processedSc3String_t str;
 
   if (!lineLength) lineLength = 1280;
 
   processSc3String(xOffset, yOffset, lineLength, sc3string, lineSkipCount,
-                   baseGlyphSize, &str, true);
+                   color, baseGlyphSize, &str, true);
   processSc3String(xOffset, yOffset, lineLength, str.sc3StringNext,
-                   lineDisplayCount, baseGlyphSize, &str, false);
+                   lineDisplayCount, color, baseGlyphSize, &str, false);
 
   for (int i = 0; i < str.length; i++) {
     gameExeDrawGlyph(textureId, str.textureStartX[i], str.textureStartY[i],
                      str.textureWidth[i], str.textureHeight[i],
                      str.displayStartX[i], str.displayStartY[i],
-                     str.displayEndX[i], str.displayEndY[i], 0x80808080,
+                     str.displayEndX[i], str.displayEndY[i], str.color[i],
                      opacity);
   }
   return str.lines;
