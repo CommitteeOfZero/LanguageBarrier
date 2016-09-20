@@ -24,8 +24,19 @@ typedef struct {
   int displayEndY[512];
   int color[512];
   int glyph[512];
+  uint8_t linkNumber[512];
+  int linkCharCount;
   char *sc3StringNext;
 } processedSc3String_t;
+static const uint8_t NOT_A_LINK = 0xFF;
+
+typedef struct __declspec(align(4)) {
+  int linkNumber;
+  int displayX;
+  int displayY;
+  int displayWidth;
+  int displayHeight;
+} LinkMetrics_t;
 
 typedef void(__cdecl *DrawDialogueProc)(int fontNumber, int pageNumber,
                                         int opacity, int xOffset, int yOffset);
@@ -54,10 +65,15 @@ typedef void(__cdecl *DrawGlyphProc)(int textureId, float glyphInTextureStartX,
                                      int color, uint32_t opacity);
 static DrawGlyphProc gameExeDrawGlyph = (DrawGlyphProc)0x42F950;
 
+typedef int(__cdecl *DrawRectangleProc)(float X, float Y, float width,
+                                        float height, int color,
+                                        uint32_t opacity);
+static DrawRectangleProc gameExeDrawRectangle = (DrawRectangleProc)0x42F890;
+
 typedef int(__cdecl *DrawPhoneTextProc)(int textureId, int xOffset, int yOffset,
                                         int lineLength, char *sc3string,
                                         int lineSkipCount, int lineDisplayCount,
-                                        int usePrimaryColor, int baseGlyphSize,
+                                        int color, int baseGlyphSize,
                                         int opacity);
 static DrawPhoneTextProc gameExeDrawPhoneText = (DrawPhoneTextProc)0x444F70;
 static DrawPhoneTextProc gameExeDrawPhoneTextReal = NULL;
@@ -76,6 +92,39 @@ static GetSc3StringDisplayWidthProc gameExeGetSc3StringDisplayWidthFont2Real =
 
 typedef int(__cdecl *Sc3EvalProc)(sc3_t *sc3, int *pOutResult);
 static Sc3EvalProc gameExeSc3Eval = (Sc3EvalProc)0x4181D0;
+
+typedef int(__cdecl *GetLinksFromSc3StringProc)(int xOffset, int yOffset,
+                                                int lineLength, char *sc3string,
+                                                int lineSkipCount,
+                                                int lineDisplayCount,
+                                                int baseGlyphSize,
+                                                LinkMetrics_t *result);
+static GetLinksFromSc3StringProc gameExeGetLinksFromSc3String =
+    (GetLinksFromSc3StringProc)0x445EA0;
+static GetLinksFromSc3StringProc gameExeGetLinksFromSc3StringReal = NULL;
+
+typedef int(__cdecl *DrawInteractiveMailProc)(
+    int textureId, int xOffset, int yOffset, signed int lineLength,
+    char *sc3string, unsigned int lineSkipCount, unsigned int lineDisplayCount,
+    int color, unsigned int baseGlyphSize, int opacity, int unselectedLinkColor,
+    int selectedLinkColor, int selectedLink);
+static DrawInteractiveMailProc gameExeDrawInteractiveMail =
+    (DrawInteractiveMailProc)0x4453D0;
+static DrawInteractiveMailProc gameExeDrawInteractiveMailReal = NULL;
+
+typedef int(__cdecl *DrawLinkHighlightProc)(
+    int xOffset, int yOffset, int lineLength, char *sc3string,
+    unsigned int lineSkipCount, unsigned int lineDisplayCount, int color,
+    unsigned int baseGlyphSize, int opacity, int selectedLink);
+static DrawLinkHighlightProc gameExeDrawLinkHighlight =
+    (DrawLinkHighlightProc)0x444B90;
+static DrawLinkHighlightProc gameExeDrawLinkHighlightReal = NULL;
+
+typedef int(__cdecl *GetSc3StringLineCountProc)(int lineLength, char *sc3string,
+                                                unsigned int baseGlyphSize);
+static GetSc3StringLineCountProc gameExeGetSc3StringLineCount =
+    (GetSc3StringLineCountProc)0x442790;
+static GetSc3StringLineCountProc gameExeGetSc3StringLineCountReal = NULL;
 
 static uintptr_t gameExeDialogueLayoutWidthLookup1 = NULL;
 static uintptr_t gameExeDialogueLayoutWidthLookup1Return = NULL;
@@ -168,17 +217,41 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
                               int color, int baseGlyphSize, int opacity);
 void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
                       int lineCount, int color, int baseGlyphSize,
-                      processedSc3String_t *result, bool measureOnly);
+                      processedSc3String_t *result, bool measureOnly,
+                      float multiplier, bool markError);
 int __cdecl getSc3StringDisplayWidthHook(char *sc3string,
                                          unsigned int maxCharacters,
                                          int baseGlyphSize);
+int __cdecl getLinksFromSc3StringHook(int xOffset, int yOffset, int lineLength,
+                                      char *sc3string, int lineSkipCount,
+                                      int lineDisplayCount, int baseGlyphSize,
+                                      LinkMetrics_t *result);
+int __cdecl drawInteractiveMailHook(int textureId, int xOffset, int yOffset,
+                                    signed int lineLength, char *string,
+                                    unsigned int lineSkipCount,
+                                    unsigned int lineDisplayCount, int color,
+                                    unsigned int glyphSize, int opacity,
+                                    int unselectedLinkColor,
+                                    int selectedLinkColor, int selectedLink);
+int __cdecl drawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
+                                  char *sc3string, unsigned int lineSkipCount,
+                                  unsigned int lineDisplayCount, int color,
+                                  unsigned int baseGlyphSize, int opacity,
+                                  int selectedLink);
+int __cdecl getSc3StringLineCountHook(int lineLength, char *sc3string,
+                                      unsigned int baseGlyphSize);
+// There are a bunch more functions like these but I haven't seen them get hit
+// during debugging and the original code *mostly* works okay if it recognises
+// western text as variable-width
+// (which some functions do, and others don't, except for symbols (also used in
+// Western translations) it considers full-width)
 
 void gameTextInit() {
   FILE *widthsfile = fopen("languagebarrier\\widths.bin", "rb");
   fread(widths, 1, 8000, widthsfile);
   fclose(widthsfile);
-  memcpy(gameExeGlyphWidthsFont1, widths, 231);
-  memcpy(gameExeGlyphWidthsFont2, widths, 231);
+  memcpy(gameExeGlyphWidthsFont1, widths, 0x15F);
+  memcpy(gameExeGlyphWidthsFont2, widths, 0x15F);
 
   std::ifstream in("languagebarrier\\font-outline.png",
                    std::ios::in | std::ios::binary);
@@ -211,6 +284,18 @@ void gameTextInit() {
                 getSc3StringDisplayWidthHook,
                 (LPVOID *)&gameExeGetSc3StringDisplayWidthFont2Real);
   MH_EnableHook((LPVOID)gameExeGetSc3StringDisplayWidthFont2);
+  MH_CreateHook((LPVOID)gameExeGetLinksFromSc3String, getLinksFromSc3StringHook,
+                (LPVOID *)&gameExeGetLinksFromSc3StringReal);
+  MH_EnableHook((LPVOID)gameExeGetLinksFromSc3String);
+  MH_CreateHook((LPVOID)gameExeDrawInteractiveMail, drawInteractiveMailHook,
+                (LPVOID *)&gameExeDrawInteractiveMailReal);
+  MH_EnableHook((LPVOID)gameExeDrawInteractiveMail);
+  MH_CreateHook((LPVOID)gameExeDrawLinkHighlight, drawLinkHighlightHook,
+                (LPVOID *)&gameExeDrawLinkHighlightReal);
+  MH_EnableHook((LPVOID)gameExeDrawLinkHighlight);
+  MH_CreateHook((LPVOID)gameExeGetSc3StringLineCount, getSc3StringLineCountHook,
+                (LPVOID *)&gameExeGetSc3StringLineCountReal);
+  MH_EnableHook((LPVOID)gameExeGetSc3StringLineCount);
 
   scanCreateEnableHook("game", "dialogueLayoutWidthLookup1",
                        &gameExeDialogueLayoutWidthLookup1,
@@ -282,13 +367,16 @@ void __cdecl drawDialogue2Hook(int fontNumber, int pageNumber,
 
 void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
                       int lineCount, int color, int baseGlyphSize,
-                      processedSc3String_t *result, bool measureOnly) {
+                      processedSc3String_t *result, bool measureOnly,
+                      float multiplier, bool markError) {
   sc3_t sc3;
   int sc3evalResult;
 
   memset(result, 0, sizeof(processedSc3String_t));
 
   int curLineLength = 0;
+  int curLinkNumber = NOT_A_LINK;  // not a link
+  int lastLinkNumber = -1;
   signed char c;
   int currentColor = color;
 
@@ -296,7 +384,7 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
     c = *sc3string;
     switch (c) {
       case -1:
-        result->lines = 0xFF;
+        if (markError) result->lines = 0xFF;
         goto ret;
       case 0:
         // linebreak
@@ -315,8 +403,16 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
           currentColor = gameExeColors[2 * sc3evalResult + 1];
         break;
       case 9:
-      case 0x1E:
+        // link start
+        curLinkNumber = ++lastLinkNumber;
+        sc3string++;
+        break;
       case 0xB:
+        // link end
+        curLinkNumber = NOT_A_LINK;
+        sc3string++;
+        break;
+      case 0x1E:
         // SA says these are ruby text start markers
         // not relevant for our purposes (the original functions skip them too)
         sc3string++;
@@ -327,7 +423,7 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
         // infinite loop forever here
         // and I don't like that
         {
-          result->lines = 0xFF;
+          if (markError) result->lines = 0xFF;
           goto ret;
         }
 
@@ -342,23 +438,27 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
         }
         if (result->lines < lineCount) {
           result->length++;
+          if (curLinkNumber != NOT_A_LINK) {
+            result->linkCharCount++;
+          }
           if (!measureOnly) {
+            // anything that's part of an array needs to go here, otherwise we
+            // get buffer overflows with long mails
+            result->linkNumber[i] = curLinkNumber;
             result->glyph[i] = glyphId;
             result->textureStartX[i] =
-                GLYPH_WIDTH * COORDS_MULTIPLIER * (glyphId % FONT_ROW_LENGTH);
+                GLYPH_WIDTH * multiplier * (glyphId % FONT_ROW_LENGTH);
             result->textureStartY[i] =
-                GLYPH_HEIGHT * COORDS_MULTIPLIER * (glyphId / FONT_ROW_LENGTH);
-            result->textureWidth[i] = widths[glyphId] * COORDS_MULTIPLIER;
-            result->textureHeight[i] = GLYPH_HEIGHT * COORDS_MULTIPLIER;
+                GLYPH_HEIGHT * multiplier * (glyphId / FONT_ROW_LENGTH);
+            result->textureWidth[i] = widths[glyphId] * multiplier;
+            result->textureHeight[i] = GLYPH_HEIGHT * multiplier;
             result->displayStartX[i] =
-                (xOffset + (curLineLength - glyphWidth)) * COORDS_MULTIPLIER;
+                (xOffset + (curLineLength - glyphWidth)) * multiplier;
             result->displayStartY[i] =
-                (yOffset + (result->lines * baseGlyphSize)) * COORDS_MULTIPLIER;
-            result->displayEndX[i] =
-                (xOffset + curLineLength) * COORDS_MULTIPLIER;
+                (yOffset + (result->lines * baseGlyphSize)) * multiplier;
+            result->displayEndX[i] = (xOffset + curLineLength) * multiplier;
             result->displayEndY[i] =
-                (yOffset + ((result->lines + 1) * baseGlyphSize)) *
-                COORDS_MULTIPLIER;
+                (yOffset + ((result->lines + 1) * baseGlyphSize)) * multiplier;
             result->color[i] = currentColor;
           }
         }
@@ -378,9 +478,10 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
   if (!lineLength) lineLength = 1280;
 
   processSc3String(xOffset, yOffset, lineLength, sc3string, lineSkipCount,
-                   color, baseGlyphSize, &str, true);
+                   color, baseGlyphSize, &str, true, COORDS_MULTIPLIER, true);
   processSc3String(xOffset, yOffset, lineLength, str.sc3StringNext,
-                   lineDisplayCount, color, baseGlyphSize, &str, false);
+                   lineDisplayCount, color, baseGlyphSize, &str, false,
+                   COORDS_MULTIPLIER, true);
 
   for (int i = 0; i < str.length; i++) {
     gameExeDrawGlyph(textureId, str.textureStartX[i], str.textureStartY[i],
@@ -414,5 +515,111 @@ int __cdecl getSc3StringDisplayWidthHook(char *sc3string,
     }
   }
   return result;
+}
+
+int __cdecl getLinksFromSc3StringHook(int xOffset, int yOffset, int lineLength,
+                                      char *sc3string, int lineSkipCount,
+                                      int lineDisplayCount, int baseGlyphSize,
+                                      LinkMetrics_t *result) {
+  processedSc3String_t str;
+
+  if (!lineLength) lineLength = 1280;
+
+  processSc3String(xOffset, yOffset, lineLength, sc3string, lineSkipCount, 0,
+                   baseGlyphSize, &str, true, 1.0f, true);
+  processSc3String(xOffset, yOffset, lineLength, str.sc3StringNext,
+                   lineDisplayCount, 0, baseGlyphSize, &str, false, 1.0f, true);
+
+  int j = 0;
+  for (int i = 0; i < str.length; i++) {
+    if (str.linkNumber[i] != NOT_A_LINK) {
+      result[j].linkNumber = str.linkNumber[i];
+      result[j].displayX = str.displayStartX[i];
+      result[j].displayY = str.displayStartY[i];
+      result[j].displayWidth = str.displayEndX[i] - str.displayStartX[i];
+      result[j].displayHeight = str.displayEndY[i] - str.displayStartY[i];
+
+      j++;
+      if (j >= str.linkCharCount) return str.linkCharCount;
+    }
+  }
+}
+
+int __cdecl drawInteractiveMailHook(int textureId, int xOffset, int yOffset,
+                                    signed int lineLength, char *sc3string,
+                                    unsigned int lineSkipCount,
+                                    unsigned int lineDisplayCount, int color,
+                                    unsigned int baseGlyphSize, int opacity,
+                                    int unselectedLinkColor,
+                                    int selectedLinkColor, int selectedLink) {
+  processedSc3String_t str;
+
+  if (!lineLength) lineLength = 1280;
+
+  processSc3String(xOffset, yOffset, lineLength, sc3string, lineSkipCount,
+                   color, baseGlyphSize, &str, true, COORDS_MULTIPLIER, true);
+  processSc3String(xOffset, yOffset, lineLength, str.sc3StringNext,
+                   lineDisplayCount, color, baseGlyphSize, &str, false,
+                   COORDS_MULTIPLIER, true);
+
+  for (int i = 0; i < str.length; i++) {
+    int curColor = str.color[i];
+    if (str.linkNumber[i] != NOT_A_LINK) {
+      if (str.linkNumber[i] == selectedLink)
+        curColor = selectedLinkColor;
+      else
+        curColor = unselectedLinkColor;
+
+      gameExeDrawGlyph(textureId, 1009.5, 193.5, str.textureWidth[i],
+                       str.textureHeight[i], str.displayStartX[i],
+                       str.displayStartY[i], str.displayEndX[i],
+                       str.displayEndY[i], curColor, opacity);
+    }
+
+    gameExeDrawGlyph(textureId, str.textureStartX[i], str.textureStartY[i],
+                     str.textureWidth[i], str.textureHeight[i],
+                     str.displayStartX[i], str.displayStartY[i],
+                     str.displayEndX[i], str.displayEndY[i], curColor, opacity);
+  }
+  return str.lines;
+}
+
+int __cdecl drawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
+                                  char *sc3string, unsigned int lineSkipCount,
+                                  unsigned int lineDisplayCount, int color,
+                                  unsigned int baseGlyphSize, int opacity,
+                                  int selectedLink) {
+  processedSc3String_t str;
+
+  if (!lineLength) lineLength = 1280;
+
+  processSc3String(xOffset, yOffset, lineLength, sc3string, lineSkipCount,
+                   color, baseGlyphSize, &str, true, COORDS_MULTIPLIER, true);
+  processSc3String(xOffset, yOffset, lineLength, str.sc3StringNext,
+                   lineDisplayCount, color, baseGlyphSize, &str, false,
+                   COORDS_MULTIPLIER, true);
+
+  if (selectedLink == NOT_A_LINK) return str.lines;
+
+  for (int i = 0; i < str.length; i++) {
+    if (str.linkNumber[i] == selectedLink) {
+      gameExeDrawRectangle(str.displayStartX[i], str.displayStartY[i],
+                           str.displayEndX[i] - str.displayStartX[i],
+                           str.displayEndY[i] - str.displayStartY[i], color,
+                           opacity);
+    }
+  }
+  return str.lines;
+}
+
+// This is used to set bounds for scrolling
+int __cdecl getSc3StringLineCountHook(int lineLength, char *sc3string,
+                                      unsigned int baseGlyphSize) {
+  processedSc3String_t str;
+  if (!lineLength) lineLength = 1280;
+
+  processSc3String(0, 0, lineLength, sc3string, 0xFF, 0, baseGlyphSize, &str,
+                   true, 1.0f, false);
+  return str.lines;
 }
 }
