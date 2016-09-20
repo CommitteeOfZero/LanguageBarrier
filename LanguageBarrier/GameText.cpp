@@ -62,11 +62,17 @@ typedef int(__cdecl *DrawPhoneTextProc)(int textureId, int xOffset, int yOffset,
 static DrawPhoneTextProc gameExeDrawPhoneText = (DrawPhoneTextProc)0x444F70;
 static DrawPhoneTextProc gameExeDrawPhoneTextReal = NULL;
 
-typedef int(__cdecl *GetSc3StringDisplayWidthProc)(char *string, unsigned int maxCharacters, int baseGlyphSize);
-static GetSc3StringDisplayWidthProc gameExeGetSc3StringDisplayWidthFont1 = (GetSc3StringDisplayWidthProc)0x4462E0;
-static GetSc3StringDisplayWidthProc gameExeGetSc3StringDisplayWidthFont1Real = NULL;
-static GetSc3StringDisplayWidthProc gameExeGetSc3StringDisplayWidthFont2 = (GetSc3StringDisplayWidthProc)0x4461F0;
-static GetSc3StringDisplayWidthProc gameExeGetSc3StringDisplayWidthFont2Real = NULL;
+typedef int(__cdecl *GetSc3StringDisplayWidthProc)(char *string,
+                                                   unsigned int maxCharacters,
+                                                   int baseGlyphSize);
+static GetSc3StringDisplayWidthProc gameExeGetSc3StringDisplayWidthFont1 =
+    (GetSc3StringDisplayWidthProc)0x4462E0;
+static GetSc3StringDisplayWidthProc gameExeGetSc3StringDisplayWidthFont1Real =
+    NULL;
+static GetSc3StringDisplayWidthProc gameExeGetSc3StringDisplayWidthFont2 =
+    (GetSc3StringDisplayWidthProc)0x4461F0;
+static GetSc3StringDisplayWidthProc gameExeGetSc3StringDisplayWidthFont2Real =
+    NULL;
 
 typedef int(__cdecl *Sc3EvalProc)(sc3_t *sc3, int *pOutResult);
 static Sc3EvalProc gameExeSc3Eval = (Sc3EvalProc)0x4181D0;
@@ -159,12 +165,13 @@ int __cdecl dialogueLayoutRelatedHook(int unk0, int *unk1, int *unk2, int unk3,
 int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
                               int lineLength, char *sc3string,
                               int lineSkipCount, int lineDisplayCount,
-                              int color, int baseGlyphSize,
-                              int opacity);
+                              int color, int baseGlyphSize, int opacity);
 void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
                       int lineCount, int color, int baseGlyphSize,
                       processedSc3String_t *result, bool measureOnly);
-int __cdecl getSc3StringDisplayWidthHook(char *sc3string, unsigned int maxCharacters, int baseGlyphSize);
+int __cdecl getSc3StringDisplayWidthHook(char *sc3string,
+                                         unsigned int maxCharacters,
+                                         int baseGlyphSize);
 
 void gameTextInit() {
   FILE *widthsfile = fopen("languagebarrier\\widths.bin", "rb");
@@ -196,11 +203,13 @@ void gameTextInit() {
   MH_CreateHook((LPVOID)gameExeDrawPhoneText, drawPhoneTextHook,
                 (LPVOID *)&gameExeDrawPhoneTextReal);
   MH_EnableHook((LPVOID)gameExeDrawPhoneText);
-  MH_CreateHook((LPVOID)gameExeGetSc3StringDisplayWidthFont1, getSc3StringDisplayWidthHook,
-      (LPVOID *)&gameExeGetSc3StringDisplayWidthFont1Real);
+  MH_CreateHook((LPVOID)gameExeGetSc3StringDisplayWidthFont1,
+                getSc3StringDisplayWidthHook,
+                (LPVOID *)&gameExeGetSc3StringDisplayWidthFont1Real);
   MH_EnableHook((LPVOID)gameExeGetSc3StringDisplayWidthFont1);
-  MH_CreateHook((LPVOID)gameExeGetSc3StringDisplayWidthFont2, getSc3StringDisplayWidthHook,
-      (LPVOID *)&gameExeGetSc3StringDisplayWidthFont2Real);
+  MH_CreateHook((LPVOID)gameExeGetSc3StringDisplayWidthFont2,
+                getSc3StringDisplayWidthHook,
+                (LPVOID *)&gameExeGetSc3StringDisplayWidthFont2Real);
   MH_EnableHook((LPVOID)gameExeGetSc3StringDisplayWidthFont2);
 
   scanCreateEnableHook("game", "dialogueLayoutWidthLookup1",
@@ -296,19 +305,20 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
         curLineLength = 0;
         break;
       case 4:
-        // embedded sc3 expression
+        // embedded sc3 expression, for changing color
         sc3.pString = sc3string + 1;
         gameExeSc3Eval(&sc3, &sc3evalResult);
         sc3string = sc3.pString;
         if (color)
-            currentColor = gameExeColors[2 * sc3evalResult];
+          currentColor = gameExeColors[2 * sc3evalResult];
         else
-            currentColor = gameExeColors[2 * sc3evalResult + 1];
+          currentColor = gameExeColors[2 * sc3evalResult + 1];
         break;
       case 9:
       case 0x1E:
       case 0xB:
-        // I forget what these are but they're not relevant for us.
+        // SA says these are ruby text start markers
+        // not relevant for our purposes (the original functions skip them too)
         sc3string++;
         break;
       default:
@@ -322,7 +332,7 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
         }
 
         int i = result->length;
-        int glyphId = sc3string[1] + ((c & 0x7f) << 8);
+        int glyphId = (uint8_t)sc3string[1] + ((c & 0x7f) << 8);
         sc3string += 2;
         int glyphWidth = (baseGlyphSize * widths[glyphId]) / GLYPH_WIDTH;
         curLineLength += glyphWidth;
@@ -362,8 +372,7 @@ ret:
 int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
                               int lineLength, char *sc3string,
                               int lineSkipCount, int lineDisplayCount,
-                              int color, int baseGlyphSize,
-                              int opacity) {
+                              int color, int baseGlyphSize, int opacity) {
   processedSc3String_t str;
 
   if (!lineLength) lineLength = 1280;
@@ -383,27 +392,27 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
   return str.lines;
 }
 
-int __cdecl getSc3StringDisplayWidthHook(char *sc3string, unsigned int maxCharacters, int baseGlyphSize) {
-    if (!maxCharacters)
-        maxCharacters = 255;
-    sc3_t sc3;
-    int sc3evalResult;
-    int result = 0;
-    int i = 0;
-    signed char c;
-    while (i < maxCharacters && (c = *sc3string) != -1) {
-        if (c == 4) {
-            sc3.pString = sc3string + 1;
-            gameExeSc3Eval(&sc3, &sc3evalResult);
-            sc3string = sc3.pString;
-        }
-        else if (c < 0) {
-            int glyphId = sc3string[1] + ((c & 0x7f) << 8);
-            result += (baseGlyphSize * widths[glyphId]) / GLYPH_WIDTH;
-            i++;
-            sc3string += 2;
-        }
+int __cdecl getSc3StringDisplayWidthHook(char *sc3string,
+                                         unsigned int maxCharacters,
+                                         int baseGlyphSize) {
+  if (!maxCharacters) maxCharacters = 255;
+  sc3_t sc3;
+  int sc3evalResult;
+  int result = 0;
+  int i = 0;
+  signed char c;
+  while (i <= maxCharacters && (c = *sc3string) != -1) {
+    if (c == 4) {
+      sc3.pString = sc3string + 1;
+      gameExeSc3Eval(&sc3, &sc3evalResult);
+      sc3string = sc3.pString;
+    } else if (c < 0) {
+      int glyphId = (uint8_t)sc3string[1] + ((c & 0x7f) << 8);
+      result += (baseGlyphSize * widths[glyphId]) / GLYPH_WIDTH;
+      i++;
+      sc3string += 2;
     }
-    return result;
+  }
+  return result;
 }
 }
