@@ -9,7 +9,7 @@
 typedef struct __declspec(align(4)) {
   char gap0[316];
   int somePageNumber;
-  char gap140[16];
+  char gap140[12];
   char *pString;
 } sc3_t;
 
@@ -384,6 +384,17 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
   sc3_t sc3;
   int sc3evalResult;
 
+// Hack for enlarging the text in @channel threads (which have manual
+// linebreaks, and thus a huge margin)
+// Not sure whether we want to include this so I'll just leave it disabled for
+// now
+#if 0
+  if (lineLength == 552) {
+      baseGlyphSize = 24;
+      lineLength = 800;
+  }
+#endif
+
   // some padding, to make things look nicer.
   // note that with more padding (e.g. xOffset += 5, lineLength -= 10) an extra
   // empty line may appear at the start of a mail
@@ -413,6 +424,8 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
   memset(origNextStrings, 0, sizeof(origNextStrings));
 
   result->sc3StringNext = sc3string;
+
+  if (lineCount == 0) return;
 
   bool done = false;
   while (!done) {
@@ -523,9 +536,8 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
       for (int j = (curLineLength == 0 && it->startsWithSpace ? it->start + 1
                                                               : it->start);
            j <= it->end && j < curProcessedStringLength; j++) {
-
-          sc3string = result->sc3StringNext = origNextStrings[j];
-          if (result->lines >= lineCount) break;
+        sc3string = result->sc3StringNext = origNextStrings[j];
+        if (result->lines >= lineCount) break;
         int k = result->length++;
         uint8_t curLinkNumber = linkNumber[j];
         if (curLinkNumber != NOT_A_LINK) {
@@ -560,6 +572,7 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
 
     if (result->lines >= lineCount) done = true;
   }
+  if (result->error && markError) result->lines = 0xFF;
 }
 
 int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
@@ -641,6 +654,7 @@ int __cdecl getLinksFromSc3StringHook(int xOffset, int yOffset, int lineLength,
   }
 }
 
+// This is also used for @channel threads
 int __cdecl drawInteractiveMailHook(int textureId, int xOffset, int yOffset,
                                     signed int lineLength, char *sc3string,
                                     unsigned int lineSkipCount,
