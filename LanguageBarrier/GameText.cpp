@@ -340,7 +340,7 @@ void gameTextInit() {
   gameExeGlyphWidthsFont2 =
       *(uint8_t **)((uint8_t *)(gameExeDrawPhoneText) + 0x74);
   gameExeColors =
-      (int *)(*(uint32_t *)((uint8_t *)(gameExeDrawPhoneText) + 0x272) - 0x8);
+      (int *)(*(uint32_t *)((uint8_t *)(gameExeDrawPhoneText) + 0x272) - 0x4);
 
   scanCreateEnableHook("game", "dialogueLayoutWidthLookup1",
                        &gameExeDialogueLayoutWidthLookup1,
