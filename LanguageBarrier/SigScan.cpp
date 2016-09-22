@@ -149,7 +149,7 @@ uintptr_t sigScan(char* category, char* sigName, bool isData = false) {
         (unsigned char*)baseAddress,
         (unsigned char*)baseAddress + pSectionHdr->Misc.VirtualSize);
     uintptr_t retval =
-        (uintptr_t)FindPattern(rawData, pattern, baseAddress, offset, 0);
+        (uintptr_t)FindPattern(rawData, pattern, baseAddress, offset, sig["occurrence"].get<int>());
 
     if (retval != NULL) {
       logstr << " found at 0x" << std::hex << retval;
