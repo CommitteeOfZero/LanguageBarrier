@@ -12,28 +12,27 @@ typedef struct __declspec(align(4)) {
   int somePageNumber;
   char gap140[12];
   char *pString;
-} sc3_t;
+} Sc3_t;
 
 // this is my own, not from the game
 typedef struct {
   int lines;
   int length;
-  int textureStartX[512];
-  int textureStartY[512];
-  int textureWidth[512];
-  int textureHeight[512];
-  int displayStartX[512];
-  int displayStartY[512];
-  int displayEndX[512];
-  int displayEndY[512];
-  int color[512];
-  int glyph[512];
-  uint8_t linkNumber[512];
+  int textureStartX[lb::MAX_PROCESSED_STRING_LENGTH];
+  int textureStartY[lb::MAX_PROCESSED_STRING_LENGTH];
+  int textureWidth[lb::MAX_PROCESSED_STRING_LENGTH];
+  int textureHeight[lb::MAX_PROCESSED_STRING_LENGTH];
+  int displayStartX[lb::MAX_PROCESSED_STRING_LENGTH];
+  int displayStartY[lb::MAX_PROCESSED_STRING_LENGTH];
+  int displayEndX[lb::MAX_PROCESSED_STRING_LENGTH];
+  int displayEndY[lb::MAX_PROCESSED_STRING_LENGTH];
+  int color[lb::MAX_PROCESSED_STRING_LENGTH];
+  int glyph[lb::MAX_PROCESSED_STRING_LENGTH];
+  uint8_t linkNumber[lb::MAX_PROCESSED_STRING_LENGTH];
   int linkCharCount;
   char *sc3StringNext;
   bool error;
-} processedSc3String_t;
-static const uint8_t NOT_A_LINK = 0xFF;
+} ProcessedSc3String_t;
 
 // also my own
 typedef struct {
@@ -50,6 +49,41 @@ typedef struct __declspec(align(4)) {
   int displayWidth;
   int displayHeight;
 } LinkMetrics_t;
+
+typedef struct {
+  int field_0;
+  int field_4;
+  int drawNextPageNow;
+  int pageLength;
+  int field_10;
+  char field_14;
+  char field_15;
+  char field_16;
+  char field_17;
+  int field_18;
+  int field_1C;
+  int field_20;
+  int field_24;
+  int field_28;
+  int field_2C;
+  int field_30;
+  int field_34;
+  int field_38;
+  int fontNumber[lb::MAX_DIALOGUE_PAGE_LENGTH];
+  int charColor[lb::MAX_DIALOGUE_PAGE_LENGTH];
+  int charOutlineColor[lb::MAX_DIALOGUE_PAGE_LENGTH];
+  char glyphCol[lb::MAX_DIALOGUE_PAGE_LENGTH];
+  char glyphRow[lb::MAX_DIALOGUE_PAGE_LENGTH];
+  char glyphOrigWidth[lb::MAX_DIALOGUE_PAGE_LENGTH];
+  char glyphOrigHeight[lb::MAX_DIALOGUE_PAGE_LENGTH];
+  __int16 charDisplayX[lb::MAX_DIALOGUE_PAGE_LENGTH];
+  __int16 charDisplayY[lb::MAX_DIALOGUE_PAGE_LENGTH];
+  __int16 glyphDisplayWidth[lb::MAX_DIALOGUE_PAGE_LENGTH];
+  __int16 glyphDisplayHeight[lb::MAX_DIALOGUE_PAGE_LENGTH];
+  char field_BBBC[lb::MAX_DIALOGUE_PAGE_LENGTH];
+  int field_C38C[lb::MAX_DIALOGUE_PAGE_LENGTH];
+  char charDisplayOpacity[lb::MAX_DIALOGUE_PAGE_LENGTH];
+} DialoguePage_t;
 
 typedef void(__cdecl *DrawDialogueProc)(int fontNumber, int pageNumber,
                                         int opacity, int xOffset, int yOffset);
@@ -107,7 +141,7 @@ static GetSc3StringDisplayWidthProc gameExeGetSc3StringDisplayWidthFont2 =
 static GetSc3StringDisplayWidthProc gameExeGetSc3StringDisplayWidthFont2Real =
     NULL;
 
-typedef int(__cdecl *Sc3EvalProc)(sc3_t *sc3, int *pOutResult);
+typedef int(__cdecl *Sc3EvalProc)(Sc3_t *sc3, int *pOutResult);
 static Sc3EvalProc gameExeSc3Eval = NULL;  // = (Sc3EvalProc)0x4181D0;
 
 typedef int(__cdecl *GetLinksFromSc3StringProc)(int xOffset, int yOffset,
@@ -150,43 +184,8 @@ static uintptr_t gameExeDialogueLayoutWidthLookup2Return = NULL;
 static uintptr_t gameExeDialogueLayoutWidthLookup3 = NULL;
 static uintptr_t gameExeDialogueLayoutWidthLookup3Return = NULL;
 
-#define MAX_DIALOGUE_PAGE_LENGTH 2000
-typedef struct dialoguePage {
-  int field_0;
-  int field_4;
-  int drawNextPageNow;
-  int pageLength;
-  int field_10;
-  char field_14;
-  char field_15;
-  char field_16;
-  char field_17;
-  int field_18;
-  int field_1C;
-  int field_20;
-  int field_24;
-  int field_28;
-  int field_2C;
-  int field_30;
-  int field_34;
-  int field_38;
-  int fontNumber[MAX_DIALOGUE_PAGE_LENGTH];
-  int charColor[MAX_DIALOGUE_PAGE_LENGTH];
-  int charOutlineColor[MAX_DIALOGUE_PAGE_LENGTH];
-  char glyphCol[MAX_DIALOGUE_PAGE_LENGTH];
-  char glyphRow[MAX_DIALOGUE_PAGE_LENGTH];
-  char glyphOrigWidth[MAX_DIALOGUE_PAGE_LENGTH];
-  char glyphOrigHeight[MAX_DIALOGUE_PAGE_LENGTH];
-  __int16 charDisplayX[MAX_DIALOGUE_PAGE_LENGTH];
-  __int16 charDisplayY[MAX_DIALOGUE_PAGE_LENGTH];
-  __int16 glyphDisplayWidth[MAX_DIALOGUE_PAGE_LENGTH];
-  __int16 glyphDisplayHeight[MAX_DIALOGUE_PAGE_LENGTH];
-  char field_BBBC[MAX_DIALOGUE_PAGE_LENGTH];
-  int field_C38C[MAX_DIALOGUE_PAGE_LENGTH];
-  char charDisplayOpacity[MAX_DIALOGUE_PAGE_LENGTH];
-} dialoguePage_t;
-static dialoguePage_t *gameExeDialoguePages =
-    NULL;  // (dialoguePage_t *)0x164D680;
+static DialoguePage_t *gameExeDialoguePages =
+    NULL;  // (DialoguePage_t *)0x164D680;
 
 static uint8_t *gameExeGlyphWidthsFont1 = NULL;  // = (uint8_t *)0x52C7F0;
 static uint8_t *gameExeGlyphWidthsFont2 = NULL;  // = (uint8_t *)0x52E058;
@@ -237,7 +236,7 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
                               int color, int baseGlyphSize, int opacity);
 void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
                       int lineCount, int color, int baseGlyphSize,
-                      processedSc3String_t *result, bool measureOnly,
+                      ProcessedSc3String_t *result, bool measureOnly,
                       float multiplier, bool markError);
 int __cdecl getSc3StringDisplayWidthHook(char *sc3string,
                                          unsigned int maxCharacters,
@@ -274,8 +273,9 @@ void gameTextInit() {
   in.seekg(0, std::ios::beg);
   in.read(&((*outlineBuffer)[0]), outlineBuffer->size());
   in.close();
-  // gee I sure hope nothing important ever goes in 0xF7...
-  gameLoadTexture(0xF7, &((*outlineBuffer)[0]), outlineBuffer->size());
+  // gee I sure hope nothing important ever goes in OUTLINE_TEXTURE_ID...
+  gameLoadTexture(OUTLINE_TEXTURE_ID, &((*outlineBuffer)[0]),
+                  outlineBuffer->size());
   // the game loads this asynchronously - I'm not sure how to be notified it's
   // done and I can free the buffer
   // so I'll just do it in a hook
@@ -325,7 +325,7 @@ void gameTextInit() {
                        (LPVOID *)&gameExeGetSc3StringLineCountReal);
 
   gameExeDialoguePages =
-      (dialoguePage_t *)(*((uint32_t *)((uint8_t *)(gameExeDrawDialogue) +
+      (DialoguePage_t *)(*((uint32_t *)((uint8_t *)(gameExeDrawDialogue) +
                                         0x18)) -
                          0xC);
   gameExeGlyphWidthsFont1 =
@@ -367,13 +367,15 @@ int __cdecl dialogueLayoutRelatedHook(int unk0, int *unk1, int *unk2, int unk3,
     outlineBuffer = NULL;
   }
 
-  return gameExeDialogueLayoutRelatedReal(unk0, unk1, unk2, unk3, unk4, unk5,
-                                          unk6, yOffset + 12, lineHeight - 3);
+  return gameExeDialogueLayoutRelatedReal(
+      unk0, unk1, unk2, unk3, unk4, unk5, unk6,
+      yOffset + DIALOGUE_REDESIGN_YOFFSET_SHIFT,
+      lineHeight + DIALOGUE_REDESIGN_LINEHEIGHT_SHIFT);
 }
 
 void __cdecl drawDialogueHook(int fontNumber, int pageNumber, uint32_t opacity,
                               int xOffset, int yOffset) {
-  dialoguePage_t *page = &gameExeDialoguePages[pageNumber];
+  DialoguePage_t *page = &gameExeDialoguePages[pageNumber];
 
   for (int i = 0; i < page->pageLength; i++) {
     if (fontNumber == page->fontNumber[i]) {
@@ -384,21 +386,22 @@ void __cdecl drawDialogueHook(int fontNumber, int pageNumber, uint32_t opacity,
 
       if (page->charOutlineColor[i] != -1) {
         gameExeDrawGlyph(
-            0xF7, GLYPH_WIDTH * page->glyphCol[i] * COORDS_MULTIPLIER,
-            GLYPH_HEIGHT * page->glyphRow[i] * COORDS_MULTIPLIER,
-            page->glyphOrigWidth[i] * COORDS_MULTIPLIER + 8.0f,
-            page->glyphOrigHeight[i] * COORDS_MULTIPLIER, displayStartX - 4.0f,
-            displayStartY,
+            OUTLINE_TEXTURE_ID,
+            FONT_CELL_WIDTH * page->glyphCol[i] * COORDS_MULTIPLIER,
+            FONT_CELL_HEIGHT * page->glyphRow[i] * COORDS_MULTIPLIER,
+            page->glyphOrigWidth[i] * COORDS_MULTIPLIER + (2 * OUTLINE_EXTRA_X),
+            page->glyphOrigHeight[i] * COORDS_MULTIPLIER,
+            displayStartX - OUTLINE_EXTRA_X, displayStartY,
             displayStartX + (COORDS_MULTIPLIER * page->glyphDisplayWidth[i]) +
-                4.0f,
+                OUTLINE_EXTRA_X,
             displayStartY + (COORDS_MULTIPLIER * page->glyphDisplayHeight[i]),
             page->charOutlineColor[i], _opacity);
       }
 
       gameExeDrawGlyph(
           fontNumber + FIRST_FONT_ID,
-          GLYPH_WIDTH * page->glyphCol[i] * COORDS_MULTIPLIER,
-          GLYPH_HEIGHT * page->glyphRow[i] * COORDS_MULTIPLIER,
+          FONT_CELL_WIDTH * page->glyphCol[i] * COORDS_MULTIPLIER,
+          FONT_CELL_HEIGHT * page->glyphRow[i] * COORDS_MULTIPLIER,
           page->glyphOrigWidth[i] * COORDS_MULTIPLIER,
           page->glyphOrigHeight[i] * COORDS_MULTIPLIER, displayStartX,
           displayStartY,
@@ -417,9 +420,9 @@ void __cdecl drawDialogue2Hook(int fontNumber, int pageNumber,
 
 void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
                       int lineCount, int color, int baseGlyphSize,
-                      processedSc3String_t *result, bool measureOnly,
+                      ProcessedSc3String_t *result, bool measureOnly,
                       float multiplier, bool markError) {
-  sc3_t sc3;
+  Sc3_t sc3;
   int sc3evalResult;
 
 // Hack for enlarging the text in @channel threads (which have manual
@@ -438,10 +441,10 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
   // empty line may appear at the start of a mail
   // I'm not 100% sure why that is, and this'll probably come back to bite me
   // later, but whatever...
-  xOffset += 2;
-  lineLength -= 4;
+  xOffset += PHONE_X_PADDING;
+  lineLength -= 2 * PHONE_X_PADDING;
 
-  memset(result, 0, sizeof(processedSc3String_t));
+  memset(result, 0, sizeof(ProcessedSc3String_t));
 
   int curProcessedStringLength = 0;
   int curLinkNumber = NOT_A_LINK;
@@ -516,7 +519,7 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
 
           int glyphId = (uint8_t)sc3string[1] + ((c & 0x7f) << 8);
           sc3string += 2;
-          int glyphWidth = (baseGlyphSize * widths[glyphId]) / GLYPH_WIDTH;
+          int glyphWidth = (baseGlyphSize * widths[glyphId]) / FONT_CELL_WIDTH;
           baseGlyphWidth[curProcessedStringLength] = glyphWidth;
           linkNumber[curProcessedStringLength] = curLinkNumber;
           glyphIds[curProcessedStringLength] = glyphId;
@@ -531,8 +534,9 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
     StringWord_t word = {0, 0, 0, false};
     for (uint16_t i = 0; i < curProcessedStringLength; i++) {
       word.cost += baseGlyphWidth[i];
-      if (i + 1 >= curProcessedStringLength || glyphIds[i + 1] == 0 ||
-          glyphIds[i + 1] == 63) {
+      if (i + 1 >= curProcessedStringLength ||
+          glyphIds[i + 1] == GLYPH_ID_FULLWIDTH_SPACE ||
+          glyphIds[i + 1] == GLYPH_ID_HALFWIDTH_SPACE) {
         word.end = i;
         words.push_back(word);
         word = {(uint16_t)(i + 1), 0, 0, true};
@@ -541,7 +545,7 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
 
     // let's pretend there's only one kind of space
     // ...I hope we never have to support non-Latin scripts...
-    uint16_t spaceCost = widths[0];
+    uint16_t spaceCost = widths[GLYPH_ID_HALFWIDTH_SPACE];
 
     int curLineLength = 0;
     for (auto it = words.begin();
@@ -591,11 +595,11 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
           result->linkNumber[k] = curLinkNumber;
           result->glyph[k] = glyphId;
           result->textureStartX[k] =
-              GLYPH_WIDTH * multiplier * (glyphId % FONT_ROW_LENGTH);
+              FONT_CELL_WIDTH * multiplier * (glyphId % FONT_ROW_LENGTH);
           result->textureStartY[k] =
-              GLYPH_HEIGHT * multiplier * (glyphId / FONT_ROW_LENGTH);
+              FONT_CELL_HEIGHT * multiplier * (glyphId / FONT_ROW_LENGTH);
           result->textureWidth[k] = widths[glyphId] * multiplier;
-          result->textureHeight[k] = GLYPH_HEIGHT * multiplier;
+          result->textureHeight[k] = FONT_CELL_HEIGHT * multiplier;
           result->displayStartX[k] =
               (xOffset + (curLineLength - glyphWidth)) * multiplier;
           result->displayStartY[k] =
@@ -610,19 +614,16 @@ void processSc3String(int xOffset, int yOffset, int lineLength, char *sc3string,
 
     if (result->lines >= lineCount) done = true;
   }
-  if (result->error && markError) result->lines = 0xFF;
+  if (result->error && markError) result->lines = LINECOUNT_DISABLE_OR_ERROR;
 }
 
 int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
                               int lineLength, char *sc3string,
                               int lineSkipCount, int lineDisplayCount,
                               int color, int baseGlyphSize, int opacity) {
-  processedSc3String_t str;
+  ProcessedSc3String_t str;
 
-  if (!lineLength) lineLength = 1280;
-
-  xOffset += 2;
-  lineLength -= 4;
+  if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
 
   processSc3String(xOffset, yOffset, lineLength, sc3string, lineSkipCount,
                    color, baseGlyphSize, &str, true, COORDS_MULTIPLIER, true);
@@ -643,8 +644,8 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
 int __cdecl getSc3StringDisplayWidthHook(char *sc3string,
                                          unsigned int maxCharacters,
                                          int baseGlyphSize) {
-  if (!maxCharacters) maxCharacters = 255;
-  sc3_t sc3;
+  if (!maxCharacters) maxCharacters = DEFAULT_MAX_CHARACTERS;
+  Sc3_t sc3;
   int sc3evalResult;
   int result = 0;
   int i = 0;
@@ -656,7 +657,7 @@ int __cdecl getSc3StringDisplayWidthHook(char *sc3string,
       sc3string = sc3.pString;
     } else if (c < 0) {
       int glyphId = (uint8_t)sc3string[1] + ((c & 0x7f) << 8);
-      result += (baseGlyphSize * widths[glyphId]) / GLYPH_WIDTH;
+      result += (baseGlyphSize * widths[glyphId]) / FONT_CELL_WIDTH;
       i++;
       sc3string += 2;
     }
@@ -668,9 +669,9 @@ int __cdecl getLinksFromSc3StringHook(int xOffset, int yOffset, int lineLength,
                                       char *sc3string, int lineSkipCount,
                                       int lineDisplayCount, int baseGlyphSize,
                                       LinkMetrics_t *result) {
-  processedSc3String_t str;
+  ProcessedSc3String_t str;
 
-  if (!lineLength) lineLength = 1280;
+  if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
 
   processSc3String(xOffset, yOffset, lineLength, sc3string, lineSkipCount, 0,
                    baseGlyphSize, &str, true, 1.0f, true);
@@ -690,6 +691,7 @@ int __cdecl getLinksFromSc3StringHook(int xOffset, int yOffset, int lineLength,
       if (j >= str.linkCharCount) return str.linkCharCount;
     }
   }
+  return j;
 }
 
 // This is also used for @channel threads
@@ -700,9 +702,9 @@ int __cdecl drawInteractiveMailHook(int textureId, int xOffset, int yOffset,
                                     unsigned int baseGlyphSize, int opacity,
                                     int unselectedLinkColor,
                                     int selectedLinkColor, int selectedLink) {
-  processedSc3String_t str;
+  ProcessedSc3String_t str;
 
-  if (!lineLength) lineLength = 1280;
+  if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
 
   processSc3String(xOffset, yOffset, lineLength, sc3string, lineSkipCount,
                    color, baseGlyphSize, &str, true, COORDS_MULTIPLIER, true);
@@ -718,10 +720,10 @@ int __cdecl drawInteractiveMailHook(int textureId, int xOffset, int yOffset,
       else
         curColor = unselectedLinkColor;
 
-      gameExeDrawGlyph(textureId, 1009.5, 193.5, str.textureWidth[i],
-                       str.textureHeight[i], str.displayStartX[i],
-                       str.displayStartY[i], str.displayEndX[i],
-                       str.displayEndY[i], curColor, opacity);
+      gameExeDrawGlyph(
+          textureId, UNDERLINE_GLYPH_X, UNDERLINE_GLYPH_Y, str.textureWidth[i],
+          str.textureHeight[i], str.displayStartX[i], str.displayStartY[i],
+          str.displayEndX[i], str.displayEndY[i], curColor, opacity);
     }
 
     gameExeDrawGlyph(textureId, str.textureStartX[i], str.textureStartY[i],
@@ -737,9 +739,9 @@ int __cdecl drawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
                                   unsigned int lineDisplayCount, int color,
                                   unsigned int baseGlyphSize, int opacity,
                                   int selectedLink) {
-  processedSc3String_t str;
+  ProcessedSc3String_t str;
 
-  if (!lineLength) lineLength = 1280;
+  if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
 
   processSc3String(xOffset, yOffset, lineLength, sc3string, lineSkipCount,
                    color, baseGlyphSize, &str, true, COORDS_MULTIPLIER, true);
@@ -763,11 +765,11 @@ int __cdecl drawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
 // This is used to set bounds for scrolling
 int __cdecl getSc3StringLineCountHook(int lineLength, char *sc3string,
                                       unsigned int baseGlyphSize) {
-  processedSc3String_t str;
-  if (!lineLength) lineLength = 1280;
+  ProcessedSc3String_t str;
+  if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
 
-  processSc3String(0, 0, lineLength, sc3string, 0xFF, 0, baseGlyphSize, &str,
-                   true, 1.0f, false);
+  processSc3String(0, 0, lineLength, sc3string, LINECOUNT_DISABLE_OR_ERROR, 0,
+                   baseGlyphSize, &str, true, 1.0f, false);
   return str.lines + 1;
 }
 }
