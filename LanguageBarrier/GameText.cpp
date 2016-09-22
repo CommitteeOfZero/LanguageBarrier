@@ -274,6 +274,7 @@ void gameTextInit() {
   in.seekg(0, std::ios::beg);
   in.read(&((*outlineBuffer)[0]), outlineBuffer->size());
   in.close();
+  // gee I sure hope nothing important ever goes in 0xF7...
   gameLoadTexture(0xF7, &((*outlineBuffer)[0]), outlineBuffer->size());
   // the game loads this asynchronously - I'm not sure how to be notified it's
   // done and I can free the buffer
