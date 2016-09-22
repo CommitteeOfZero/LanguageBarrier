@@ -194,6 +194,8 @@ static int *gameExeColors = NULL;                // = (int *)0x52E1E8;
 
 static uint8_t widths[lb::TOTAL_NUM_CHARACTERS];
 
+static std::string *outlineBuffer;
+
 // MSVC doesn't like having these inside namespaces
 __declspec(naked) void dialogueLayoutWidthLookup1Hook() {
   __asm {
@@ -268,13 +270,14 @@ void gameTextInit() {
   std::ifstream in("languagebarrier\\font-outline.png",
                    std::ios::in | std::ios::binary);
   in.seekg(0, std::ios::end);
-  std::string *outlineBuffer = new std::string(in.tellg(), 0);
+  outlineBuffer = new std::string(in.tellg(), 0);
   in.seekg(0, std::ios::beg);
   in.read(&((*outlineBuffer)[0]), outlineBuffer->size());
   in.close();
   gameLoadTexture(0xF7, &((*outlineBuffer)[0]), outlineBuffer->size());
   // the game loads this asynchronously - I'm not sure how to be notified it's
   // done and I can free the buffer
+  // so I'll just do it in a hook
 
   gameExeDrawGlyph = (DrawGlyphProc)sigScan("game", "drawGlyph");
   gameExeDrawRectangle = (DrawRectangleProc)sigScan("game", "drawRectangle");
@@ -357,6 +360,12 @@ void gameTextInit() {
 int __cdecl dialogueLayoutRelatedHook(int unk0, int *unk1, int *unk2, int unk3,
                                       int unk4, int unk5, int unk6, int yOffset,
                                       int lineHeight) {
+  if (outlineBuffer != NULL) {
+    // let's just do this here, should be loaded by now...
+    delete outlineBuffer;
+    outlineBuffer = NULL;
+  }
+
   return gameExeDialogueLayoutRelatedReal(unk0, unk1, unk2, unk3, unk4, unk5,
                                           unk6, yOffset + 12, lineHeight - 3);
 }
