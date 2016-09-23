@@ -79,5 +79,8 @@
     <None Include="data\fmv.json">
       <Filter>Data</Filter>
     </None>
+    <None Include="data\fileredirection.json">
+      <Filter>Data</Filter>
+    </None>
   </ItemGroup>
 </Project>

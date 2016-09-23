@@ -149,6 +149,7 @@ endlocal</Command>
   </ItemGroup>
   <ItemGroup>
     <None Include="data\config.json" />
+    <None Include="data\fileredirection.json" />
     <None Include="data\signatures.json" />
     <None Include="data\fmv.json" />
     <None Include="packages.config" />
