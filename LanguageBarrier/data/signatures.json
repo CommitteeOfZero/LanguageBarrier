@@ -125,6 +125,21 @@
             "pattern": "55 8B EC 83 EC 10 33 C0 53 8B 5D 08 A3 ?? ?? ?? ?? 8B ?? ?? ?? ?? ?? 56 57 38 01 0F 84",
             "offset": 0,
             "occurrence": 0
+        },
+        "useOfLoadedScripts": {
+            "pattern": "8D ?? ?? ?? ?? ?? ?? 50 FF 75 FC 6A 03 E8 ?? ?? ?? ?? FF 75 08 E8",
+            "offset": 3,
+            "occurrence": 0
+        },
+        "mpkFslurpById": {
+            "pattern": "55 8B EC 51 8D 45 FC 50 0F B6 45 08 69 ?? ?? ?? ?? ?? 6A 00",
+            "offset": 0,
+            "occurrence": 0
+        },
+        "getStringFromScript": {
+            "pattern": "55 8B EC 8B 45 08 56 8B ?? ?? ?? ?? ?? ?? 0F B6 4E 07 0F B6 46 06",
+            "offset": 0,
+            "occurrence": 0
         }
     }
 }
