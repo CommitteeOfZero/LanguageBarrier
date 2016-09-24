@@ -32,7 +32,6 @@ class Config {
     } catch (...) {
     }
     j = json_merge(tmp1, tmp2);
-    j = tmp1;
     save();
   };
 
