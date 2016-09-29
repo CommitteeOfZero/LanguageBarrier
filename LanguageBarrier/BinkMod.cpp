@@ -31,7 +31,8 @@ typedef int32_t(__stdcall* BINKCOPYTOBUFFER)(BINK* bnk, void* dest,
                                              uint32_t destheight,
                                              uint32_t destx, uint32_t desty,
                                              uint32_t flags);
-typedef int32_t(__stdcall* BINKSETVOLUME)(BINK* bnk, int32_t unk1, int32_t volume);
+typedef int32_t(__stdcall* BINKSETVOLUME)(BINK* bnk, int32_t unk1,
+                                          int32_t volume);
 static BINKOPEN BinkOpen = NULL;
 static BINKCLOSE BinkClose = NULL;
 static BINKCOPYTOBUFFER BinkCopyToBuffer = NULL;
@@ -110,6 +111,10 @@ bool initLibassRenderer(BinkModState_t* state) {
     return false;
   }
 
+  ass_set_hinting(state->AssRenderer, ASS_HINTING_LIGHT);
+
+  ass_set_cache_limits(state->AssRenderer, 2000, 60);
+
   ass_set_fonts(state->AssRenderer, NULL, "sans-serif",
                 ASS_FONTPROVIDER_AUTODETECT, NULL, 1);
 
@@ -148,8 +153,8 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
     // the game would just override it. If we tried to use BinkSetSoundOnOff,
     // the video wouldn't show (maybe the game thinks there's been an error).
     state->bgmId = bgmId;
-  }
-  else state->bgmId = 0;
+  } else
+    state->bgmId = 0;
 
   if (!initLibassRenderer(state)) return bnk;
 
@@ -257,6 +262,23 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
     SimdAlphaBlending(foreground, fgStride, subpict->w, subpict->h, 4,
                       subpict->bitmap, subpict->stride, background, destpitch);
     SimdFree(foreground);
+
+    // Quick hack to fix subs being overly bright
+    // We're messing with the alpha of the background above (which we shouldn't)
+    // So for now, let's just pretend the whole thing's opaque, we're not
+    // subbing any videos with an alpha channel anyway
+    for (int y = 0; y < subpict->h; ++y) {
+      for (int x = 0; x < subpict->w; ++x) {
+        background[x * 4 + 0] =
+            (background[x * 4 + 0] * background[x * 4 + 3]) / 255;
+        background[x * 4 + 1] =
+            (background[x * 4 + 1] * background[x * 4 + 3]) / 255;
+        background[x * 4 + 2] =
+            (background[x * 4 + 2] * background[x * 4 + 3]) / 255;
+        background[x * 4 + 3] = 255;
+      }
+      background += destpitch;
+    }
   }
 
   SimdCopy(frame, destpitch, destpitch / 4, destheight, 4, (uint8_t*)dest,
