@@ -158,6 +158,7 @@ endlocal</Command>
     <None Include="data\fileredirection.json" />
     <None Include="data\signatures.json" />
     <None Include="data\fmv.json" />
+    <None Include="data\stringredirection.json" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

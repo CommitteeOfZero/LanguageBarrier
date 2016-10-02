@@ -82,5 +82,8 @@
     <None Include="data\fileredirection.json">
       <Filter>Data</Filter>
     </None>
+    <None Include="data\stringredirection.json">
+      <Filter>Data</Filter>
+    </None>
   </ItemGroup>
 </Project>
