@@ -43,6 +43,10 @@ typedef struct {
   ASS_Track* AssTrack;
   bool renderedSinceLastInit;
   uint32_t bgmId;
+  void* framebuffer;
+  uint32_t destwidth;
+  uint32_t destheight;
+  uint32_t lastFrameNum;
 } BinkModState_t;
 
 static std::unordered_map<BINK*, BinkModState_t*> stateMap;
@@ -54,6 +58,7 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
                                        uint32_t destheight, uint32_t destx,
                                        uint32_t desty, uint32_t flags);
 int32_t __stdcall BinkSetVolumeHook(BINK* bnk, int32_t unk1, int32_t volume);
+
 #ifdef BINKMODDEBUG
 void msg_callback(int level, const char* fmt, va_list va, void* data);
 #endif
@@ -113,7 +118,8 @@ bool initLibassRenderer(BinkModState_t* state) {
 
   ass_set_hinting(state->AssRenderer, ASS_HINTING_LIGHT);
 
-  ass_set_cache_limits(state->AssRenderer, 2000, 60);
+  // this kills performance a little too hard
+  // ass_set_cache_limits(state->AssRenderer, 2000, 60);
 
   ass_set_fonts(state->AssRenderer, NULL, "sans-serif",
                 ASS_FONTPROVIDER_AUTODETECT, NULL, 1);
@@ -193,6 +199,9 @@ void __stdcall BinkCloseHook(BINK* bnk) {
   if (state->AssTrack) {
     ass_free_track(state->AssTrack);
   }
+  if (state->framebuffer) {
+    SimdFree(state->framebuffer);
+  }
   if (state->bgmId) {
     // Not cargoculting: the game doesn't always set a new BGM after playing a
     // video
@@ -223,13 +232,28 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
       (1000.0 / ((double)bnk->FrameRate / (double)bnk->FrameRateDiv)));
   size_t align = SimdAlignment();
 
-  // This way our writes are guaranteed to be aligned at least every 4 pixels
-  uint8_t* frame =
-      (uint8_t*)SimdAllocate(SimdAlign(destpitch * destheight, align), align);
+  if (bnk->FrameNum == state->lastFrameNum && destheight == state->destheight &&
+      destwidth == state->destwidth) {
+    SimdCopy((uint8_t*)state->framebuffer, destpitch, destwidth, destheight, 4,
+             (uint8_t*)dest, destpitch);
+    return 0;
+  }
+  if (state->destheight != destheight || state->destwidth != destwidth) {
+    state->destheight = destheight;
+    state->destwidth = destwidth;
+    if (state->framebuffer != NULL) {
+      SimdFree(state->framebuffer);
+    }
+    state->framebuffer =
+        SimdAllocate(SimdAlign(destpitch * destheight, align), align);
+  }
+
+  state->lastFrameNum = bnk->FrameNum;
+
   // TODO: actually use destx and desty (figure out if Bink clips output or
   // expects destpitch/destheight to match)
-  int32_t retval =
-      BinkCopyToBuffer(bnk, frame, destpitch, destheight, destx, desty, flags);
+  int32_t retval = BinkCopyToBuffer(bnk, state->framebuffer, destpitch,
+                                    destheight, destx, desty, flags);
 
   ASS_Image* subpict =
       ass_render_frame(state->AssRenderer, state->AssTrack, curTime, NULL);
@@ -238,55 +262,46 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
   // might end up with hundreds of megabytes of cached data. Quick hack is to
   // reinitialise the renderer during off times, keeping memory consumption down
   // without introducing serious hitching.
-  if (!subpict && state->renderedSinceLastInit) {
+  // ...nevermind, this also makes shit too slow.
+  /*if (!subpict && state->renderedSinceLastInit) {
     closeLibassRenderer(state);
     initLibassRenderer(state);
-  }
+  }*/
 
   for (; subpict; subpict = subpict->next) {
     if (subpict->h == 0 || subpict->w == 0) continue;
 
-    uint8_t* background =
-        frame + subpict->dst_x * 4 + subpict->dst_y * destpitch;
+    uint8_t* background = (uint8_t*)state->framebuffer + subpict->dst_x * 4 +
+                          subpict->dst_y * destpitch;
 
     const uint8_t Rf = (subpict->color >> 24) & 0xff;
     const uint8_t Gf = (subpict->color >> 16) & 0xff;
     const uint8_t Bf = (subpict->color >> 8) & 0xff;
     const uint8_t Af = 255 - (subpict->color & 0xff);
 
+    uint8_t* mask = (uint8_t*)SimdAllocate(
+        SimdAlign(subpict->h * subpict->stride, align), align);
+    for (int i = 0, imax = subpict->h * subpict->stride; i < imax; i++) {
+      mask[i] = (subpict->bitmap[i] * Af) / 255;
+    }
+
     // no, this shouldn't be subpict->stride, subpict->stride is for 1bpp
     size_t fgStride = subpict->w * 4;
     uint8_t* foreground =
         (uint8_t*)SimdAllocate(SimdAlign(subpict->h * fgStride, align), align);
-    SimdFillBgra(foreground, fgStride, subpict->w, subpict->h, Bf, Gf, Rf, Af);
-    SimdAlphaBlending(foreground, fgStride, subpict->w, subpict->h, 4,
-                      subpict->bitmap, subpict->stride, background, destpitch);
+    SimdFillBgra(foreground, fgStride, subpict->w, subpict->h, Bf, Gf, Rf, 255);
+    SimdAlphaBlending(foreground, fgStride, subpict->w, subpict->h, 4, mask,
+                      subpict->stride, background, destpitch);
     SimdFree(foreground);
-
-    // Quick hack to fix subs being overly bright
-    // We're messing with the alpha of the background above (which we shouldn't)
-    // So for now, let's just pretend the whole thing's opaque, we're not
-    // subbing any videos with an alpha channel anyway
-    for (int y = 0; y < subpict->h; ++y) {
-      for (int x = 0; x < subpict->w; ++x) {
-        background[x * 4 + 0] =
-            (background[x * 4 + 0] * background[x * 4 + 3]) / 255;
-        background[x * 4 + 1] =
-            (background[x * 4 + 1] * background[x * 4 + 3]) / 255;
-        background[x * 4 + 2] =
-            (background[x * 4 + 2] * background[x * 4 + 3]) / 255;
-        background[x * 4 + 3] = 255;
-      }
-      background += destpitch;
-    }
+    SimdFree(mask);
   }
 
-  SimdCopy(frame, destpitch, destpitch / 4, destheight, 4, (uint8_t*)dest,
-           destpitch);
-  SimdFree(frame);
+  SimdCopy((uint8_t*)state->framebuffer, destpitch, destpitch / 4, destheight,
+           4, (uint8_t*)dest, destpitch);
 
   return retval;
 }
+
 int32_t __stdcall BinkSetVolumeHook(BINK* bnk, int32_t unk1, int32_t volume) {
   if (stateMap.count(bnk) == 0) return BinkSetVolume(bnk, unk1, volume);
   BinkModState_t* state = stateMap[bnk];
