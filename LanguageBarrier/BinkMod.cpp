@@ -1,16 +1,10 @@
 #include "LanguageBarrier.h"
 #include <Simd/SimdLib.h>
-#include <ass/ass.h>
 #include <unordered_map>
 #include "BinkMod.h"
 #include "Config.h"
 #include "Game.h"
-
-// warning: this creates messageboxes with loglevel verbose
-// have fun watching videos with this on
-//#define BINKMODDEBUG
-
-static ASS_Library* AssHandler;
+#include <csri/csri.h>
 
 // partial
 typedef struct BINK {
@@ -39,14 +33,12 @@ static BINKCOPYTOBUFFER BinkCopyToBuffer = NULL;
 static BINKSETVOLUME BinkSetVolume = NULL;
 
 typedef struct {
-  ASS_Renderer* AssRenderer;
-  ASS_Track* AssTrack;
-  bool renderedSinceLastInit;
   uint32_t bgmId;
   void* framebuffer;
   uint32_t destwidth;
   uint32_t destheight;
   uint32_t lastFrameNum;
+  csri_inst *csri;
 } BinkModState_t;
 
 static std::unordered_map<BINK*, BinkModState_t*> stateMap;
@@ -59,39 +51,6 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
                                        uint32_t desty, uint32_t flags);
 int32_t __stdcall BinkSetVolumeHook(BINK* bnk, int32_t unk1, int32_t volume);
 
-#ifdef BINKMODDEBUG
-void msg_callback(int level, const char* fmt, va_list va, void* data);
-#endif
-bool initLibass();
-bool initLibassRenderer(BinkModState_t* state);
-void closeLibassRenderer(BinkModState_t* state);
-
-#ifdef BINKMODDEBUG
-void msg_callback(int level, const char* fmt, va_list va, void* data) {
-  if (level > 6) return;
-  char buffer[500];
-  vsprintf_s(buffer, 500, fmt, va);
-  MessageBoxA(NULL, buffer, "LanguageBarrier", MB_OK);
-}
-#endif
-
-bool initLibass() {
-  if (AssHandler) return true;
-
-  AssHandler = ass_library_init();
-  if (!AssHandler) {
-    LanguageBarrierLog("ass_library_init() failed!");
-    return false;
-  }
-
-  ass_set_fonts_dir(AssHandler, "languagebarrier\\subs\\fonts");
-#ifdef BINKMODDEBUG
-  ass_set_message_cb(AssHandler, msg_callback, NULL);
-#endif
-
-  return true;
-}
-
 bool binkModInit() {
   if (!createEnableApiHook(L"bink2w32", "_BinkSetVolume@12", BinkSetVolumeHook,
                            (LPVOID*)&BinkSetVolume) ||
@@ -100,46 +59,17 @@ bool binkModInit() {
       !createEnableApiHook(L"bink2w32", "_BinkClose@4", BinkCloseHook,
                            (LPVOID*)&BinkClose) ||
       !createEnableApiHook(L"bink2w32", "_BinkCopyToBuffer@28",
-                           BinkCopyToBufferHook, (LPVOID*)&BinkCopyToBuffer) ||
-      !initLibass())
+                           BinkCopyToBufferHook, (LPVOID*)&BinkCopyToBuffer))
     return false;
 
-  return true;
-}
-
-bool initLibassRenderer(BinkModState_t* state) {
-  if (state->AssRenderer) return true;
-
-  state->AssRenderer = ass_renderer_init(AssHandler);
-  if (!(state->AssRenderer)) {
-    LanguageBarrierLog("ass_renderer_init failed!");
-    return false;
-  }
-
-  ass_set_hinting(state->AssRenderer, ASS_HINTING_LIGHT);
-
-  // this kills performance a little too hard
-  // ass_set_cache_limits(state->AssRenderer, 2000, 60);
-
-  ass_set_fonts(state->AssRenderer, NULL, "sans-serif",
-                ASS_FONTPROVIDER_AUTODETECT, NULL, 1);
-
-  state->renderedSinceLastInit = false;
+  // !!!TODO!!! Install fonts
 
   return true;
-}
-
-void closeLibassRenderer(BinkModState_t* state) {
-  if (state->AssRenderer) {
-    ass_renderer_done(state->AssRenderer);
-    state->AssRenderer = NULL;
-  }
 }
 
 BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
   BINK* bnk = BinkOpen(name, flags);
 
-  if (!initLibass()) return bnk;
   BinkModState_t* state = (BinkModState_t*)calloc(1, sizeof(BinkModState_t));
   stateMap.emplace(bnk, state);
 
@@ -162,8 +92,6 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
   } else
     state->bgmId = 0;
 
-  if (!initLibassRenderer(state)) return bnk;
-
   std::string subFileName;
   // TODO: support more than one track?
   // note: case sensitive
@@ -181,8 +109,18 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
     std::stringstream logstr;
     logstr << "Using sub track " << subPath << " if available.";
     LanguageBarrierLog(logstr.str());
-    char* cSubPath = &subPath[0];
-    state->AssTrack = ass_read_file(AssHandler, cSubPath, "UTF-8");
+
+    // tried csri_open_file(), didn't work, not sure why. Not like it's a big
+    // deal, anyway.
+    std::ifstream in(subPath,
+        std::ios::in | std::ios::binary);
+    in.seekg(0, std::ios::end);
+    std::string sub(in.tellg(), 0);
+    in.seekg(0, std::ios::beg);
+    in.read(&sub[0], sub.size());
+    in.close();
+
+    state->csri = csri_open_mem(csri_renderer_default(), &sub[0], sub.size(), NULL);
   }
 
   return bnk;
@@ -193,14 +131,11 @@ void __stdcall BinkCloseHook(BINK* bnk) {
   if (stateMap.count(bnk) == 0) return;
 
   BinkModState_t* state = stateMap[bnk];
-  if (state->AssRenderer) {
-    closeLibassRenderer(state);
-  }
-  if (state->AssTrack) {
-    ass_free_track(state->AssTrack);
-  }
   if (state->framebuffer) {
     SimdFree(state->framebuffer);
+  }
+  if (state->csri) {
+      csri_close(state->csri);
   }
   if (state->bgmId) {
     // Not cargoculting: the game doesn't always set a new BGM after playing a
@@ -219,17 +154,12 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
                             flags);
   BinkModState_t* state = stateMap[bnk];
 
-  if (!(state->AssRenderer) || !(state->AssTrack))
-    return BinkCopyToBuffer(bnk, dest, destpitch, destheight, destx, desty,
-                            flags);
+  if (state->csri == NULL)
+      return BinkCopyToBuffer(bnk, dest, destpitch, destheight, destx, desty,
+          flags);
 
   uint32_t destwidth = destpitch / 4;
-  ass_set_frame_size(state->AssRenderer, destwidth, destheight);
-  // Not entirely sure whether FrameNum is correct here or off by one, but it's
-  // pedantic anyway
-  uint32_t curTime = (uint32_t)(
-      bnk->FrameNum *
-      (1000.0 / ((double)bnk->FrameRate / (double)bnk->FrameRateDiv)));
+  double time = ((double)bnk->FrameRateDiv * (double)bnk->FrameNum) / (double)bnk->FrameRate;
   size_t align = SimdAlignment();
 
   if (bnk->FrameNum == state->lastFrameNum && destheight == state->destheight &&
@@ -255,45 +185,22 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
   int32_t retval = BinkCopyToBuffer(bnk, state->framebuffer, destpitch,
                                     destheight, destx, desty, flags);
 
-  ASS_Image* subpict =
-      ass_render_frame(state->AssRenderer, state->AssTrack, curTime, NULL);
-  if (subpict) state->renderedSinceLastInit = true;
-  // Libass likes caching a little too much, so for complex karaoke subs we
-  // might end up with hundreds of megabytes of cached data. Quick hack is to
-  // reinitialise the renderer during off times, keeping memory consumption down
-  // without introducing serious hitching.
-  // ...nevermind, this also makes shit too slow.
-  /*if (!subpict && state->renderedSinceLastInit) {
-    closeLibassRenderer(state);
-    initLibassRenderer(state);
-  }*/
+  csri_frame frame;
+  frame.planes[0] = (uint8_t*)state->framebuffer;
+  frame.strides[0] = destpitch;
+  frame.pixfmt = CSRI_F_BGR_;
+  csri_fmt format = { frame.pixfmt, destwidth, destheight };
+  if (csri_request_fmt(state->csri, &format) == 0)
+      csri_render(state->csri, &frame, time);
 
-  for (; subpict; subpict = subpict->next) {
-    if (subpict->h == 0 || subpict->w == 0) continue;
-
-    uint8_t* background = (uint8_t*)state->framebuffer + subpict->dst_x * 4 +
-                          subpict->dst_y * destpitch;
-
-    const uint8_t Rf = (subpict->color >> 24) & 0xff;
-    const uint8_t Gf = (subpict->color >> 16) & 0xff;
-    const uint8_t Bf = (subpict->color >> 8) & 0xff;
-    const uint8_t Af = 255 - (subpict->color & 0xff);
-
-    uint8_t* mask = (uint8_t*)SimdAllocate(
-        SimdAlign(subpict->h * subpict->stride, align), align);
-    for (int i = 0, imax = subpict->h * subpict->stride; i < imax; i++) {
-      mask[i] = (subpict->bitmap[i] * Af) / 255;
-    }
-
-    // no, this shouldn't be subpict->stride, subpict->stride is for 1bpp
-    size_t fgStride = subpict->w * 4;
-    uint8_t* foreground =
-        (uint8_t*)SimdAllocate(SimdAlign(subpict->h * fgStride, align), align);
-    SimdFillBgra(foreground, fgStride, subpict->w, subpict->h, Bf, Gf, Rf, 255);
-    SimdAlphaBlending(foreground, fgStride, subpict->w, subpict->h, 4, mask,
-                      subpict->stride, background, destpitch);
-    SimdFree(foreground);
-    SimdFree(mask);
+  // xy-VSFilter apparently doesn't support drawing onto BGRA directly and will
+  // set the alpha of everything it touches to 0. So let's just pretend
+  // everything's opaque and set it to FF. (Note it does alpha-blend onto the
+  // BGR32 background though). We could save video alpha and reapply it, but we
+  // don't need that for now since all our videos are 100% opaque.
+  for (int i = 0, imax = destwidth * destheight; i < imax; i++)
+  {
+      ((uint32_t*)state->framebuffer)[i] |= 0xFF000000;
   }
 
   SimdCopy((uint8_t*)state->framebuffer, destpitch, destpitch / 4, destheight,
