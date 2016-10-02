@@ -62,7 +62,12 @@ bool binkModInit() {
                            BinkCopyToBufferHook, (LPVOID*)&BinkCopyToBuffer))
     return false;
 
-  // !!!TODO!!! Install fonts
+  for (auto font : Config::fmv().j["fonts"]) {
+    std::stringstream ss;
+    ss << "languagebarrier\\subs\\fonts\\" << font.get<std::string>();
+    std::string path = ss.str();
+    AddFontResourceA(path.c_str());
+  }
 
   return true;
 }

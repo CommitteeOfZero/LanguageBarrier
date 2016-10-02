@@ -4,7 +4,9 @@
         "karaoke": {
             "op.bk2": "OP.bk2.ass"
         },
-        "jpVideo": { }
+        "jpVideo": {
+            "prologue02.bk2": "prologue02.bk2.ass"
+        }
     },
     "hqAudio": {
         "op.bk2": 68,
@@ -17,5 +19,11 @@
         "ending_s.bk2": 72,
         "imv041.bk2": 128,
         "imv042.bk2": 129
-    }
+    },
+    "fonts": [
+        "Squ721Rm.ttf",
+        "Indira_K.ttf",
+        "KOZMINPR6N-BOLD_0.OTF",
+        "DFRys9_3.ttc"
+    ]
 }
