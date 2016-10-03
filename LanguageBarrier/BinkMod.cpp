@@ -5,6 +5,7 @@
 #include "Config.h"
 #include "Game.h"
 #include <csri/csri.h>
+#include <xmmintrin.h>
 
 // partial
 typedef struct BINK {
@@ -42,6 +43,8 @@ typedef struct {
 } BinkModState_t;
 
 static std::unordered_map<BINK*, BinkModState_t*> stateMap;
+
+static __m128i MaskFF000000 = _mm_set1_epi32(0xFF000000);
 
 namespace lb {
 BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags);
@@ -203,7 +206,13 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
   // everything's opaque and set it to FF. (Note it does alpha-blend onto the
   // BGR32 background though). We could save video alpha and reapply it, but we
   // don't need that for now since all our videos are 100% opaque.
-  for (int i = 0, imax = destwidth * destheight; i < imax; i++)
+  size_t i, imax;
+  for (i = 0, imax = destwidth * destheight; i < imax; i += 4)
+  {
+      __m128i *vec = (__m128i*)((uint32_t*)state->framebuffer + i);
+      *vec = _mm_or_si128(*vec, MaskFF000000);
+  }
+  for (; i < imax; i++)
   {
       ((uint32_t*)state->framebuffer)[i] |= 0xFF000000;
   }
