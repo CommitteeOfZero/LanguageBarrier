@@ -39,7 +39,7 @@ typedef struct {
   uint32_t destwidth;
   uint32_t destheight;
   uint32_t lastFrameNum;
-  csri_inst *csri;
+  csri_inst* csri;
 } BinkModState_t;
 
 static std::unordered_map<BINK*, BinkModState_t*> stateMap;
@@ -120,15 +120,17 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
 
     // tried csri_open_file(), didn't work, not sure why. Not like it's a big
     // deal, anyway.
-    std::ifstream in(subPath,
-        std::ios::in | std::ios::binary);
-    in.seekg(0, std::ios::end);
-    std::string sub(in.tellg(), 0);
-    in.seekg(0, std::ios::beg);
-    in.read(&sub[0], sub.size());
-    in.close();
+    std::ifstream in(subPath, std::ios::in | std::ios::binary);
+    if (in.good()) {
+      in.seekg(0, std::ios::end);
+      std::string sub(in.tellg(), 0);
+      in.seekg(0, std::ios::beg);
+      in.read(&sub[0], sub.size());
 
-    state->csri = csri_open_mem(csri_renderer_default(), &sub[0], sub.size(), NULL);
+      state->csri =
+          csri_open_mem(csri_renderer_default(), &sub[0], sub.size(), NULL);
+    }
+    in.close();
   }
 
   return bnk;
@@ -143,7 +145,7 @@ void __stdcall BinkCloseHook(BINK* bnk) {
     SimdFree(state->framebuffer);
   }
   if (state->csri) {
-      csri_close(state->csri);
+    csri_close(state->csri);
   }
   if (state->bgmId) {
     // Not cargoculting: the game doesn't always set a new BGM after playing a
@@ -163,11 +165,12 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
   BinkModState_t* state = stateMap[bnk];
 
   if (state->csri == NULL)
-      return BinkCopyToBuffer(bnk, dest, destpitch, destheight, destx, desty,
-          flags);
+    return BinkCopyToBuffer(bnk, dest, destpitch, destheight, destx, desty,
+                            flags);
 
   uint32_t destwidth = destpitch / 4;
-  double time = ((double)bnk->FrameRateDiv * (double)bnk->FrameNum) / (double)bnk->FrameRate;
+  double time = ((double)bnk->FrameRateDiv * (double)bnk->FrameNum) /
+                (double)bnk->FrameRate;
   size_t align = SimdAlignment();
 
   if (bnk->FrameNum == state->lastFrameNum && destheight == state->destheight &&
@@ -197,9 +200,9 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
   frame.planes[0] = (uint8_t*)state->framebuffer;
   frame.strides[0] = destpitch;
   frame.pixfmt = CSRI_F_BGR_;
-  csri_fmt format = { frame.pixfmt, destwidth, destheight };
+  csri_fmt format = {frame.pixfmt, destwidth, destheight};
   if (csri_request_fmt(state->csri, &format) == 0)
-      csri_render(state->csri, &frame, time);
+    csri_render(state->csri, &frame, time);
 
   // xy-VSFilter apparently doesn't support drawing onto BGRA directly and will
   // set the alpha of everything it touches to 0. So let's just pretend
@@ -207,14 +210,12 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
   // BGR32 background though). We could save video alpha and reapply it, but we
   // don't need that for now since all our videos are 100% opaque.
   size_t i, imax;
-  for (i = 0, imax = destwidth * destheight; i < imax; i += 4)
-  {
-      __m128i *vec = (__m128i*)((uint32_t*)state->framebuffer + i);
-      *vec = _mm_or_si128(*vec, MaskFF000000);
+  for (i = 0, imax = destwidth * destheight; i < imax; i += 4) {
+    __m128i* vec = (__m128i*)((uint32_t*)state->framebuffer + i);
+    *vec = _mm_or_si128(*vec, MaskFF000000);
   }
-  for (; i < imax; i++)
-  {
-      ((uint32_t*)state->framebuffer)[i] |= 0xFF000000;
+  for (; i < imax; i++) {
+    ((uint32_t*)state->framebuffer)[i] |= 0xFF000000;
   }
 
   SimdCopy((uint8_t*)state->framebuffer, destpitch, destpitch / 4, destheight,
