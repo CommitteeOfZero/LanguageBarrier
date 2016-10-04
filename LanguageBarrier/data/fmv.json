@@ -2,9 +2,11 @@
     "__schema_version": 1,
     "subs": {
         "karaoke": {
-            "op.bk2": "OP.bk2.ass"
+            "imv042.bk2": "imv042.bk2.ass"
         },
         "jpVideo": {
+            "imv041.bk2": "imv041.bk2.ass",
+            "prologue01.bk2": "prologue01.bk2.ass",
             "prologue02.bk2": "prologue02.bk2.ass"
         }
     },

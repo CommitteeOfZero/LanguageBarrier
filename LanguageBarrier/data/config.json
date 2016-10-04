@@ -3,7 +3,6 @@
     "general": {
         "fixTranslation": true,
         "replaceCGs": true,
-        "hideAutoSkipButtons": false,
         "improveTextDisplay": true
     },
     "fmv": {
