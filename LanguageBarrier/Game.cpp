@@ -137,6 +137,10 @@ int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, void *mpkObject,
     categories.push_back("hqCG");
   if (Config::config().j["fmv"]["useHqAudio"].get<bool>() == true)
     categories.push_back("hqAudio");
+  if (Config::config().j["general"]["fixTranslation"].get<bool>() == true)
+    categories.push_back("fixTranslation");
+  if (Config::config().j["general"]["improveTextDisplay"].get<bool>() == true)
+    categories.push_back("font");
 
   for (const auto &i : categories) {
     if (Config::fileredirection().j[i].count((char *)mpkFilename) > 0) {
