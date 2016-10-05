@@ -69,7 +69,7 @@ bool binkModInit() {
     std::stringstream ss;
     ss << "languagebarrier\\subs\\fonts\\" << font.get<std::string>();
     std::string path = ss.str();
-    AddFontResourceA(path.c_str());
+    AddFontResourceExA(path.c_str(), FR_PRIVATE, NULL);
   }
 
   return true;
