@@ -140,6 +140,11 @@
             "pattern": "55 8B EC 8B 45 08 56 8B ?? ?? ?? ?? ?? ?? 0F B6 4E 07 0F B6 46 06",
             "offset": 0,
             "occurrence": 0
+        },
+        "textureFilteringBranch": {
+            "pattern": "74 21 3D ?? ?? ?? ?? A1 ?? ?? ?? ?? 8B 40 0C 8B 08 75 1A 6A 01 6A 06",
+            "offset": 0,
+            "occurrence": 0
         }
     }
 }

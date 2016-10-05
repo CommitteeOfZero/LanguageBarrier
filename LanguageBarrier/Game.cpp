@@ -55,13 +55,13 @@ int __cdecl mpkFslurpByIdHook(uint8_t mpkId, int fileId, void **pOutData);
 const char *__cdecl getStringFromScriptHook(int scriptId, int stringId);
 
 void gameInit() {
-    std::ifstream in("languagebarrier\\stringReplacementTable.bin",
-        std::ios::in | std::ios::binary);
-    in.seekg(0, std::ios::end);
-    stringReplacementTable.resize(in.tellg());
-    in.seekg(0, std::ios::beg);
-    in.read(&stringReplacementTable[0], stringReplacementTable.size());
-    in.close();
+  std::ifstream in("languagebarrier\\stringReplacementTable.bin",
+                   std::ios::in | std::ios::binary);
+  in.seekg(0, std::ios::end);
+  stringReplacementTable.resize(in.tellg());
+  in.seekg(0, std::ios::beg);
+  in.read(&stringReplacementTable[0], stringReplacementTable.size());
+  in.close();
 
   // TODO: maybe just scan for all signatures inside SigScan?
   // auto-initialisation, similarly to Config.h
@@ -117,6 +117,20 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
 
   if (Config::config().j["general"]["improveTextDisplay"].get<bool>() == true) {
     gameTextInit();
+  }
+
+  if (Config::config().j["general"]["textureFiltering"].get<bool>() == true) {
+    LanguageBarrierLog("Forcing bilinear filtering");
+    uint8_t *branch = (uint8_t *)sigScan("game", "textureFilteringBranch");
+    if (branch != NULL) {
+      // original code: if (stuff) { setTextureFiltering(Point) } else {
+      // setTextureFiltering(Linear) }
+      // patch 'je' to 'jmp' -> always go to else block
+      DWORD oldProtect;
+      VirtualProtect(branch, 1, PAGE_READWRITE, &oldProtect);
+      *branch = 0xEB;
+      VirtualProtect(branch, 1, oldProtect, &oldProtect);
+    }
   }
 
   return retval;
