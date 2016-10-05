@@ -1,4 +1,5 @@
 #include "LanguageBarrier.h"
+#include <ctime>
 #include <fstream>
 #include "MinHook.h"
 #include "Config.h"
@@ -14,6 +15,10 @@ void LanguageBarrierInit() {
     return;
   }
   isInitialised = true;
+
+  std::remove("languagebarrier\\log.txt");
+  // TODO: proper versioning
+  LanguageBarrierLog("LanguageBarrier for STEINS;GATE beta1");
   LanguageBarrierLog("**** Start apprication ****");
 
   MH_STATUS mhStatus = MH_Initialize();
@@ -42,6 +47,8 @@ void LanguageBarrierInit() {
 void LanguageBarrierLog(const std::string &text) {
   std::ofstream logFile("languagebarrier\\log.txt",
                         std::ios_base::out | std::ios_base::app);
+  std::time_t t = std::time(NULL);
+  logFile << std::put_time(std::gmtime(&t), "[%D %r] ");
   logFile << text << std::endl;
 }
 bool scanCreateEnableHook(char *category, char *name, uintptr_t *ppTarget,
