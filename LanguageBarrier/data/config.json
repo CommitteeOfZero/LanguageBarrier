@@ -4,7 +4,8 @@
         "fixTranslation": true,
         "replaceCGs": true,
         "improveTextDisplay": true,
-        "textureFiltering": true
+        "textureFiltering": true,
+        "exitBlackScreenFix": true
     },
     "fmv": {
         "enableKaraokeSubs": true,

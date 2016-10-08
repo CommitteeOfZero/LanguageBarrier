@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <d3d9.h>
 #include "MinHook.h"
 #include "Game.h"
 #include "SigScan.h"
@@ -31,6 +32,20 @@ static GetStringFromScriptProc gameExeGetStringFromScriptReal = NULL;
 typedef void(__thiscall *MpkConstructorProc)(void *pThis);
 static MpkConstructorProc gameExeMpkConstructor = NULL;
 
+typedef int(__thiscall *CloseAllSystemsProc)(void *pThis);
+static CloseAllSystemsProc gameExeCloseAllSystems = NULL;
+static CloseAllSystemsProc gameExeCloseAllSystemsReal = NULL;
+
+struct __declspec(align(4)) MgsD3D9State {
+  IDirect3DSurface9 *backbuffer;
+  int field_4;
+  int field_8;
+  IDirect3DDevice9Ex *device;
+};
+static MgsD3D9State *gameExePMgsD3D9State = NULL;
+static IDirect3D9Ex **gameExePpD3D9Ex = NULL;
+static D3DPRESENT_PARAMETERS *gameExePPresentParameters = NULL;
+
 static uintptr_t gameExeTextureLoadInit1 = NULL;
 static uintptr_t gameExeTextureLoadInit2 = NULL;
 static uintptr_t gameExeGslPngload = NULL;
@@ -53,6 +68,7 @@ int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, void *mpkObject,
                                 int fileId, int unk3);
 int __cdecl mpkFslurpByIdHook(uint8_t mpkId, int fileId, void **pOutData);
 const char *__cdecl getStringFromScriptHook(int scriptId, int stringId);
+int __fastcall closeAllSystemsHook(void *pThis, void *EDX);
 
 void gameInit() {
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
@@ -86,6 +102,19 @@ void gameInit() {
                             (LPVOID)getStringFromScriptHook,
                             (LPVOID *)&gameExeGetStringFromScriptReal))
     return;
+
+  if (Config::config().j["general"]["exitBlackScreenFix"].get<bool>() == true) {
+    if (!scanCreateEnableHook(
+            "game", "closeAllSystems", (uintptr_t *)&gameExeCloseAllSystems,
+            (LPVOID)closeAllSystemsHook, (LPVOID *)&gameExeCloseAllSystemsReal))
+      return;
+
+    gameExePMgsD3D9State =
+        *((MgsD3D9State **)sigScan("game", "useOfMgsD3D9State"));
+    gameExePpD3D9Ex = *((IDirect3D9Ex ***)sigScan("game", "useOfD3D9Ex"));
+    gameExePPresentParameters =
+        *((D3DPRESENT_PARAMETERS **)sigScan("game", "useOfPresentParameters"));
+  }
 
   gameExePpLotsOfState = *((uint32_t *)sigScan("game", "useOfPpLotsOfState"));
   gameExePpLoadedScripts = *(void ***)sigScan("game", "useOfLoadedScripts");
@@ -200,6 +229,30 @@ const char *__cdecl getStringFromScriptHook(int scriptId, int stringId) {
     }
   }
   return gameExeGetStringFromScriptReal(scriptId, stringId);
+}
+
+int __fastcall closeAllSystemsHook(void *pThis, void *EDX) {
+  // IDA thinks this is thiscall
+  // I'm not so sure it actually takes a parameter, but better safe than sorry,
+  // right?
+
+  int retval = gameExeCloseAllSystemsReal(pThis);
+
+  if (Config::config().j["general"]["exitBlackScreenFix"].get<bool>() == true) {
+    // Workaround for "user gets stuck on black screen when exiting while in
+    // fullscreen mode": Just switch to windowed mode first.
+    gameExePPresentParameters->Windowed = TRUE;
+    gameExePPresentParameters->FullScreen_RefreshRateInHz = 0;
+    gameExePPresentParameters->PresentationInterval =
+        D3DPRESENT_INTERVAL_IMMEDIATE;
+    gameExePMgsD3D9State->device->ResetEx(gameExePPresentParameters, NULL);
+    // The following is left over from my previous attempt at a fix. Figured I
+    // might as well be a good citizen and leave it in.
+    gameExePMgsD3D9State->device->Release();
+    (*gameExePpD3D9Ex)->Release();
+  }
+
+  return retval;
 }
 
 // TODO: I probably shouldn't be writing these in assembly given it looks like
