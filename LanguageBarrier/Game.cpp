@@ -218,9 +218,11 @@ const char *__cdecl getStringFromScriptHook(int scriptId, int stringId) {
     if (targets.count(sFileId) > 0) {
       std::string sStringId = std::to_string(stringId);
       if (targets[sFileId].count(sStringId) == 1) {
+#ifdef _DEBUG
         std::stringstream logstr;
         logstr << "redirecting string " << stringId << " in file " << fileId;
         LanguageBarrierLog(logstr.str());
+#endif
 
         uint32_t repId = targets[sFileId][sStringId].get<uint32_t>();
         uint32_t offset = ((uint32_t *)stringReplacementTable.c_str())[repId];
