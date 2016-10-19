@@ -4,6 +4,8 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <Shlwapi.h>
+#include <ShlObj.h>
 #include "data\defaultConfigJsonStr.h"
 #include "data\defaultSignaturesJsonStr.h"
 #include "data\defaultFmvJsonStr.h"
@@ -18,9 +20,34 @@ class Config {
   Config& operator=(const Config&) = delete;
 
  private:
-  const std::string filename;
-  Config(const char* defaultStr, const std::string& _filename)
+  const std::wstring filename;
+  Config(const char* defaultStr, const std::wstring& _filename)
       : filename(_filename) {
+    load(defaultStr);
+  }
+  Config(const char* defaultStr, const std::wstring& pathEnd,
+         REFKNOWNFOLDERID rfid)
+      : filename(getPath(pathEnd, rfid)) {
+    wchar_t dir[MAX_PATH];
+    wcsncpy_s(dir, &filename[0], MAX_PATH);
+    PathRemoveFileSpec(&dir[0]);
+    SHCreateDirectoryEx(NULL, dir, NULL);
+    load(defaultStr);
+  }
+
+  const std::wstring getPath(const std::wstring& pathEnd,
+                             REFKNOWNFOLDERID rfid) {
+    wchar_t* appdata;
+    SHGetKnownFolderPath(rfid, NULL, NULL, &appdata);
+    // apparently it doesn't like writing to the output directly
+    std::wstringstream result;
+    result << appdata;
+    CoTaskMemFree(appdata);
+    result << L"\\" << pathEnd;
+    return result.str();
+  }
+
+  void load(const char* defaultStr) {
     std::stringstream ss;
     ss << defaultStr;
     json tmp1;
@@ -33,31 +60,32 @@ class Config {
     }
     j = json_merge(tmp1, tmp2);
     save();
-  };
+  }
 
  public:
   static Config& config() {
-    static Config s(defaultConfigJsonStr, "languageBarrier\\config.json");
+    static Config s(defaultConfigJsonStr, L"Committee of Zero\\SGHD\\config.json",
+                    FOLDERID_LocalAppData);
     return s;
-  };
+  }
   static Config& sigs() {
     static Config s(defaultSignaturesJsonStr,
-                    "languagebarrier\\signatures.json");
+                    L"languagebarrier\\signatures.json");
     return s;
   }
   static Config& fmv() {
-    static Config s(defaultFmvJsonStr, "languagebarrier\\fmv.json");
+    static Config s(defaultFmvJsonStr, L"languagebarrier\\fmv.json");
     return s;
   }
   static Config& fileredirection() {
     static Config s(defaultFileredirectionJsonStr,
-                    "languagebarrier\\fileredirection.json");
+                    L"languagebarrier\\fileredirection.json");
     return s;
   }
   static Config& stringredirection() {
-      static Config s(defaultStringredirectionJsonStr,
-          "languagebarrier\\stringredirection.json");
-      return s;
+    static Config s(defaultStringredirectionJsonStr,
+                    L"languagebarrier\\stringredirection.json");
+    return s;
   }
 
   json j;
