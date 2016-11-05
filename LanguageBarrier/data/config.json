@@ -9,7 +9,7 @@
     },
     "fmv": {
         "enableKaraokeSubs": true,
-        "enableJpVideoSubs": true,
+        "enableJpVideoSubs": false,
         "useHqAudio": true
     }
 }
