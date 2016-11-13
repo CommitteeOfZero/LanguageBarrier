@@ -17,7 +17,9 @@ static const uint16_t DEFAULT_LINE_LENGTH = 1280;
 static const uint16_t DEFAULT_MAX_CHARACTERS = 255;
 static const float UNDERLINE_GLYPH_X = 1009.5f;
 static const float UNDERLINE_GLYPH_Y = 193.5f;
-static const int DIALOGUE_REDESIGN_YOFFSET_SHIFT = 12;
+// Careful: this also messes with the speaker markers (for spoken lines) and
+// highlight in the backlog
+static const int DIALOGUE_REDESIGN_YOFFSET_SHIFT = 15;
 static const int DIALOGUE_REDESIGN_LINEHEIGHT_SHIFT = -3;
 static const float OUTLINE_EXTRA_X = 4.0f;
 // arbitrarily chosen; I hope the game doesn't try to use this
