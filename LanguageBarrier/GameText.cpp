@@ -190,9 +190,10 @@ static uintptr_t gameExeDialogueLayoutWidthLookup3Return = NULL;
 static DialoguePage_t *gameExeDialoguePages =
     NULL;  // (DialoguePage_t *)0x164D680;
 
-static uint8_t *gameExeGlyphWidthsFont1 = NULL;  // = (uint8_t *)0x52C7F0;
-static uint8_t *gameExeGlyphWidthsFont2 = NULL;  // = (uint8_t *)0x52E058;
-static int *gameExeColors = NULL;                // = (int *)0x52E1E8;
+static uint8_t *gameExeGlyphWidthsFont1 = NULL;        // = (uint8_t *)0x52C7F0;
+static uint8_t *gameExeGlyphWidthsFont2 = NULL;        // = (uint8_t *)0x52E058;
+static int *gameExeColors = NULL;                      // = (int *)0x52E1E8;
+static uint8_t *gameExeBacklogHighlightHeight = NULL;  // = (uint8_t *)0x435DD4;
 
 static uint8_t widths[lb::TOTAL_NUM_CHARACTERS];
 
@@ -290,6 +291,16 @@ void gameTextInit() {
   gameExeDrawGlyph = (DrawGlyphProc)sigScan("game", "drawGlyph");
   gameExeDrawRectangle = (DrawRectangleProc)sigScan("game", "drawRectangle");
   gameExeSc3Eval = (Sc3EvalProc)sigScan("game", "sc3Eval");
+  gameExeBacklogHighlightHeight =
+      (uint8_t *)sigScan("game", "backlogHighlightHeight");
+
+  // gameExeBacklogHighlightHeight is (negative) offset (from vertical end of
+  // glyph):
+  // add eax,-0x22 (83 C0 DE) -> add eax,-0x1A (83 C0 E6)
+  DWORD oldProtect;
+  VirtualProtect(gameExeBacklogHighlightHeight, 1, PAGE_READWRITE, &oldProtect);
+  *gameExeBacklogHighlightHeight = 0xE6;
+  VirtualProtect(gameExeBacklogHighlightHeight, 1, oldProtect, &oldProtect);
 
   scanCreateEnableHook(
       "game", "drawDialogue", (uintptr_t *)&gameExeDrawDialogue,
