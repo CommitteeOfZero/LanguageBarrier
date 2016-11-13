@@ -610,6 +610,10 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
   }
 
   if (curLineLength == 0) result->lines--;
+  // For some reason we come up one line too short for some mails (e.g. Moeka's
+  // first). Unfortunately, this workaround also adds a blank line below mail
+  // subjects, but it's better than having them be unreadable.
+  result->lines++;
 
   result->linkCount = lastLinkNumber + 1;
   result->curColor = currentColor;
