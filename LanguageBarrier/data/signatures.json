@@ -170,6 +170,11 @@
             "pattern": "0F 85 ?? ?? ?? ?? 8B ?? ?? ?? ?? ?? ?? 83 C0 DE 03 C8",
             "offset": 15,
             "occurrence": 0
+        },
+        "useOfAudioPlayers": {
+            "pattern": "55 8B EC 8B 45 08 69 ?? ?? ?? ?? ?? 83 7D 14 00 56 8D",
+            "offset": 19,
+            "occurrence": 0
         }
     }
 }

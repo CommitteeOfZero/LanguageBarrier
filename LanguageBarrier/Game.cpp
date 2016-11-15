@@ -36,6 +36,62 @@ typedef int(__thiscall *CloseAllSystemsProc)(void *pThis);
 static CloseAllSystemsProc gameExeCloseAllSystems = NULL;
 static CloseAllSystemsProc gameExeCloseAllSystemsReal = NULL;
 
+typedef struct __declspec(align(4)) {
+  int position;
+  char gap4[1];
+  char byte5;
+  char gap6[5];
+  char shouldLoop;
+  __declspec(align(8)) char byte10;
+  char gap11[11];
+  float volume;
+  char gap20[20];
+  int dword34;
+  void *pvoid38;
+  int playbackState;
+  char gap40[4];
+  void *file;
+  char gap48[352];
+  int dword1A8;
+  char gap1AC[80];
+  int dword1FC;
+  char gap200[8];
+  int dword208;
+  char gap20C[388];
+  int dword390;
+  int dword394;
+  char byte398;
+  char gap399[11];
+  int nativePlayer;
+  char gap3A8[4];
+  int filesize;
+  char gap3B0[32];
+  char byte3D0;
+  char gap3D1[3];
+  int dword3D4;
+  char gap3D8[8];
+  int dword3E0;
+  char byte3E4;
+  char gap3E5[3];
+  int dword3E8;
+  int dword3EC;
+  char gap3F0[8];
+  void *decoderState;
+  int64_t filePosition;
+  char gap6D0[16];
+  void *pcmOutput;
+  char gap6E4[4];
+  int64_t qword6E8;
+  char gap6F0[26];
+  char byte70A;
+  char field_70B;
+  char field_70C;
+  char field_70D;
+  char field_70E;
+  char field_70F;
+} CPlayer;
+static CPlayer *gameExeAudioPlayers = NULL;
+
 struct __declspec(align(4)) MgsD3D9State {
   IDirect3DSurface9 *backbuffer;
   int field_4;
@@ -52,6 +108,7 @@ static uintptr_t gameExeGslPngload = NULL;
 static uintptr_t gameExeMpkMount = NULL;
 static uintptr_t gameExePpLotsOfState = NULL;
 static uintptr_t gameExePCurrentBgm = NULL;
+static uintptr_t gameExePLoopBgm = NULL;
 // scroll height is +6A78
 
 static void **gameExePpLoadedScripts = NULL;
@@ -87,6 +144,7 @@ void gameInit() {
   gameExeMpkMount = sigScan("game", "mpkMount");
   gameExeEarlyInit = (EarlyInitProc)sigScan("game", "earlyInit");
   gameExePCurrentBgm = *((uint32_t *)sigScan("game", "useOfPCurrentBgm"));
+  gameExePLoopBgm = gameExePCurrentBgm + 1;
   gameExeMpkConstructor = (MpkConstructorProc)sigScan("game", "mpkConstructor");
 
   // TODO: fault tolerance - we don't need to call it quits entirely just
@@ -118,6 +176,7 @@ void gameInit() {
 
   gameExePpLotsOfState = *((uint32_t *)sigScan("game", "useOfPpLotsOfState"));
   gameExePpLoadedScripts = *(void ***)sigScan("game", "useOfLoadedScripts");
+  gameExeAudioPlayers = *(CPlayer **)sigScan("game", "useOfAudioPlayers");
 
   binkModInit();
 }
@@ -287,6 +346,13 @@ void *gameMountMpk(char *mountpoint, char *directory, char *filename) {
   }
   return retval;
 }
-// TODO: figure out how to turn looping off
-void gameSetBgm(uint32_t fileId) { *(uint32_t *)gameExePCurrentBgm = fileId; }
+void gameSetBgm(uint32_t fileId) {
+  // There are probably nicer ways of doing this, but this is the easiest one
+  // that avoids a race
+  *(uint32_t *)gameExePCurrentBgm = fileId;
+  *(uint32_t *)gameExePLoopBgm = false;
+}
+void gameSetBgmPaused(bool paused) {
+  gameExeAudioPlayers[AUDIO_PLAYER_ID_BGM1].playbackState = paused ? 4 : 2;
+}
 }
