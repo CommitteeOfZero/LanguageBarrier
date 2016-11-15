@@ -34,6 +34,25 @@ static BINKCOPYTOBUFFER BinkCopyToBuffer = NULL;
 static BINKSETVOLUME BinkSetVolume = NULL;
 
 typedef struct {
+  char isOpen;
+  char shouldPlay;
+  char isPaused;
+  __declspec(align(2)) char byte4;
+  char gap5[11];
+  int dword10;
+  char gap14[12];
+  BINK* pBink;
+  char gap24[264];
+  void* surface;
+  int field_130;
+  float volume;
+} MgsBink_t;
+
+typedef int(__thiscall* MgsBinkSetPausedProc)(MgsBink_t* pThis, char paused);
+static MgsBinkSetPausedProc gameExeMgsBinkSetPaused = NULL;
+static MgsBinkSetPausedProc gameExeMgsBinkSetPausedReal = NULL;
+
+typedef struct {
   uint32_t bgmId;
   void* framebuffer;
   uint32_t destwidth;
@@ -53,6 +72,7 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
                                        uint32_t destheight, uint32_t destx,
                                        uint32_t desty, uint32_t flags);
 int32_t __stdcall BinkSetVolumeHook(BINK* bnk, int32_t unk1, int32_t volume);
+int __fastcall mgsBinkSetPausedHook(MgsBink_t* pThis, void* EDX, char paused);
 
 bool binkModInit() {
   if (!createEnableApiHook(L"bink2w32", "_BinkSetVolume@12", BinkSetVolumeHook,
@@ -62,7 +82,10 @@ bool binkModInit() {
       !createEnableApiHook(L"bink2w32", "_BinkClose@4", BinkCloseHook,
                            (LPVOID*)&BinkClose) ||
       !createEnableApiHook(L"bink2w32", "_BinkCopyToBuffer@28",
-                           BinkCopyToBufferHook, (LPVOID*)&BinkCopyToBuffer))
+                           BinkCopyToBufferHook, (LPVOID*)&BinkCopyToBuffer) ||
+      !scanCreateEnableHook(
+          "game", "mgsBinkSetPaused", (uintptr_t*)&gameExeMgsBinkSetPaused,
+          (LPVOID)&mgsBinkSetPausedHook, (LPVOID*)&gameExeMgsBinkSetPausedReal))
     return false;
 
   for (auto font : Config::fmv().j["fonts"]) {
@@ -229,5 +252,18 @@ int32_t __stdcall BinkSetVolumeHook(BINK* bnk, int32_t unk1, int32_t volume) {
   BinkModState_t* state = stateMap[bnk];
   if (state->bgmId) return BinkSetVolume(bnk, unk1, 0);
   return BinkSetVolume(bnk, unk1, volume);
+}
+
+int __fastcall mgsBinkSetPausedHook(MgsBink_t* pThis, void* EDX, char paused) {
+  if (stateMap.count(pThis->pBink) != 0) {
+    BinkModState_t* state = stateMap[pThis->pBink];
+    if (state->bgmId != 0) {
+      // gameSetBgmPaused(paused);
+      // unfortunately we can't pause BGM without desyncing right now
+      // so let's just allow the video to run in the background
+      return 0;
+    }
+  }
+  return gameExeMgsBinkSetPausedReal(pThis, paused);
 }
 }

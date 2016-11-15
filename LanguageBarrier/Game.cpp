@@ -36,7 +36,7 @@ typedef int(__thiscall *CloseAllSystemsProc)(void *pThis);
 static CloseAllSystemsProc gameExeCloseAllSystems = NULL;
 static CloseAllSystemsProc gameExeCloseAllSystemsReal = NULL;
 
-typedef struct __declspec(align(4)) {
+typedef struct {
   int position;
   char gap4[1];
   char byte5;
@@ -76,12 +76,12 @@ typedef struct __declspec(align(4)) {
   int dword3E8;
   int dword3EC;
   char gap3F0[8];
-  void *decoderState;
-  int64_t filePosition;
+  char decoderState[720];  // vorbisfile OggVorbis_File
+  __int64 filePosition;
   char gap6D0[16];
   void *pcmOutput;
   char gap6E4[4];
-  int64_t qword6E8;
+  __int64 qword6E8;
   char gap6F0[26];
   char byte70A;
   char field_70B;
@@ -353,6 +353,10 @@ void gameSetBgm(uint32_t fileId) {
   *(uint32_t *)gameExePLoopBgm = false;
 }
 void gameSetBgmPaused(bool paused) {
+  // TODO: make this instantaneous
+  if (gameExeAudioPlayers[AUDIO_PLAYER_ID_BGM1].playbackState != 4 &&
+      gameExeAudioPlayers[AUDIO_PLAYER_ID_BGM1].playbackState != 2)
+    return;
   gameExeAudioPlayers[AUDIO_PLAYER_ID_BGM1].playbackState = paused ? 4 : 2;
 }
 }
