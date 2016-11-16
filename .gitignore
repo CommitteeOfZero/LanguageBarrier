@@ -220,7 +220,7 @@ LanguageBarrier/contrib/include/*.hpp
 LanguageBarrier/contrib/include/Simd/
 LanguageBarrier/lib/Debug/
 LanguageBarrier/lib/Release/
-# keep Aegisub's xy-VSFilter build / csri headers
+# keep xy-VSFilter build / csri headers
 LanguageBarrier/data/*.h
 *.opendb
 *.VC.db
