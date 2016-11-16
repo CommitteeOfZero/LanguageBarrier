@@ -2,7 +2,14 @@
     "__schema_version": 1,
     "subs": {
         "karaoke": {
-            "imv042.bk2": "imv042.bk2.ass"
+            "imv042.bk2": "imv042.bk2.ass",
+            "ending_c.bk2": "ending_c.bk2.ass",
+            "ending_f.bk2": "ending_f.bk2.ass",
+            "ending_m.bk2": "ending_m.bk2.ass",
+            "ending_r.bk2": "ending_r.bk2.ass",
+            "ending_s.bk2": "ending_s.bk2.ass",
+            "op.bk2": "op.bk2.ass",
+            "op2.bk2": "op2.bk2.ass"
         },
         "jpVideo": {
             "imv041.bk2": "imv041.bk2.ass",
@@ -13,7 +20,7 @@
     "hqAudio": {
         "op.bk2": 68,
         "ar.bk2": 81,
-        "op2.bk2": 82,
+        "op2.bk2": 130,
         "ending_c.bk2": 72,
         "ending_f.bk2": 72,
         "ending_m.bk2": 72,
@@ -27,6 +34,13 @@
         "Indira_K.ttf",
         "KOZMINPR6N-BOLD_0.OTF",
         "DFRys9_3.ttc",
-        "Aller_Rg.ttf"
+        "Aller_Rg.ttf",
+        "Ysgarth.ttf",
+        "SilkRemington-SBold.ttf",
+        "msgothic.ttc",
+        "HanaMinA.ttf",
+        "Stilu-Light.otf",
+        "msmincho.ttc",
+        "NixieOne-Regular.ttf"
     ]
 }
