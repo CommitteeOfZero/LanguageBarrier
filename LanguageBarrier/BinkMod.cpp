@@ -132,6 +132,9 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
   if (Config::config().j["fmv"]["enableKaraokeSubs"].get<bool>() == true &&
       Config::fmv().j["subs"]["karaoke"].count(tmp) == 1)
     subFileName = Config::fmv().j["subs"]["karaoke"][tmp].get<std::string>();
+  if (Config::config().j["fmv"]["enableLqKaraokeSubs"].get<bool>() == true &&
+      Config::fmv().j["subs"]["lqKaraoke"].count(tmp) == 1)
+      subFileName = Config::fmv().j["subs"]["lqKaraoke"][tmp].get<std::string>();
 
   if (!subFileName.empty()) {
     std::stringstream ssSubPath;
