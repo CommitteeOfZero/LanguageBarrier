@@ -86,6 +86,8 @@ copy /Y "$(ProjectDir)data\fileredirection.json" "$(TargetDir)languagebarrier"
 copy /Y "$(ProjectDir)data\stringredirection.json" "$(TargetDir)languagebarrier"
 rem We don't copy config.json so that doesn't get overwritten when someone installs an update
 copy /Y "$(ProjectDir)contrib\lib\xy-vsfilter\VSFilter.dll" "$(TargetDir)"
+copy /Y "$(SolutionDir)LICENSE" "$(TargetDir)"
+copy /Y "$(SolutionDir)THIRDPARTY" "$(TargetDir)"
 endlocal</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -124,6 +126,8 @@ copy /Y "$(ProjectDir)data\fileredirection.json" "$(TargetDir)languagebarrier"
 copy /Y "$(ProjectDir)data\stringredirection.json" "$(TargetDir)languagebarrier"
 rem We don't copy config.json so that doesn't get overwritten when someone installs an update
 copy /Y "$(ProjectDir)contrib\lib\xy-vsfilter\VSFilter.dll" "$(TargetDir)"
+copy /Y "$(SolutionDir)LICENSE" "$(TargetDir)"
+copy /Y "$(SolutionDir)THIRDPARTY" "$(TargetDir)"
 endlocal</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
