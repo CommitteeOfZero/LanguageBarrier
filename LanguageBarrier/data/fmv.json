@@ -9,7 +9,8 @@
             "ending_r.bk2": "ending_r.bk2.ass",
             "ending_s.bk2": "ending_s.bk2.ass",
             "op.bk2": "op.bk2.ass",
-            "op2.bk2": "op2.bk2.ass"
+            "op2.bk2": "op2.bk2.ass",
+            "ar.bk2": "ar.bk2.ass"
         },
         "jpVideo": {
             "imv041.bk2": "imv041.bk2.ass",
@@ -30,17 +31,17 @@
         "imv042.bk2": 129
     },
     "fonts": [
-        "Squ721Rm.ttf",
-        "Indira_K.ttf",
-        "KOZMINPR6N-BOLD_0.OTF",
-        "DFRys9_3.ttc",
         "Aller_Rg.ttf",
-        "Ysgarth.ttf",
-        "SilkRemington-SBold.ttf",
-        "msgothic.ttc",
+        "Eligible-Regular.ttf",
         "HanaMinA.ttf",
-        "Stilu-Light.otf",
+        "Indira_K.ttf",
+        "kochi-gothic-subst.ttf",
+        "KOZMINPR6N-BOLD_0.OTF",
+        "msgothic.ttc",
         "msmincho.ttc",
-        "NixieOne-Regular.ttf"
+        "NixieOne-Regular.ttf",
+        "Roboto-Regular.ttf",
+        "SilkRemington-SBold.ttf",
+        "Stilu-Light.otf"
     ]
 }
