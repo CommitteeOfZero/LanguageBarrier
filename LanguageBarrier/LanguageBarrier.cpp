@@ -18,7 +18,7 @@ void LanguageBarrierInit() {
 
   std::remove("languagebarrier\\log.txt");
   // TODO: proper versioning
-  LanguageBarrierLog("LanguageBarrier for STEINS;GATE beta1");
+  LanguageBarrierLog("LanguageBarrier for STEINS;GATE");
   LanguageBarrierLog("**** Start apprication ****");
 
   MH_STATUS mhStatus = MH_Initialize();
