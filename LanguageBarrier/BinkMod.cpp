@@ -115,7 +115,7 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
     // TODO: support using audio from 720p Bink videos in 1080p
     // ...meh, if the music's fine who cares
     uint32_t bgmId = Config::fmv().j["hqAudio"][tmp].get<uint32_t>();
-    gameSetBgm(bgmId);
+    gameSetBgm(bgmId, false);
     // we'll disable Bink audio in BinkSetVolumeHook. If we tried to do it here,
     // the game would just override it. If we tried to use BinkSetSoundOnOff,
     // the video wouldn't show (maybe the game thinks there's been an error).
@@ -134,7 +134,7 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
     subFileName = Config::fmv().j["subs"]["karaoke"][tmp].get<std::string>();
   if (Config::config().j["fmv"]["enableLqKaraokeSubs"].get<bool>() == true &&
       Config::fmv().j["subs"]["lqKaraoke"].count(tmp) == 1)
-      subFileName = Config::fmv().j["subs"]["lqKaraoke"][tmp].get<std::string>();
+    subFileName = Config::fmv().j["subs"]["lqKaraoke"][tmp].get<std::string>();
 
   if (!subFileName.empty()) {
     std::stringstream ssSubPath;
@@ -176,7 +176,8 @@ void __stdcall BinkCloseHook(BINK* bnk) {
   if (state->bgmId) {
     // Not cargoculting: the game doesn't always set a new BGM after playing a
     // video
-    gameSetBgm(BGM_CLEAR);
+    gameSetBgm(BGM_CLEAR, true);
+    gameSetBgmShouldPlay(false);
   }
   free(state);
   stateMap.erase(bnk);

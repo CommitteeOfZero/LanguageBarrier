@@ -13,7 +13,11 @@ static const uint8_t AUDIO_PLAYER_ID_BGM1 = 7;
 void gameInit();
 void gameLoadTexture(uint8_t textureId, void *buffer, size_t sz);
 void *gameMountMpk(char *mountpoint, char *directory, char *filename);
-void gameSetBgm(uint32_t fileId);
+void gameSetBgm(uint32_t fileId, bool shouldLoop);
+uint32_t gameGetBgm();
+bool gameGetBgmShouldLoop();
+void gameSetBgmShouldPlay(bool shouldPlay);
+bool gameGetBgmShouldPlay();
 void gameSetBgmPaused(bool paused);
 }
 

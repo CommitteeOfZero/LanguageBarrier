@@ -109,6 +109,7 @@ static uintptr_t gameExeMpkMount = NULL;
 static uintptr_t gameExePpLotsOfState = NULL;
 static uintptr_t gameExePCurrentBgm = NULL;
 static uintptr_t gameExePLoopBgm = NULL;
+static uintptr_t gameExePShouldPlayBgm = NULL;
 // scroll height is +6A78
 
 static void **gameExePpLoadedScripts = NULL;
@@ -144,7 +145,8 @@ void gameInit() {
   gameExeMpkMount = sigScan("game", "mpkMount");
   gameExeEarlyInit = (EarlyInitProc)sigScan("game", "earlyInit");
   gameExePCurrentBgm = *((uint32_t *)sigScan("game", "useOfPCurrentBgm"));
-  gameExePLoopBgm = gameExePCurrentBgm + 1;
+  gameExePLoopBgm = gameExePCurrentBgm + 4;
+  gameExePShouldPlayBgm = gameExePCurrentBgm + 12;
   gameExeMpkConstructor = (MpkConstructorProc)sigScan("game", "mpkConstructor");
 
   // TODO: fault tolerance - we don't need to call it quits entirely just
@@ -346,12 +348,18 @@ void *gameMountMpk(char *mountpoint, char *directory, char *filename) {
   }
   return retval;
 }
-void gameSetBgm(uint32_t fileId) {
+void gameSetBgm(uint32_t fileId, bool shouldLoop) {
   // There are probably nicer ways of doing this, but this is the easiest one
   // that avoids a race
   *(uint32_t *)gameExePCurrentBgm = fileId;
-  *(uint32_t *)gameExePLoopBgm = false;
+  *(uint32_t *)gameExePLoopBgm = shouldLoop;
 }
+uint32_t gameGetBgm() { return *(uint32_t *)gameExePCurrentBgm; }
+bool gameGetBgmShouldLoop() { return *(uint32_t *)gameExePLoopBgm; }
+void gameSetBgmShouldPlay(bool shouldPlay) {
+  *(uint32_t *)gameExePShouldPlayBgm = shouldPlay;
+}
+bool gameGetBgmShouldPlay() { return *(uint32_t *)gameExePShouldPlayBgm; }
 void gameSetBgmPaused(bool paused) {
   // TODO: make this instantaneous
   if (gameExeAudioPlayers[AUDIO_PLAYER_ID_BGM1].playbackState != 4 &&
