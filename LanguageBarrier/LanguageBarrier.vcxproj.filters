@@ -13,11 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Data">
-      <UniqueIdentifier>{f8508f58-857c-4e30-99d0-26d83f133f8f}</UniqueIdentifier>
-      <Extensions>
-      </Extensions>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="targetver.h">
@@ -69,21 +64,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="data\signatures.json">
-      <Filter>Data</Filter>
-    </None>
-    <None Include="data\config.json">
-      <Filter>Data</Filter>
-    </None>
     <None Include="packages.config" />
-    <None Include="data\fmv.json">
-      <Filter>Data</Filter>
-    </None>
-    <None Include="data\fileredirection.json">
-      <Filter>Data</Filter>
-    </None>
-    <None Include="data\stringredirection.json">
-      <Filter>Data</Filter>
-    </None>
   </ItemGroup>
 </Project>

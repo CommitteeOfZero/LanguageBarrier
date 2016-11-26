@@ -77,16 +77,6 @@
     <PreBuildEvent>
       <Command>setlocal enableextensions
 md "$(TargetDir)languagebarrier"
-bin2h -cz defaultConfigJsonStr &lt; "$(ProjectDir)data\config.json" &gt; "$(ProjectDir)data\defaultConfigJsonStr.h"
-bin2h -cz defaultSignaturesJsonStr &lt; "$(ProjectDir)data\signatures.json" &gt; "$(ProjectDir)data\defaultSignaturesJsonStr.h"
-bin2h -cz defaultFmvJsonStr &lt; "$(ProjectDir)data\fmv.json" &gt; "$(ProjectDir)data\defaultFmvJsonStr.h"
-bin2h -cz defaultFileredirectionJsonStr &lt; "$(ProjectDir)data\fileredirection.json" &gt; "$(ProjectDir)data\defaultFileredirectionJsonStr.h"
-bin2h -cz defaultStringredirectionJsonStr &lt; "$(ProjectDir)data\stringredirection.json" &gt; "$(ProjectDir)data\defaultStringredirectionJsonStr.h"
-copy /Y "$(ProjectDir)data\signatures.json" "$(TargetDir)languagebarrier"
-copy /Y "$(ProjectDir)data\fmv.json" "$(TargetDir)languagebarrier"
-copy /Y "$(ProjectDir)data\fileredirection.json" "$(TargetDir)languagebarrier"
-copy /Y "$(ProjectDir)data\stringredirection.json" "$(TargetDir)languagebarrier"
-rem We don't copy config.json so that doesn't get overwritten when someone installs an update
 copy /Y "$(ProjectDir)contrib\lib\xy-vsfilter\VSFilter.dll" "$(TargetDir)"
 copy /Y "$(ProjectDir)LICENSE" "$(TargetDir)languagebarrier"
 copy /Y "$(ProjectDir)THIRDPARTY" "$(TargetDir)languagebarrier"
@@ -119,16 +109,6 @@ endlocal</Command>
     <PreBuildEvent>
       <Command>setlocal enableextensions
 md "$(TargetDir)languagebarrier"
-bin2h -cz defaultConfigJsonStr &lt; "$(ProjectDir)data\config.json" &gt; "$(ProjectDir)data\defaultConfigJsonStr.h"
-bin2h -cz defaultSignaturesJsonStr &lt; "$(ProjectDir)data\signatures.json" &gt; "$(ProjectDir)data\defaultSignaturesJsonStr.h"
-bin2h -cz defaultFmvJsonStr &lt; "$(ProjectDir)data\fmv.json" &gt; "$(ProjectDir)data\defaultFmvJsonStr.h"
-bin2h -cz defaultFileredirectionJsonStr &lt; "$(ProjectDir)data\fileredirection.json" &gt; "$(ProjectDir)data\defaultFileredirectionJsonStr.h"
-bin2h -cz defaultStringredirectionJsonStr &lt; "$(ProjectDir)data\stringredirection.json" &gt; "$(ProjectDir)data\defaultStringredirectionJsonStr.h"
-copy /Y "$(ProjectDir)data\signatures.json" "$(TargetDir)languagebarrier"
-copy /Y "$(ProjectDir)data\fmv.json" "$(TargetDir)languagebarrier"
-copy /Y "$(ProjectDir)data\fileredirection.json" "$(TargetDir)languagebarrier"
-copy /Y "$(ProjectDir)data\stringredirection.json" "$(TargetDir)languagebarrier"
-rem We don't copy config.json so that doesn't get overwritten when someone installs an update
 copy /Y "$(ProjectDir)contrib\lib\xy-vsfilter\VSFilter.dll" "$(TargetDir)"
 copy /Y "$(ProjectDir)LICENSE" "$(TargetDir)languagebarrier"
 copy /Y "$(ProjectDir)THIRDPARTY" "$(TargetDir)languagebarrier"
@@ -162,11 +142,6 @@ endlocal</Command>
     <ClCompile Include="SigScan.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="data\config.json" />
-    <None Include="data\fileredirection.json" />
-    <None Include="data\signatures.json" />
-    <None Include="data\fmv.json" />
-    <None Include="data\stringredirection.json" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

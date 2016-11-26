@@ -6,11 +6,6 @@
 #include <stdexcept>
 #include <Shlwapi.h>
 #include <ShlObj.h>
-#include "data\defaultConfigJsonStr.h"
-#include "data\defaultSignaturesJsonStr.h"
-#include "data\defaultFmvJsonStr.h"
-#include "data\defaultFileredirectionJsonStr.h"
-#include "data\defaultStringredirectionJsonStr.h"
 #include "lbjson.h"
 
 namespace lb {
@@ -48,43 +43,54 @@ class Config {
   }
 
   void load(const char* defaultStr) {
-    std::stringstream ss;
-    ss << defaultStr;
-    json tmp1;
-    tmp1 << ss;
-    json tmp2;
+    json fileJson;
     try {
       std::ifstream infile(filename);
-      tmp2 << infile;
+      fileJson << infile;
     } catch (...) {
     }
-    j = json_merge(tmp1, tmp2);
+    if (defaultStr != NULL) {
+      std::stringstream ss;
+      ss << defaultStr;
+      json defaultJson;
+      defaultJson << ss;
+      j = json_merge(defaultJson, fileJson);
+    } else {
+      j = fileJson;
+    }
     save();
   }
 
  public:
   static Config& config() {
-    static Config s(defaultConfigJsonStr, L"Committee of Zero\\SGHD\\config.json",
+    std::string defaultConfig;
+    std::ifstream in("languagebarrier\\defaultconfig.json",
+                     std::ios::in | std::ios::binary);
+    in.seekg(0, std::ios::end);
+    defaultConfig.resize(in.tellg());
+    in.seekg(0, std::ios::beg);
+    in.read(&defaultConfig[0], defaultConfig.size());
+    in.close();
+
+    static Config s(defaultConfig.c_str(),
+                    L"Committee of Zero\\SGHD\\config.json",
                     FOLDERID_LocalAppData);
     return s;
   }
   static Config& sigs() {
-    static Config s(defaultSignaturesJsonStr,
-                    L"languagebarrier\\signatures.json");
+    static Config s(NULL, L"languagebarrier\\signatures.json");
     return s;
   }
   static Config& fmv() {
-    static Config s(defaultFmvJsonStr, L"languagebarrier\\fmv.json");
+    static Config s(NULL, L"languagebarrier\\fmv.json");
     return s;
   }
   static Config& fileredirection() {
-    static Config s(defaultFileredirectionJsonStr,
-                    L"languagebarrier\\fileredirection.json");
+    static Config s(NULL, L"languagebarrier\\fileredirection.json");
     return s;
   }
   static Config& stringredirection() {
-    static Config s(defaultStringredirectionJsonStr,
-                    L"languagebarrier\\stringredirection.json");
+    static Config s(NULL, L"languagebarrier\\stringredirection.json");
     return s;
   }
 
