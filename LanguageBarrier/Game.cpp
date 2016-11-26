@@ -247,11 +247,11 @@ int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, void *mpkObject,
     categories.push_back("font");
 
   for (const auto &i : categories) {
-    if (Config::fileredirection().j[i].count((char *)mpkFilename) > 0) {
+    if (Config::patchdef().j["fileRedirection"][i].count((char *)mpkFilename) > 0) {
       std::string key = std::to_string(fileId);
-      if (Config::fileredirection().j[i][(char *)mpkFilename].count(key) == 1) {
+      if (Config::patchdef().j["fileRedirection"][i][(char *)mpkFilename].count(key) == 1) {
         int newFileId =
-            Config::fileredirection().j[i][(char *)mpkFilename][key].get<int>();
+            Config::patchdef().j["fileRedirection"][i][(char *)mpkFilename][key].get<int>();
         logstr << " redirected to c0data.mpk, 0x" << std::hex << newFileId;
         LanguageBarrierLog(logstr.str());
         return gameExeMpkFopenByIdReal(pThis, c0dataMpk, newFileId, unk3);
@@ -274,7 +274,7 @@ int __cdecl mpkFslurpByIdHook(uint8_t mpkId, int fileId, void **ppOutData) {
 const char *__cdecl getStringFromScriptHook(int scriptId, int stringId) {
   int fileId = scriptIdsToFiles[scriptId];
   if (Config::config().j["general"]["fixTranslation"].get<bool>() == true) {
-    json targets = Config::stringredirection().j["fixTranslation"];
+    json targets = Config::patchdef().j["stringRedirection"]["fixTranslation"];
     std::string sFileId = std::to_string(fileId);
     if (targets.count(sFileId) > 0) {
       std::string sStringId = std::to_string(stringId);

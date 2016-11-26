@@ -88,7 +88,7 @@ bool binkModInit() {
           (LPVOID)&mgsBinkSetPausedHook, (LPVOID*)&gameExeMgsBinkSetPausedReal))
     return false;
 
-  for (auto font : Config::fmv().j["fonts"]) {
+  for (auto font : Config::patchdef().j["fmv"]["fonts"]) {
     std::stringstream ss;
     ss << "languagebarrier\\subs\\fonts\\" << font.get<std::string>();
     std::string path = ss.str();
@@ -109,12 +109,12 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
   if (strrchr(tmp, '/')) tmp = strrchr(tmp, '/') + 1;
 
   if (Config::config().j["fmv"]["useHqAudio"].get<bool>() == true &&
-      Config::fmv().j["hqAudio"].count(tmp) == 1) {
+      Config::patchdef().j["fmv"]["hqAudio"].count(tmp) == 1) {
     // TODO: temporarily set BGM volume to match movie volume, then revert in
     // BinkCloseHook
     // TODO: support using audio from 720p Bink videos in 1080p
     // ...meh, if the music's fine who cares
-    uint32_t bgmId = Config::fmv().j["hqAudio"][tmp].get<uint32_t>();
+    uint32_t bgmId = Config::patchdef().j["fmv"]["hqAudio"][tmp].get<uint32_t>();
     gameSetBgm(bgmId, false);
     // we'll disable Bink audio in BinkSetVolumeHook. If we tried to do it here,
     // the game would just override it. If we tried to use BinkSetSoundOnOff,
@@ -127,14 +127,14 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
   // TODO: support more than one track?
   // note: case sensitive
   if (Config::config().j["fmv"]["enableJpVideoSubs"].get<bool>() == true &&
-      Config::fmv().j["subs"]["jpVideo"].count(tmp) == 1)
-    subFileName = Config::fmv().j["subs"]["jpVideo"][tmp].get<std::string>();
+      Config::patchdef().j["fmv"]["subs"]["jpVideo"].count(tmp) == 1)
+    subFileName = Config::patchdef().j["fmv"]["subs"]["jpVideo"][tmp].get<std::string>();
   if (Config::config().j["fmv"]["enableKaraokeSubs"].get<bool>() == true &&
-      Config::fmv().j["subs"]["karaoke"].count(tmp) == 1)
-    subFileName = Config::fmv().j["subs"]["karaoke"][tmp].get<std::string>();
+      Config::patchdef().j["fmv"]["subs"]["karaoke"].count(tmp) == 1)
+    subFileName = Config::patchdef().j["fmv"]["subs"]["karaoke"][tmp].get<std::string>();
   if (Config::config().j["fmv"]["enableLqKaraokeSubs"].get<bool>() == true &&
-      Config::fmv().j["subs"]["lqKaraoke"].count(tmp) == 1)
-    subFileName = Config::fmv().j["subs"]["lqKaraoke"][tmp].get<std::string>();
+      Config::patchdef().j["fmv"]["subs"]["lqKaraoke"].count(tmp) == 1)
+    subFileName = Config::patchdef().j["fmv"]["subs"]["lqKaraoke"][tmp].get<std::string>();
 
   if (!subFileName.empty()) {
     std::stringstream ssSubPath;

@@ -94,18 +94,6 @@ class Config {
     static Config s(NULL, L"languagebarrier\\signatures.json");
     return s;
   }
-  static Config& fmv() {
-    static Config s(NULL, L"languagebarrier\\fmv.json");
-    return s;
-  }
-  static Config& fileredirection() {
-    static Config s(NULL, L"languagebarrier\\fileredirection.json");
-    return s;
-  }
-  static Config& stringredirection() {
-    static Config s(NULL, L"languagebarrier\\stringredirection.json");
-    return s;
-  }
 
   json j;
 
@@ -117,9 +105,6 @@ class Config {
 	patchdef();
     config();
     sigs();
-    fmv();
-    fileredirection();
-    stringredirection();
   };
 };
 }
