@@ -4,6 +4,8 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <locale>
+#include <codecvt>
 #include <Shlwapi.h>
 #include <ShlObj.h>
 #include "lbjson.h"
@@ -72,10 +74,21 @@ class Config {
     in.read(&defaultConfig[0], defaultConfig.size());
     in.close();
 
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+	std::wstring appdatadir = converter.from_bytes(patchdef().j["appdatadir"].get<std::string>());
+
+	std::wstringstream wss;
+	wss << appdatadir << L"\\config.json";
+
     static Config s(defaultConfig.c_str(),
-                    L"Committee of Zero\\SGHD\\config.json",
+                    wss.str(),
                     FOLDERID_LocalAppData);
     return s;
+  }
+
+  static Config& patchdef() {
+	  static Config s(NULL, L"languagebarrier\\patchdef.json");
+	  return s;
   }
   static Config& sigs() {
     static Config s(NULL, L"languagebarrier\\signatures.json");
@@ -101,6 +114,7 @@ class Config {
     outfile << j;
   };
   static void init() {
+	patchdef();
     config();
     sigs();
     fmv();
