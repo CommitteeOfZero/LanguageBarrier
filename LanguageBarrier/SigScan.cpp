@@ -127,7 +127,7 @@ uintptr_t sigScan(char* category, char* sigName, bool isData = false) {
   logstr << "SigScan: looking for " << category << "/" << sigName << "... "
          << std::endl;
 
-  json sig = Config::sigs().j[category][sigName];
+  json sig = Config::gamedef().j["signatures"][category][sigName];
   std::string sPattern = sig["pattern"].get<std::string>();
   const char* pattern = sPattern.c_str();
   size_t offset = sig["offset"].get<size_t>();

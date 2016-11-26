@@ -90,8 +90,8 @@ class Config {
 	  static Config s(NULL, L"languagebarrier\\patchdef.json");
 	  return s;
   }
-  static Config& sigs() {
-    static Config s(NULL, L"languagebarrier\\signatures.json");
+  static Config& gamedef() {
+    static Config s(NULL, L"languagebarrier\\gamedef.json");
     return s;
   }
 
@@ -104,7 +104,7 @@ class Config {
   static void init() {
 	patchdef();
     config();
-    sigs();
+    gamedef();
   };
 };
 }
