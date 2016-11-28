@@ -1,6 +1,12 @@
 #ifndef __LANGUAGEBARRIER_H__
 #define __LANGUAGEBARRIER_H__
 
+#ifdef DEFINE_JSON_CONSTANTS
+#define LB_GLOBAL
+#else
+#define LB_GLOBAL extern
+#endif
+
 #include "targetver.h"
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>

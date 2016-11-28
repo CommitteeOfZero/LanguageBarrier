@@ -193,9 +193,9 @@ static DialoguePage_t *gameExeDialoguePages =
 static uint8_t *gameExeGlyphWidthsFont1 = NULL;        // = (uint8_t *)0x52C7F0;
 static uint8_t *gameExeGlyphWidthsFont2 = NULL;        // = (uint8_t *)0x52E058;
 static int *gameExeColors = NULL;                      // = (int *)0x52E1E8;
-static uint8_t *gameExeBacklogHighlightHeight = NULL;  // = (uint8_t *)0x435DD4;
+static int8_t *gameExeBacklogHighlightHeight = NULL;   // = (int8_t *)0x435DD4;
 
-static uint8_t widths[lb::TOTAL_NUM_CHARACTERS];
+static uint8_t widths[lb::TOTAL_NUM_FONT_CELLS];
 
 static std::string *outlineBuffer;
 
@@ -292,14 +292,14 @@ void gameTextInit() {
   gameExeDrawRectangle = (DrawRectangleProc)sigScan("game", "drawRectangle");
   gameExeSc3Eval = (Sc3EvalProc)sigScan("game", "sc3Eval");
   gameExeBacklogHighlightHeight =
-      (uint8_t *)sigScan("game", "backlogHighlightHeight");
+      (int8_t *)sigScan("game", "backlogHighlightHeight");
 
   // gameExeBacklogHighlightHeight is (negative) offset (from vertical end of
   // glyph):
   // add eax,-0x22 (83 C0 DE) -> add eax,-0x17 (83 C0 E9)
   DWORD oldProtect;
   VirtualProtect(gameExeBacklogHighlightHeight, 1, PAGE_READWRITE, &oldProtect);
-  *gameExeBacklogHighlightHeight = 0xE9;
+  *gameExeBacklogHighlightHeight = BACKLOG_HIGHLIGHT_DEFAULT_HEIGHT + BACKLOG_HIGHLIGHT_HEIGHT_SHIFT;
   VirtualProtect(gameExeBacklogHighlightHeight, 1, oldProtect, &oldProtect);
 
   scanCreateEnableHook(
@@ -370,7 +370,7 @@ void gameTextInit() {
       (uintptr_t)((uint8_t *)gameExeDialogueLayoutWidthLookup3 + 0x7);
 
   FILE *widthsfile = fopen("languagebarrier\\widths.bin", "rb");
-  fread(widths, 1, TOTAL_NUM_CHARACTERS, widthsfile);
+  fread(widths, 1, TOTAL_NUM_FONT_CELLS, widthsfile);
   fclose(widthsfile);
   memcpy(gameExeGlyphWidthsFont1, widths, GLYPH_RANGE_FULLWIDTH_START);
   memcpy(gameExeGlyphWidthsFont2, widths, GLYPH_RANGE_FULLWIDTH_START);
@@ -438,7 +438,7 @@ void __cdecl drawDialogue2Hook(int fontNumber, int pageNumber,
 
 void semiTokeniseSc3String(char *sc3string, std::list<StringWord_t> &words,
                            int baseGlyphSize, int lineLength) {
-  lineLength -= 2 * PHONE_X_PADDING;
+  lineLength -= 2 * SGHD_PHONE_X_PADDING;
 
   Sc3_t sc3;
   int sc3evalResult;
@@ -503,8 +503,8 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
   // empty line may appear at the start of a mail
   // I'm not 100% sure why that is, and this'll probably come back to bite me
   // later, but whatever...
-  xOffset += PHONE_X_PADDING;
-  lineLength -= 2 * PHONE_X_PADDING;
+  xOffset += SGHD_PHONE_X_PADDING;
+  lineLength -= 2 * SGHD_PHONE_X_PADDING;
 
   memset(result, 0, sizeof(ProcessedSc3String_t));
 

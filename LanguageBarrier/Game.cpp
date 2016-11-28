@@ -115,7 +115,7 @@ static uintptr_t gameExePShouldPlayBgm = NULL;
 static void **gameExePpLoadedScripts = NULL;
 // I'm assuming we can rely on the game always loading scripts with
 // mpkFslurpById at some point
-static int scriptIdsToFiles[lb::MAX_LOADED_SCRIPTS] = {0};
+static int *scriptIdsToFiles;
 
 static std::string stringReplacementTable;
 static void *c0dataMpk = NULL;
@@ -129,6 +129,8 @@ const char *__cdecl getStringFromScriptHook(int scriptId, int stringId);
 int __fastcall closeAllSystemsHook(void *pThis, void *EDX);
 
 void gameInit() {
+  scriptIdsToFiles = (int*)calloc(MAX_LOADED_SCRIPTS, sizeof(int));
+
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
                    std::ios::in | std::ios::binary);
   in.seekg(0, std::ios::end);
