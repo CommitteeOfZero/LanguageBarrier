@@ -190,10 +190,10 @@ static uintptr_t gameExeDialogueLayoutWidthLookup3Return = NULL;
 static DialoguePage_t *gameExeDialoguePages =
     NULL;  // (DialoguePage_t *)0x164D680;
 
-static uint8_t *gameExeGlyphWidthsFont1 = NULL;        // = (uint8_t *)0x52C7F0;
-static uint8_t *gameExeGlyphWidthsFont2 = NULL;        // = (uint8_t *)0x52E058;
-static int *gameExeColors = NULL;                      // = (int *)0x52E1E8;
-static int8_t *gameExeBacklogHighlightHeight = NULL;   // = (int8_t *)0x435DD4;
+static uint8_t *gameExeGlyphWidthsFont1 = NULL;       // = (uint8_t *)0x52C7F0;
+static uint8_t *gameExeGlyphWidthsFont2 = NULL;       // = (uint8_t *)0x52E058;
+static int *gameExeColors = NULL;                     // = (int *)0x52E1E8;
+static int8_t *gameExeBacklogHighlightHeight = NULL;  // = (int8_t *)0x435DD4;
 
 static uint8_t widths[lb::TOTAL_NUM_FONT_CELLS];
 
@@ -299,8 +299,15 @@ void gameTextInit() {
   // add eax,-0x22 (83 C0 DE) -> add eax,-0x17 (83 C0 E9)
   DWORD oldProtect;
   VirtualProtect(gameExeBacklogHighlightHeight, 1, PAGE_READWRITE, &oldProtect);
-  *gameExeBacklogHighlightHeight = BACKLOG_HIGHLIGHT_DEFAULT_HEIGHT + BACKLOG_HIGHLIGHT_HEIGHT_SHIFT;
+  *gameExeBacklogHighlightHeight =
+      BACKLOG_HIGHLIGHT_DEFAULT_HEIGHT + BACKLOG_HIGHLIGHT_HEIGHT_SHIFT;
   VirtualProtect(gameExeBacklogHighlightHeight, 1, oldProtect, &oldProtect);
+
+  gameExeGlyphWidthsFont1 = (uint8_t *)sigScan("game", "useOfGlyphWidthsFont1");
+  gameExeGlyphWidthsFont2 = (uint8_t *)sigScan("game", "useOfGlyphWidthsFont2");
+  gameExeColors = (int *)sigScan("game", "useOfColors");
+  gameExeDialoguePages =
+      (DialoguePage_t *)sigScan("game", "useOfDialoguePages");
 
   scanCreateEnableHook(
       "game", "drawDialogue", (uintptr_t *)&gameExeDrawDialogue,
@@ -342,17 +349,8 @@ void gameTextInit() {
                        (LPVOID)getSc3StringLineCountHook,
                        (LPVOID *)&gameExeGetSc3StringLineCountReal);
 
-  gameExeDialoguePages =
-      (DialoguePage_t *)(*((uint32_t *)((uint8_t *)(gameExeDrawDialogue) +
-                                        0x18)) -
-                         0xC);
-  gameExeGlyphWidthsFont1 =
-      *(uint8_t **)((uint8_t *)(gameExeDrawPhoneText) + 0x83);
-  gameExeGlyphWidthsFont2 =
-      *(uint8_t **)((uint8_t *)(gameExeDrawPhoneText) + 0x74);
-  gameExeColors =
-      (int *)(*(uint32_t *)((uint8_t *)(gameExeDrawPhoneText) + 0x272) - 0x4);
-
+  // no point using the expression parser for these since the code is
+  // build-specific anyway
   scanCreateEnableHook("game", "dialogueLayoutWidthLookup1",
                        &gameExeDialogueLayoutWidthLookup1,
                        dialogueLayoutWidthLookup1Hook, NULL);
