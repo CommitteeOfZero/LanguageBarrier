@@ -4,6 +4,7 @@
 #include <string>
 #include <iomanip>
 #include "Config.h"
+#include "SigExpr.h"
 
 // Stolen from
 // https://raw.githubusercontent.com/learn-more/findpattern-bench/master/patterns/atom0s_mrexodia.h
@@ -122,7 +123,7 @@ uintptr_t FindPattern(vector<unsigned char> data, const char* pszPattern,
 }
 
 namespace lb {
-uintptr_t sigScan(char* category, char* sigName, bool isData = false) {
+uintptr_t sigScanRaw(char* category, char* sigName, bool isData = false) {
   std::stringstream logstr;
   logstr << "SigScan: looking for " << category << "/" << sigName << "... "
          << std::endl;
@@ -148,8 +149,8 @@ uintptr_t sigScan(char* category, char* sigName, bool isData = false) {
     std::vector<unsigned char> rawData(
         (unsigned char*)baseAddress,
         (unsigned char*)baseAddress + pSectionHdr->Misc.VirtualSize);
-    uintptr_t retval =
-        (uintptr_t)FindPattern(rawData, pattern, baseAddress, offset, sig["occurrence"].get<int>());
+    uintptr_t retval = (uintptr_t)FindPattern(
+        rawData, pattern, baseAddress, offset, sig["occurrence"].get<int>());
 
     if (retval != NULL) {
       logstr << " found at 0x" << std::hex << retval;
@@ -161,5 +162,18 @@ uintptr_t sigScan(char* category, char* sigName, bool isData = false) {
   logstr << " not found!";
   LanguageBarrierLog(logstr.str());
   return NULL;
+}
+
+uintptr_t sigScan(char* category, char* sigName, bool isData = false) {
+  uintptr_t raw = sigScanRaw(category, sigName, isData);
+  json sig = Config::gamedef().j["signatures"][category][sigName];
+  if (sig.count("expr") == 0) return raw;
+
+  try {
+    return SigExpr(sig["expr"].get<std::string>(), raw).evaluate();
+  } catch (std::runtime_error& e) {
+    LanguageBarrierLog(e.what());
+    return NULL;
+  }
 }
 }

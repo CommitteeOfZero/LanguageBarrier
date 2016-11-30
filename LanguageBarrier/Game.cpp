@@ -146,9 +146,9 @@ void gameInit() {
   gameExeGslPngload = sigScan("game", "gslPngload");
   gameExeMpkMount = sigScan("game", "mpkMount");
   gameExeEarlyInit = (EarlyInitProc)sigScan("game", "earlyInit");
-  gameExePCurrentBgm = *((uint32_t *)sigScan("game", "useOfPCurrentBgm"));
-  gameExePLoopBgm = gameExePCurrentBgm + 4;
-  gameExePShouldPlayBgm = gameExePCurrentBgm + 12;
+  gameExePCurrentBgm = sigScan("game", "useOfPCurrentBgm");
+  gameExePLoopBgm = sigScan("game", "useOfPLoopBgm");
+  gameExePShouldPlayBgm = sigScan("game", "useOfPShouldPlayBgm");
   gameExeMpkConstructor = (MpkConstructorProc)sigScan("game", "mpkConstructor");
 
   // TODO: fault tolerance - we don't need to call it quits entirely just
