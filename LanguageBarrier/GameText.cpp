@@ -6,6 +6,7 @@
 #include "Game.h"
 #include "LanguageBarrier.h"
 #include "SigScan.h"
+#include "Config.h"
 
 typedef struct __declspec(align(4)) {
   char gap0[316];
@@ -108,7 +109,7 @@ static DialogueLayoutRelatedProc gameExeDialogueLayoutRelated =
     NULL;  // = (DialogueLayoutRelatedProc)0x448790;
 static DialogueLayoutRelatedProc gameExeDialogueLayoutRelatedReal = NULL;
 
-typedef void(__cdecl *DrawGlyphProc)(int textureId, float glyphInTextureStartX,
+typedef int(__cdecl *DrawGlyphProc)(int textureId, float glyphInTextureStartX,
                                      float glyphInTextureStartY,
                                      float glyphInTextureWidth,
                                      float glyphInTextureHeight,
@@ -116,6 +117,7 @@ typedef void(__cdecl *DrawGlyphProc)(int textureId, float glyphInTextureStartX,
                                      float displayEndX, float displayEndY,
                                      int color, uint32_t opacity);
 static DrawGlyphProc gameExeDrawGlyph = NULL;  // = (DrawGlyphProc)0x42F950;
+static DrawGlyphProc gameExeDrawGlyphReal = NULL;
 
 typedef int(__cdecl *DrawRectangleProc)(float X, float Y, float width,
                                         float height, int color,
@@ -267,6 +269,12 @@ int __cdecl drawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
                                   int selectedLink);
 int __cdecl getSc3StringLineCountHook(int lineLength, char *sc3string,
                                       unsigned int baseGlyphSize);
+int __cdecl sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
+                             float glyphInTextureStartY,
+                             float glyphInTextureWidth,
+                             float glyphInTextureHeight, float displayStartX,
+                             float displayStartY, float displayEndX,
+                             float displayEndY, int color, uint32_t opacity);
 // There are a bunch more functions like these but I haven't seen them get hit
 // during debugging and the original code *mostly* works okay if it recognises
 // western text as variable-width
@@ -288,7 +296,13 @@ void gameTextInit() {
   // done and I can free the buffer
   // so I'll just do it in a hook
 
-  gameExeDrawGlyph = (DrawGlyphProc)sigScan("game", "drawGlyph");
+  if (config["gamedef"]["drawGlyphVersion"].get<std::string>() == "sg0") {
+    scanCreateEnableHook("game", "drawGlyph", (uintptr_t *)&gameExeDrawGlyph,
+                         (LPVOID)sg0DrawGlyphHook,
+                         (LPVOID *)&gameExeDrawGlyphReal);
+  } else {
+    gameExeDrawGlyph = (DrawGlyphProc)sigScan("game", "drawGlyph");
+  }
   gameExeDrawRectangle = (DrawRectangleProc)sigScan("game", "drawRectangle");
   gameExeSc3Eval = (Sc3EvalProc)sigScan("game", "sc3Eval");
   gameExeBacklogHighlightHeight =
@@ -786,5 +800,26 @@ int __cdecl getSc3StringLineCountHook(int lineLength, char *sc3string,
   processSc3TokenList(0, 0, lineLength, words, LINECOUNT_DISABLE_OR_ERROR, 0,
                       baseGlyphSize, &str, true, 1.0f, -1, NOT_A_LINK, 0);
   return str.lines + 1;
+}
+int sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
+                     float glyphInTextureStartY, float glyphInTextureWidth,
+                     float glyphInTextureHeight, float displayStartX,
+                     float displayStartY, float displayEndX, float displayEndY,
+                     int color, uint32_t opacity) {
+  // undoes the following:
+  // if (glyphInTextureStartY > 4080.0) {
+  //   glyphInTextureStartY -= 4080.0;
+  //   ++textureId;
+  // }
+  // we store the font texture as PNG - like SGHD - so we don't need to split it
+
+  if (glyphInTextureStartY > 4080.0) {
+    glyphInTextureStartY += 4080.0;
+    --textureId;
+  }
+  return gameExeDrawGlyphReal(
+      textureId, glyphInTextureStartX, glyphInTextureStartY,
+      glyphInTextureWidth, glyphInTextureHeight, displayStartX, displayStartY,
+      displayEndX, displayEndY, color, opacity);
 }
 }

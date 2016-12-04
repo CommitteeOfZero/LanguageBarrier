@@ -16,7 +16,6 @@ void loadJsonConstants() {
 
   // Game.h
   BGM_CLEAR = config["gamedef"]["bgmClear"].get<uint32_t>();
-  MAX_LOADED_SCRIPTS = config["gamedef"]["maxLoadedScripts"].get<uint8_t>();
   MPK_ID_SCRIPT_MPK = config["gamedef"]["mpkIdScriptMpk"].get<uint8_t>();
   MPK_ID_BGM_MPK = config["gamedef"]["mpkIdBgmMpk"].get<uint8_t>();
   AUDIO_PLAYER_ID_BGM1 = config["gamedef"]["audioPlayerIdBgm1"].get<uint8_t>();

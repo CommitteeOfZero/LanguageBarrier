@@ -20,11 +20,6 @@ typedef int(__thiscall *MpkFopenByIdProc)(void *pThis, void *mpkObject,
 static MpkFopenByIdProc gameExeMpkFopenById = NULL;
 static MpkFopenByIdProc gameExeMpkFopenByIdReal = NULL;
 
-typedef int(__cdecl *MpkFslurpByIdProc)(uint8_t mpkId, int fileId,
-                                        void **ppOutData);
-static MpkFslurpByIdProc gameExeMpkFslurpById = NULL;
-static MpkFslurpByIdProc gameExeMpkFslurpByIdReal = NULL;
-
 typedef const char *(__cdecl *GetStringFromScriptProc)(int scriptId,
                                                        int stringId);
 static GetStringFromScriptProc gameExeGetStringFromScript = NULL;
@@ -36,6 +31,11 @@ static MpkConstructorProc gameExeMpkConstructor = NULL;
 typedef int(__thiscall *CloseAllSystemsProc)(void *pThis);
 static CloseAllSystemsProc gameExeCloseAllSystems = NULL;
 static CloseAllSystemsProc gameExeCloseAllSystemsReal = NULL;
+
+// correct prototype chosen at runtime
+typedef int(__cdecl *SghdGslPngLoadProc)(int textureId, void *png, int size);
+typedef int(__cdecl *Sg0GslPngLoadProc)(int textureId, void *png, int size, int unused0, int unused1);
+static uintptr_t gameExeGslPngload = NULL;
 
 typedef struct {
   int position;
@@ -105,18 +105,12 @@ static D3DPRESENT_PARAMETERS *gameExePPresentParameters = NULL;
 
 static uintptr_t gameExeTextureLoadInit1 = NULL;
 static uintptr_t gameExeTextureLoadInit2 = NULL;
-static uintptr_t gameExeGslPngload = NULL;
 static uintptr_t gameExeMpkMount = NULL;
-static uintptr_t gameExePpLotsOfState = NULL;
 static uintptr_t gameExePCurrentBgm = NULL;
 static uintptr_t gameExePLoopBgm = NULL;
 static uintptr_t gameExePShouldPlayBgm = NULL;
 // scroll height is +6A78
-
-static void **gameExePpLoadedScripts = NULL;
-// I'm assuming we can rely on the game always loading scripts with
-// mpkFslurpById at some point
-static int *scriptIdsToFiles;
+static int* gameExeScriptIdsToFileIds = NULL;
 
 static std::string stringReplacementTable;
 static void *c0dataMpk = NULL;
@@ -125,13 +119,10 @@ namespace lb {
 int __cdecl earlyInitHook(int unk0, int unk1);
 int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, void *mpkObject,
                                 int fileId, int unk3);
-int __cdecl mpkFslurpByIdHook(uint8_t mpkId, int fileId, void **pOutData);
 const char *__cdecl getStringFromScriptHook(int scriptId, int stringId);
 int __fastcall closeAllSystemsHook(void *pThis, void *EDX);
 
 void gameInit() {
-  scriptIdsToFiles = (int *)calloc(MAX_LOADED_SCRIPTS, sizeof(int));
-
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
                    std::ios::in | std::ios::binary);
   in.seekg(0, std::ios::end);
@@ -155,9 +146,6 @@ void gameInit() {
   if (!scanCreateEnableHook("game", "earlyInit", (uintptr_t *)&gameExeEarlyInit,
                             (LPVOID)&earlyInitHook,
                             (LPVOID *)&gameExeEarlyInitReal) ||
-      !scanCreateEnableHook(
-          "game", "mpkFslurpById", (uintptr_t *)&gameExeMpkFslurpById,
-          (LPVOID)mpkFslurpByIdHook, (LPVOID *)&gameExeMpkFslurpByIdReal) ||
       !scanCreateEnableHook("game", "getStringFromScript",
                             (uintptr_t *)&gameExeGetStringFromScript,
                             (LPVOID)getStringFromScriptHook,
@@ -177,8 +165,7 @@ void gameInit() {
         *((D3DPRESENT_PARAMETERS **)sigScan("game", "useOfPresentParameters"));
   }
 
-  gameExePpLotsOfState = *((uint32_t *)sigScan("game", "useOfPpLotsOfState"));
-  gameExePpLoadedScripts = *(void ***)sigScan("game", "useOfLoadedScripts");
+  gameExeScriptIdsToFileIds = (int*)sigScan("game", "useOfScriptIdsToFileIds");
   gameExeAudioPlayers = *(CPlayer **)sigScan("game", "useOfAudioPlayers");
 
   binkModInit();
@@ -254,17 +241,8 @@ int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, void *mpkObject,
   return gameExeMpkFopenByIdReal(pThis, mpkObject, fileId, unk3);
 }
 
-int __cdecl mpkFslurpByIdHook(uint8_t mpkId, int fileId, void **ppOutData) {
-  if (mpkId == MPK_ID_SCRIPT_MPK && ppOutData >= gameExePpLoadedScripts &&
-      ppOutData < gameExePpLoadedScripts + MAX_LOADED_SCRIPTS) {
-    uint8_t scriptId = (ppOutData - gameExePpLoadedScripts);
-    scriptIdsToFiles[scriptId] = fileId;
-  }
-  return gameExeMpkFslurpByIdReal(mpkId, fileId, ppOutData);
-}
-
 const char *__cdecl getStringFromScriptHook(int scriptId, int stringId) {
-  int fileId = scriptIdsToFiles[scriptId];
+  int fileId = gameExeScriptIdsToFileIds[scriptId];
   if (config["patch"].count("stringRedirection") == 1) {
     const json &targets = config["patch"]["stringRedirection"];
     std::string sFileId = std::to_string(fileId);
@@ -313,16 +291,14 @@ int __fastcall closeAllSystemsHook(void *pThis, void *EDX) {
 // TODO: I probably shouldn't be writing these in assembly given it looks like
 // they're all cdecl or thiscall anyway
 void gameLoadTexture(uint8_t textureId, void *buffer, size_t sz) {
-  __asm {
-    push ebx
-    push [sz]
-    push [buffer]
-    movzx ebx, [textureId]
-    push ebx
-    call gameExeGslPngload
-    add esp, 0xC
-    pop ebx
-  }
+	if (config["gamedef"]["gslPngLoadVersion"].get<std::string>() == "sghd")
+	{
+		((SghdGslPngLoadProc)gameExeGslPngload)(textureId, buffer, sz);
+	}
+	else if (config["gamedef"]["gslPngLoadVersion"].get<std::string>() == "sg0")
+	{
+		((Sg0GslPngLoadProc)gameExeGslPngload)(textureId, buffer, sz, 0, 0);
+	}
 }
 // returns an archive object
 void *gameMountMpk(char *mountpoint, char *directory, char *filename) {
