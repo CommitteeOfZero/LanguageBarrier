@@ -25,8 +25,9 @@ bool scanCreateEnableHook(char *category, char *name, uintptr_t *ppTarget,
 bool createEnableApiHook(LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour,
                          LPVOID *ppOriginal);
 // until TsudaKageyu updates his NuGet package...
-MH_STATUS MH_CreateHookApiEx(LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour,
-                        LPVOID *ppOriginal, LPVOID *ppTarget);
+MH_STATUS MH_CreateHookApiEx(LPCWSTR pszModule, LPCSTR pszProcName,
+                             LPVOID pDetour, LPVOID *ppOriginal,
+                             LPVOID *ppTarget);
 }
 
 #endif  // !__LANGUAGEBARRIER_H__

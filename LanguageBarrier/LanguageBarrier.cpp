@@ -15,42 +15,40 @@ void loadJsonConstants() {
   LanguageBarrierLog("loading constants from gamedef.json/patchdef.json...");
 
   // Game.h
-  BGM_CLEAR = Config::gamedef().j["bgmClear"].get<uint32_t>();
-  MAX_LOADED_SCRIPTS = Config::gamedef().j["maxLoadedScripts"].get<uint8_t>();
-  MPK_ID_SCRIPT_MPK = Config::gamedef().j["mpkIdScriptMpk"].get<uint8_t>();
-  MPK_ID_BGM_MPK = Config::gamedef().j["mpkIdBgmMpk"].get<uint8_t>();
-  AUDIO_PLAYER_ID_BGM1 =
-      Config::gamedef().j["audioPlayerIdBgm1"].get<uint8_t>();
+  BGM_CLEAR = config["gamedef"]["bgmClear"].get<uint32_t>();
+  MAX_LOADED_SCRIPTS = config["gamedef"]["maxLoadedScripts"].get<uint8_t>();
+  MPK_ID_SCRIPT_MPK = config["gamedef"]["mpkIdScriptMpk"].get<uint8_t>();
+  MPK_ID_BGM_MPK = config["gamedef"]["mpkIdBgmMpk"].get<uint8_t>();
+  AUDIO_PLAYER_ID_BGM1 = config["gamedef"]["audioPlayerIdBgm1"].get<uint8_t>();
 
   // GameText.h
-  FIRST_FONT_ID = Config::gamedef().j["firstFontId"].get<uint8_t>();
-  COORDS_MULTIPLIER = Config::gamedef().j["coordsMultiplier"].get<float>();
-  FONT_CELL_WIDTH = Config::gamedef().j["fontCellWidth"].get<uint8_t>();
-  FONT_CELL_HEIGHT = Config::gamedef().j["fontCellHeight"].get<uint8_t>();
-  FONT_ROW_LENGTH = Config::gamedef().j["fontRowLength"].get<uint8_t>();
+  FIRST_FONT_ID = config["gamedef"]["firstFontId"].get<uint8_t>();
+  COORDS_MULTIPLIER = config["gamedef"]["coordsMultiplier"].get<float>();
+  FONT_CELL_WIDTH = config["gamedef"]["fontCellWidth"].get<uint8_t>();
+  FONT_CELL_HEIGHT = config["gamedef"]["fontCellHeight"].get<uint8_t>();
+  FONT_ROW_LENGTH = config["gamedef"]["fontRowLength"].get<uint8_t>();
   GLYPH_RANGE_FULLWIDTH_START =
-      Config::gamedef().j["glyphRangeFullwidthStart"].get<uint16_t>();
-  DEFAULT_LINE_LENGTH =
-      Config::gamedef().j["defaultLineLength"].get<uint16_t>();
+      config["gamedef"]["glyphRangeFullwidthStart"].get<uint16_t>();
+  DEFAULT_LINE_LENGTH = config["gamedef"]["defaultLineLength"].get<uint16_t>();
   DEFAULT_MAX_CHARACTERS =
-      Config::gamedef().j["defaultMaxCharacters"].get<uint16_t>();
-  UNDERLINE_GLYPH_X = Config::gamedef().j["underlineGlyphX"].get<float>();
-  UNDERLINE_GLYPH_Y = Config::gamedef().j["underlineGlyphY"].get<float>();
+      config["gamedef"]["defaultMaxCharacters"].get<uint16_t>();
+  UNDERLINE_GLYPH_X = config["gamedef"]["underlineGlyphX"].get<float>();
+  UNDERLINE_GLYPH_Y = config["gamedef"]["underlineGlyphY"].get<float>();
   DIALOGUE_REDESIGN_YOFFSET_SHIFT =
-      Config::patchdef().j["dialogueRedesignYOffsetShift"].get<int>();
+      config["patch"]["dialogueRedesignYOffsetShift"].get<int>();
   DIALOGUE_REDESIGN_LINEHEIGHT_SHIFT =
-      Config::patchdef().j["dialogueRedesignLineHeightShift"].get<int>();
+      config["patch"]["dialogueRedesignLineHeightShift"].get<int>();
   BACKLOG_HIGHLIGHT_DEFAULT_HEIGHT =
-      Config::gamedef().j["backlogHighlightDefaultHeight"].get<int8_t>();
+      config["gamedef"]["backlogHighlightDefaultHeight"].get<int8_t>();
   BACKLOG_HIGHLIGHT_HEIGHT_SHIFT =
-      Config::patchdef().j["backlogHighlightHeightShift"].get<int8_t>();
-  OUTLINE_EXTRA_X = Config::patchdef().j["outlineExtraX"].get<float>();
-  OUTLINE_TEXTURE_ID = Config::patchdef().j["outlineTextureId"].get<uint8_t>();
-  SGHD_PHONE_X_PADDING = Config::patchdef().j["sghdPhoneXPadding"].get<int>();
+      config["patch"]["backlogHighlightHeightShift"].get<int8_t>();
+  OUTLINE_EXTRA_X = config["patch"]["outlineExtraX"].get<float>();
+  OUTLINE_TEXTURE_ID = config["patch"]["outlineTextureId"].get<uint8_t>();
+  SGHD_PHONE_X_PADDING = config["patch"]["sghdPhoneXPadding"].get<int>();
   GLYPH_ID_FULLWIDTH_SPACE =
-      Config::gamedef().j["glyphIdFullwidthSpace"].get<uint16_t>();
+      config["gamedef"]["glyphIdFullwidthSpace"].get<uint16_t>();
   GLYPH_ID_HALFWIDTH_SPACE =
-      Config::gamedef().j["glyphIdHalfwidthSpace"].get<uint16_t>();
+      config["gamedef"]["glyphIdHalfwidthSpace"].get<uint16_t>();
 }
 void LanguageBarrierInit() {
   if (isInitialised) {
@@ -58,6 +56,8 @@ void LanguageBarrierInit() {
     return;
   }
   isInitialised = true;
+
+  configInit();
 
   std::remove("languagebarrier\\log.txt");
   // TODO: proper versioning
@@ -72,8 +72,6 @@ void LanguageBarrierInit() {
     return;
   }
 
-  Config::init();
-
   WCHAR path[MAX_PATH], exeName[_MAX_FNAME];
   GetModuleFileNameW(NULL, path, MAX_PATH);
   _wsplitpath_s(path, NULL, 0, NULL, 0, exeName, _MAX_FNAME, NULL, 0);
@@ -83,7 +81,7 @@ void LanguageBarrierInit() {
       logstr << "Game.exe detected";
       LanguageBarrierLog(logstr.str());
     }
-	loadJsonConstants();
+    loadJsonConstants();
     gameInit();
   }
 }

@@ -1,4 +1,5 @@
 #include "LanguageBarrier.h"
+#include <fstream>
 #include <string>
 #include <vector>
 #include <map>
@@ -129,7 +130,7 @@ const char *__cdecl getStringFromScriptHook(int scriptId, int stringId);
 int __fastcall closeAllSystemsHook(void *pThis, void *EDX);
 
 void gameInit() {
-  scriptIdsToFiles = (int*)calloc(MAX_LOADED_SCRIPTS, sizeof(int));
+  scriptIdsToFiles = (int *)calloc(MAX_LOADED_SCRIPTS, sizeof(int));
 
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
                    std::ios::in | std::ios::binary);
@@ -139,8 +140,6 @@ void gameInit() {
   in.read(&stringReplacementTable[0], stringReplacementTable.size());
   in.close();
 
-  // TODO: maybe just scan for all signatures inside SigScan?
-  // auto-initialisation, similarly to Config.h
   gameExeTextureLoadInit1 = sigScan("game", "textureLoadInit1");
   gameExeTextureLoadInit2 = sigScan("game", "textureLoadInit2");
   gameExeGslPngload = sigScan("game", "gslPngload");
@@ -165,7 +164,7 @@ void gameInit() {
                             (LPVOID *)&gameExeGetStringFromScriptReal))
     return;
 
-  if (Config::config().j["general"]["exitBlackScreenFix"].get<bool>() == true) {
+  if (config["patch"]["exitBlackScreenFix"].get<bool>() == true) {
     if (!scanCreateEnableHook(
             "game", "closeAllSystems", (uintptr_t *)&gameExeCloseAllSystems,
             (LPVOID)closeAllSystemsHook, (LPVOID *)&gameExeCloseAllSystemsReal))
@@ -207,11 +206,11 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
           (LPVOID)&mpkFopenByIdHook, (LPVOID *)&gameExeMpkFopenByIdReal))
     return retval;
 
-  if (Config::config().j["general"]["improveTextDisplay"].get<bool>() == true) {
+  if (config["patch"]["hookText"].get<bool>() == true) {
     gameTextInit();
   }
 
-  if (Config::config().j["general"]["textureFiltering"].get<bool>() == true) {
+  if (config["patch"]["textureFiltering"].get<bool>() == true) {
     LanguageBarrierLog("Forcing bilinear filtering");
     uint8_t *branch = (uint8_t *)sigScan("game", "textureFilteringBranch");
     if (branch != NULL) {
@@ -238,26 +237,17 @@ int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, void *mpkObject,
   LanguageBarrierLog(logstr.str());
 #endif
 
-  std::vector<std::string> categories;
-  if (Config::config().j["general"]["replaceCGs"].get<bool>() == true)
-    categories.push_back("hqCG");
-  if (Config::config().j["fmv"]["useHqAudio"].get<bool>() == true)
-    categories.push_back("hqAudio");
-  if (Config::config().j["general"]["fixTranslation"].get<bool>() == true)
-    categories.push_back("fixTranslation");
-  if (Config::config().j["general"]["improveTextDisplay"].get<bool>() == true)
-    categories.push_back("font");
-
-  for (const auto &i : categories) {
-    if (Config::patchdef().j["fileRedirection"][i].count((char *)mpkFilename) > 0) {
-      std::string key = std::to_string(fileId);
-      if (Config::patchdef().j["fileRedirection"][i][(char *)mpkFilename].count(key) == 1) {
-        int newFileId =
-            Config::patchdef().j["fileRedirection"][i][(char *)mpkFilename][key].get<int>();
-        logstr << " redirected to c0data.mpk, 0x" << std::hex << newFileId;
-        LanguageBarrierLog(logstr.str());
-        return gameExeMpkFopenByIdReal(pThis, c0dataMpk, newFileId, unk3);
-      }
+  if (config["patch"].count("fileRedirection") == 1 &&
+      config["patch"]["fileRedirection"].count((char *)mpkFilename) > 0) {
+    std::string key = std::to_string(fileId);
+    if (config["patch"]["fileRedirection"][(char *)mpkFilename].count(key) ==
+        1) {
+      int newFileId =
+          config["patch"]["fileRedirection"][(char *)mpkFilename][key]
+              .get<int>();
+      logstr << " redirected to c0data.mpk, 0x" << std::hex << newFileId;
+      LanguageBarrierLog(logstr.str());
+      return gameExeMpkFopenByIdReal(pThis, c0dataMpk, newFileId, unk3);
     }
   }
 
@@ -275,8 +265,8 @@ int __cdecl mpkFslurpByIdHook(uint8_t mpkId, int fileId, void **ppOutData) {
 
 const char *__cdecl getStringFromScriptHook(int scriptId, int stringId) {
   int fileId = scriptIdsToFiles[scriptId];
-  if (Config::config().j["general"]["fixTranslation"].get<bool>() == true) {
-    json targets = Config::patchdef().j["stringRedirection"]["fixTranslation"];
+  if (config["patch"].count("stringRedirection") == 1) {
+    const json &targets = config["patch"]["stringRedirection"];
     std::string sFileId = std::to_string(fileId);
     if (targets.count(sFileId) > 0) {
       std::string sStringId = std::to_string(stringId);
@@ -303,7 +293,7 @@ int __fastcall closeAllSystemsHook(void *pThis, void *EDX) {
 
   int retval = gameExeCloseAllSystemsReal(pThis);
 
-  if (Config::config().j["general"]["exitBlackScreenFix"].get<bool>() == true) {
+  if (config["patch"]["exitBlackScreenFix"].get<bool>() == true) {
     // Workaround for "user gets stuck on black screen when exiting while in
     // fullscreen mode": Just switch to windowed mode first.
     gameExePPresentParameters->Windowed = TRUE;

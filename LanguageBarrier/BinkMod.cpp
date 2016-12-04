@@ -1,5 +1,6 @@
 #include "LanguageBarrier.h"
 #include <Simd/SimdLib.h>
+#include <fstream>
 #include <unordered_map>
 #include "BinkMod.h"
 #include "Config.h"
@@ -75,6 +76,12 @@ int32_t __stdcall BinkSetVolumeHook(BINK* bnk, int32_t unk1, int32_t volume);
 int __fastcall mgsBinkSetPausedHook(MgsBink_t* pThis, void* EDX, char paused);
 
 bool binkModInit() {
+  if (config["patch"].count("fmv") != 1) {
+    LanguageBarrierLog(
+        "No FMV mods in patch configuration, not hooking Bink...");
+    return true;
+  }
+
   if (!createEnableApiHook(L"bink2w32", "_BinkSetVolume@12", BinkSetVolumeHook,
                            (LPVOID*)&BinkSetVolume) ||
       !createEnableApiHook(L"bink2w32", "_BinkOpen@8", BinkOpenHook,
@@ -88,11 +95,13 @@ bool binkModInit() {
           (LPVOID)&mgsBinkSetPausedHook, (LPVOID*)&gameExeMgsBinkSetPausedReal))
     return false;
 
-  for (auto font : Config::patchdef().j["fmv"]["fonts"]) {
-    std::stringstream ss;
-    ss << "languagebarrier\\subs\\fonts\\" << font.get<std::string>();
-    std::string path = ss.str();
-    AddFontResourceExA(path.c_str(), FR_PRIVATE, NULL);
+  if (config["patch"]["fmv"].count("fonts") == 1) {
+    for (auto font : config["patch"]["fmv"]["fonts"]) {
+      std::stringstream ss;
+      ss << "languagebarrier\\subs\\fonts\\" << font.get<std::string>();
+      std::string path = ss.str();
+      AddFontResourceExA(path.c_str(), FR_PRIVATE, NULL);
+    }
   }
 
   return true;
@@ -108,13 +117,14 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
   if (strrchr(tmp, '\\')) tmp = strrchr(tmp, '\\') + 1;
   if (strrchr(tmp, '/')) tmp = strrchr(tmp, '/') + 1;
 
-  if (Config::config().j["fmv"]["useHqAudio"].get<bool>() == true &&
-      Config::patchdef().j["fmv"]["hqAudio"].count(tmp) == 1) {
+  if (config["patch"]["fmv"].count("audioRedirection") == 1 &&
+      config["patch"]["fmv"]["audioRedirection"].count(tmp) == 1) {
     // TODO: temporarily set BGM volume to match movie volume, then revert in
     // BinkCloseHook
     // TODO: support using audio from 720p Bink videos in 1080p
     // ...meh, if the music's fine who cares
-    uint32_t bgmId = Config::patchdef().j["fmv"]["hqAudio"][tmp].get<uint32_t>();
+    uint32_t bgmId =
+        config["patch"]["fmv"]["audioRedirection"][tmp].get<uint32_t>();
     gameSetBgm(bgmId, false);
     // we'll disable Bink audio in BinkSetVolumeHook. If we tried to do it here,
     // the game would just override it. If we tried to use BinkSetSoundOnOff,
@@ -126,15 +136,9 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
   std::string subFileName;
   // TODO: support more than one track?
   // note: case sensitive
-  if (Config::config().j["fmv"]["enableJpVideoSubs"].get<bool>() == true &&
-      Config::patchdef().j["fmv"]["subs"]["jpVideo"].count(tmp) == 1)
-    subFileName = Config::patchdef().j["fmv"]["subs"]["jpVideo"][tmp].get<std::string>();
-  if (Config::config().j["fmv"]["enableKaraokeSubs"].get<bool>() == true &&
-      Config::patchdef().j["fmv"]["subs"]["karaoke"].count(tmp) == 1)
-    subFileName = Config::patchdef().j["fmv"]["subs"]["karaoke"][tmp].get<std::string>();
-  if (Config::config().j["fmv"]["enableLqKaraokeSubs"].get<bool>() == true &&
-      Config::patchdef().j["fmv"]["subs"]["lqKaraoke"].count(tmp) == 1)
-    subFileName = Config::patchdef().j["fmv"]["subs"]["lqKaraoke"][tmp].get<std::string>();
+  if (config["patch"]["fmv"].count("subs") == 1 &&
+      config["patch"]["fmv"]["subs"].count(tmp) == 1)
+    subFileName = config["patch"]["fmv"]["subs"][tmp].get<std::string>();
 
   if (!subFileName.empty()) {
     std::stringstream ssSubPath;
