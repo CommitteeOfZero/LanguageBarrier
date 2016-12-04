@@ -37,6 +37,10 @@ typedef int(__cdecl *SghdGslPngLoadProc)(int textureId, void *png, int size);
 typedef int(__cdecl *Sg0GslPngLoadProc)(int textureId, void *png, int size, int unused0, int unused1);
 static uintptr_t gameExeGslPngload = NULL;
 
+typedef FILE *(__cdecl *FopenProc)(const char *filename, const char *mode);
+static FopenProc gameExeClibFopen = NULL;
+static FopenProc gameExeClibFopenReal = NULL;
+
 typedef struct {
   int position;
   char gap4[1];
@@ -121,6 +125,7 @@ int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, void *mpkObject,
                                 int fileId, int unk3);
 const char *__cdecl getStringFromScriptHook(int scriptId, int stringId);
 int __fastcall closeAllSystemsHook(void *pThis, void *EDX);
+FILE *__cdecl clibFopenHook(const char *filename, const char *mode);
 
 void gameInit() {
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
@@ -149,7 +154,10 @@ void gameInit() {
       !scanCreateEnableHook("game", "getStringFromScript",
                             (uintptr_t *)&gameExeGetStringFromScript,
                             (LPVOID)getStringFromScriptHook,
-                            (LPVOID *)&gameExeGetStringFromScriptReal))
+                            (LPVOID *)&gameExeGetStringFromScriptReal) ||
+      !scanCreateEnableHook("game", "clibFopen", (uintptr_t *)&gameExeClibFopen,
+                            (LPVOID)clibFopenHook,
+                            (LPVOID *)&gameExeClibFopenReal))
     return;
 
   if (config["patch"]["exitBlackScreenFix"].get<bool>() == true) {
@@ -165,7 +173,7 @@ void gameInit() {
         *((D3DPRESENT_PARAMETERS **)sigScan("game", "useOfPresentParameters"));
   }
 
-  gameExeScriptIdsToFileIds = (int*)sigScan("game", "useOfScriptIdsToFileIds");
+  gameExeScriptIdsToFileIds = (int *)sigScan("game", "useOfScriptIdsToFileIds");
   gameExeAudioPlayers = *(CPlayer **)sigScan("game", "useOfAudioPlayers");
 
   binkModInit();
@@ -286,6 +294,28 @@ int __fastcall closeAllSystemsHook(void *pThis, void *EDX) {
   }
 
   return retval;
+}
+
+FILE *clibFopenHook(const char *filename, const char *mode) {
+  const char *tmp = filename;
+  if (strrchr(tmp, '\\')) tmp = strrchr(tmp, '\\') + 1;
+  if (strrchr(tmp, '/')) tmp = strrchr(tmp, '/') + 1;
+
+  if (config["patch"].count("physicalFileRedirection") == 1 &&
+      config["patch"]["physicalFileRedirection"].count(tmp) == 1) {
+    std::stringstream newPath;
+    newPath
+        << "languagebarrier\\"
+        << config["patch"]["physicalFileRedirection"][tmp].get<std::string>();
+
+    std::stringstream logstr;
+    logstr << "redirecting physical fopen " << tmp << " to " << newPath.str();
+    LanguageBarrierLog(logstr.str());
+
+    return gameExeClibFopenReal(newPath.str().c_str(), mode);
+  }
+
+  return gameExeClibFopenReal(filename, mode);
 }
 
 // TODO: I probably shouldn't be writing these in assembly given it looks like
