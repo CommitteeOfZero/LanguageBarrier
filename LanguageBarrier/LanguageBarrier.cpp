@@ -37,10 +37,13 @@ void loadJsonConstants() {
       config["patch"]["dialogueRedesignYOffsetShift"].get<int>();
   DIALOGUE_REDESIGN_LINEHEIGHT_SHIFT =
       config["patch"]["dialogueRedesignLineHeightShift"].get<int>();
-  BACKLOG_HIGHLIGHT_DEFAULT_HEIGHT =
-      config["gamedef"]["backlogHighlightDefaultHeight"].get<int8_t>();
-  BACKLOG_HIGHLIGHT_HEIGHT_SHIFT =
-      config["patch"]["backlogHighlightHeightShift"].get<int8_t>();
+  HAS_BACKLOG_UNDERLINE = config["gamedef"]["hasBacklogUnderline"].get<bool>();
+  if (HAS_BACKLOG_UNDERLINE) {
+    BACKLOG_HIGHLIGHT_DEFAULT_HEIGHT =
+        config["gamedef"]["backlogHighlightDefaultHeight"].get<int8_t>();
+    BACKLOG_HIGHLIGHT_HEIGHT_SHIFT =
+        config["patch"]["backlogHighlightHeightShift"].get<int8_t>();
+  }
   OUTLINE_EXTRA_X = config["patch"]["outlineExtraX"].get<float>();
   OUTLINE_TEXTURE_ID = config["patch"]["outlineTextureId"].get<uint8_t>();
   SGHD_PHONE_X_PADDING = config["patch"]["sghdPhoneXPadding"].get<int>();
@@ -48,6 +51,7 @@ void loadJsonConstants() {
       config["gamedef"]["glyphIdFullwidthSpace"].get<uint16_t>();
   GLYPH_ID_HALFWIDTH_SPACE =
       config["gamedef"]["glyphIdHalfwidthSpace"].get<uint16_t>();
+  HAS_SGHD_PHONE = config["gamedef"]["hasSghdPhone"].get<bool>();
 }
 void LanguageBarrierInit() {
   if (isInitialised) {

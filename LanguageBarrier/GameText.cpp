@@ -155,26 +155,26 @@ typedef int(__cdecl *GetLinksFromSc3StringProc)(int xOffset, int yOffset,
                                                 int lineDisplayCount,
                                                 int baseGlyphSize,
                                                 LinkMetrics_t *result);
-static GetLinksFromSc3StringProc gameExeGetLinksFromSc3String =
+static GetLinksFromSc3StringProc gameExeSghdGetLinksFromSc3String =
     NULL;  // = (GetLinksFromSc3StringProc)0x445EA0;
-static GetLinksFromSc3StringProc gameExeGetLinksFromSc3StringReal = NULL;
+static GetLinksFromSc3StringProc gameExeSghdGetLinksFromSc3StringReal = NULL;
 
 typedef int(__cdecl *DrawInteractiveMailProc)(
     int textureId, int xOffset, int yOffset, signed int lineLength,
     char *sc3string, unsigned int lineSkipCount, unsigned int lineDisplayCount,
     int color, unsigned int baseGlyphSize, int opacity, int unselectedLinkColor,
     int selectedLinkColor, int selectedLink);
-static DrawInteractiveMailProc gameExeDrawInteractiveMail =
+static DrawInteractiveMailProc gameExeSghdDrawInteractiveMail =
     NULL;  // = (DrawInteractiveMailProc)0x4453D0;
-static DrawInteractiveMailProc gameExeDrawInteractiveMailReal = NULL;
+static DrawInteractiveMailProc gameExeSghdDrawInteractiveMailReal = NULL;
 
 typedef int(__cdecl *DrawLinkHighlightProc)(
     int xOffset, int yOffset, int lineLength, char *sc3string,
     unsigned int lineSkipCount, unsigned int lineDisplayCount, int color,
     unsigned int baseGlyphSize, int opacity, int selectedLink);
-static DrawLinkHighlightProc gameExeDrawLinkHighlight =
+static DrawLinkHighlightProc gameExeSghdDrawLinkHighlight =
     NULL;  // = (DrawLinkHighlightProc)0x444B90;
-static DrawLinkHighlightProc gameExeDrawLinkHighlightReal = NULL;
+static DrawLinkHighlightProc gameExeSghdDrawLinkHighlightReal = NULL;
 
 typedef int(__cdecl *GetSc3StringLineCountProc)(int lineLength, char *sc3string,
                                                 unsigned int baseGlyphSize);
@@ -251,18 +251,18 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
 int __cdecl getSc3StringDisplayWidthHook(char *sc3string,
                                          unsigned int maxCharacters,
                                          int baseGlyphSize);
-int __cdecl getLinksFromSc3StringHook(int xOffset, int yOffset, int lineLength,
+int __cdecl sghdGetLinksFromSc3StringHook(int xOffset, int yOffset, int lineLength,
                                       char *sc3string, int lineSkipCount,
                                       int lineDisplayCount, int baseGlyphSize,
                                       LinkMetrics_t *result);
-int __cdecl drawInteractiveMailHook(int textureId, int xOffset, int yOffset,
+int __cdecl sghdDrawInteractiveMailHook(int textureId, int xOffset, int yOffset,
                                     signed int lineLength, char *string,
                                     unsigned int lineSkipCount,
                                     unsigned int lineDisplayCount, int color,
                                     unsigned int glyphSize, int opacity,
                                     int unselectedLinkColor,
                                     int selectedLinkColor, int selectedLink);
-int __cdecl drawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
+int __cdecl sghdDrawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
                                   char *sc3string, unsigned int lineSkipCount,
                                   unsigned int lineDisplayCount, int color,
                                   unsigned int baseGlyphSize, int opacity,
@@ -305,17 +305,20 @@ void gameTextInit() {
   }
   gameExeDrawRectangle = (DrawRectangleProc)sigScan("game", "drawRectangle");
   gameExeSc3Eval = (Sc3EvalProc)sigScan("game", "sc3Eval");
-  gameExeBacklogHighlightHeight =
-      (int8_t *)sigScan("game", "backlogHighlightHeight");
 
-  // gameExeBacklogHighlightHeight is (negative) offset (from vertical end of
-  // glyph):
-  // add eax,-0x22 (83 C0 DE) -> add eax,-0x17 (83 C0 E9)
-  DWORD oldProtect;
-  VirtualProtect(gameExeBacklogHighlightHeight, 1, PAGE_READWRITE, &oldProtect);
-  *gameExeBacklogHighlightHeight =
-      BACKLOG_HIGHLIGHT_DEFAULT_HEIGHT + BACKLOG_HIGHLIGHT_HEIGHT_SHIFT;
-  VirtualProtect(gameExeBacklogHighlightHeight, 1, oldProtect, &oldProtect);
+  if (HAS_BACKLOG_UNDERLINE) {
+    gameExeBacklogHighlightHeight =
+        (int8_t *)sigScan("game", "backlogHighlightHeight");
+    // gameExeBacklogHighlightHeight is (negative) offset (from vertical end of
+    // glyph):
+    // add eax,-0x22 (83 C0 DE) -> add eax,-0x17 (83 C0 E9)
+    DWORD oldProtect;
+    VirtualProtect(gameExeBacklogHighlightHeight, 1, PAGE_READWRITE,
+                   &oldProtect);
+    *gameExeBacklogHighlightHeight =
+        BACKLOG_HIGHLIGHT_DEFAULT_HEIGHT + BACKLOG_HIGHLIGHT_HEIGHT_SHIFT;
+    VirtualProtect(gameExeBacklogHighlightHeight, 1, oldProtect, &oldProtect);
+  }
 
   gameExeGlyphWidthsFont1 = (uint8_t *)sigScan("game", "useOfGlyphWidthsFont1");
   gameExeGlyphWidthsFont2 = (uint8_t *)sigScan("game", "useOfGlyphWidthsFont2");
@@ -347,17 +350,20 @@ void gameTextInit() {
                        (uintptr_t *)&gameExeGetSc3StringDisplayWidthFont2,
                        (LPVOID)getSc3StringDisplayWidthHook,
                        (LPVOID *)&gameExeGetSc3StringDisplayWidthFont2Real);
-  scanCreateEnableHook("game", "getLinksFromSc3String",
-                       (uintptr_t *)&gameExeGetLinksFromSc3String,
-                       (LPVOID)getLinksFromSc3StringHook,
-                       (LPVOID *)&gameExeGetLinksFromSc3StringReal);
-  scanCreateEnableHook("game", "drawInteractiveMail",
-                       (uintptr_t *)&gameExeDrawInteractiveMail,
-                       (LPVOID)drawInteractiveMailHook,
-                       (LPVOID *)&gameExeDrawInteractiveMailReal);
-  scanCreateEnableHook(
-      "game", "drawLinkHighlight", (uintptr_t *)&gameExeDrawLinkHighlight,
-      (LPVOID)drawLinkHighlightHook, (LPVOID *)&gameExeDrawLinkHighlightReal);
+  if (HAS_SGHD_PHONE) {
+    scanCreateEnableHook("game", "sghdGetLinksFromSc3String",
+                         (uintptr_t *)&gameExeSghdGetLinksFromSc3String,
+                         (LPVOID)sghdGetLinksFromSc3StringHook,
+                         (LPVOID *)&gameExeSghdGetLinksFromSc3StringReal);
+    scanCreateEnableHook("game", "sghdDrawInteractiveMail",
+                         (uintptr_t *)&gameExeSghdDrawInteractiveMail,
+                         (LPVOID)sghdDrawInteractiveMailHook,
+                         (LPVOID *)&gameExeSghdDrawInteractiveMailReal);
+    scanCreateEnableHook("game", "sghdDrawLinkHighlight",
+                         (uintptr_t *)&gameExeSghdDrawLinkHighlight,
+                         (LPVOID)sghdDrawLinkHighlightHook,
+                         (LPVOID *)&gameExeSghdDrawLinkHighlightReal);
+  }
   scanCreateEnableHook("game", "getSc3StringLineCount",
                        (uintptr_t *)&gameExeGetSc3StringLineCount,
                        (LPVOID)getSc3StringLineCountHook,
@@ -683,7 +689,7 @@ int __cdecl getSc3StringDisplayWidthHook(char *sc3string,
   return result;
 }
 
-int __cdecl getLinksFromSc3StringHook(int xOffset, int yOffset, int lineLength,
+int __cdecl sghdGetLinksFromSc3StringHook(int xOffset, int yOffset, int lineLength,
                                       char *sc3string, int lineSkipCount,
                                       int lineDisplayCount, int baseGlyphSize,
                                       LinkMetrics_t *result) {
@@ -716,7 +722,7 @@ int __cdecl getLinksFromSc3StringHook(int xOffset, int yOffset, int lineLength,
 }
 
 // This is also used for @channel threads
-int __cdecl drawInteractiveMailHook(int textureId, int xOffset, int yOffset,
+int __cdecl sghdDrawInteractiveMailHook(int textureId, int xOffset, int yOffset,
                                     signed int lineLength, char *sc3string,
                                     unsigned int lineSkipCount,
                                     unsigned int lineDisplayCount, int color,
@@ -758,7 +764,7 @@ int __cdecl drawInteractiveMailHook(int textureId, int xOffset, int yOffset,
   return str.lines;
 }
 
-int __cdecl drawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
+int __cdecl sghdDrawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
                                   char *sc3string, unsigned int lineSkipCount,
                                   unsigned int lineDisplayCount, int color,
                                   unsigned int baseGlyphSize, int opacity,
