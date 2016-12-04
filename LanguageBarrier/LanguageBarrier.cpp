@@ -31,8 +31,14 @@ void loadJsonConstants() {
   DEFAULT_LINE_LENGTH = config["gamedef"]["defaultLineLength"].get<uint16_t>();
   DEFAULT_MAX_CHARACTERS =
       config["gamedef"]["defaultMaxCharacters"].get<uint16_t>();
-  UNDERLINE_GLYPH_X = config["gamedef"]["underlineGlyphX"].get<float>();
-  UNDERLINE_GLYPH_Y = config["gamedef"]["underlineGlyphY"].get<float>();
+  HAS_SGHD_PHONE = config["gamedef"]["hasSghdPhone"].get<bool>();
+  if (HAS_SGHD_PHONE) {
+    SGHD_LINK_UNDERLINE_GLYPH_X =
+        config["gamedef"]["sghdLinkUnderlineGlyphX"].get<float>();
+    SGHD_LINK_UNDERLINE_GLYPH_Y =
+        config["gamedef"]["sghdLinkUnderlineGlyphY"].get<float>();
+    SGHD_PHONE_X_PADDING = config["patch"]["sghdPhoneXPadding"].get<int>();
+  }
   DIALOGUE_REDESIGN_YOFFSET_SHIFT =
       config["patch"]["dialogueRedesignYOffsetShift"].get<int>();
   DIALOGUE_REDESIGN_LINEHEIGHT_SHIFT =
@@ -46,12 +52,10 @@ void loadJsonConstants() {
   }
   OUTLINE_EXTRA_X = config["patch"]["outlineExtraX"].get<float>();
   OUTLINE_TEXTURE_ID = config["patch"]["outlineTextureId"].get<uint8_t>();
-  SGHD_PHONE_X_PADDING = config["patch"]["sghdPhoneXPadding"].get<int>();
   GLYPH_ID_FULLWIDTH_SPACE =
       config["gamedef"]["glyphIdFullwidthSpace"].get<uint16_t>();
   GLYPH_ID_HALFWIDTH_SPACE =
       config["gamedef"]["glyphIdHalfwidthSpace"].get<uint16_t>();
-  HAS_SGHD_PHONE = config["gamedef"]["hasSghdPhone"].get<bool>();
 }
 void LanguageBarrierInit() {
   if (isInitialised) {

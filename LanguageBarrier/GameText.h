@@ -17,8 +17,8 @@ static const uint16_t MAX_DIALOGUE_PAGE_LENGTH = 2000;
 static const uint16_t MAX_PROCESSED_STRING_LENGTH = 512;
 LB_GLOBAL uint16_t DEFAULT_LINE_LENGTH;
 LB_GLOBAL uint16_t DEFAULT_MAX_CHARACTERS;
-LB_GLOBAL float UNDERLINE_GLYPH_X;
-LB_GLOBAL float UNDERLINE_GLYPH_Y;
+LB_GLOBAL float SGHD_LINK_UNDERLINE_GLYPH_X;
+LB_GLOBAL float SGHD_LINK_UNDERLINE_GLYPH_Y;
 // Careful: this also messes with the speaker markers (for spoken lines) and
 // highlight in the backlog
 LB_GLOBAL int DIALOGUE_REDESIGN_YOFFSET_SHIFT;

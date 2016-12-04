@@ -456,7 +456,9 @@ void __cdecl drawDialogue2Hook(int fontNumber, int pageNumber,
 
 void semiTokeniseSc3String(char *sc3string, std::list<StringWord_t> &words,
                            int baseGlyphSize, int lineLength) {
-  lineLength -= 2 * SGHD_PHONE_X_PADDING;
+  if (HAS_SGHD_PHONE) {
+    lineLength -= 2 * SGHD_PHONE_X_PADDING;
+  }
 
   Sc3_t sc3;
   int sc3evalResult;
@@ -521,8 +523,10 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
   // empty line may appear at the start of a mail
   // I'm not 100% sure why that is, and this'll probably come back to bite me
   // later, but whatever...
-  xOffset += SGHD_PHONE_X_PADDING;
-  lineLength -= 2 * SGHD_PHONE_X_PADDING;
+  if (HAS_SGHD_PHONE) {
+    xOffset += SGHD_PHONE_X_PADDING;
+    lineLength -= 2 * SGHD_PHONE_X_PADDING;
+  }
 
   memset(result, 0, sizeof(ProcessedSc3String_t));
 
@@ -750,10 +754,11 @@ int __cdecl sghdDrawInteractiveMailHook(int textureId, int xOffset, int yOffset,
       else
         curColor = unselectedLinkColor;
 
-      gameExeDrawGlyph(
-          textureId, UNDERLINE_GLYPH_X, UNDERLINE_GLYPH_Y, str.textureWidth[i],
-          str.textureHeight[i], str.displayStartX[i], str.displayStartY[i],
-          str.displayEndX[i], str.displayEndY[i], curColor, opacity);
+      gameExeDrawGlyph(textureId, SGHD_LINK_UNDERLINE_GLYPH_X,
+                       SGHD_LINK_UNDERLINE_GLYPH_Y, str.textureWidth[i],
+                       str.textureHeight[i], str.displayStartX[i],
+                       str.displayStartY[i], str.displayEndX[i],
+                       str.displayEndY[i], curColor, opacity);
     }
 
     gameExeDrawGlyph(textureId, str.textureStartX[i], str.textureStartY[i],
