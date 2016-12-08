@@ -110,12 +110,12 @@ static DialogueLayoutRelatedProc gameExeDialogueLayoutRelated =
 static DialogueLayoutRelatedProc gameExeDialogueLayoutRelatedReal = NULL;
 
 typedef int(__cdecl *DrawGlyphProc)(int textureId, float glyphInTextureStartX,
-                                     float glyphInTextureStartY,
-                                     float glyphInTextureWidth,
-                                     float glyphInTextureHeight,
-                                     float displayStartX, float displayStartY,
-                                     float displayEndX, float displayEndY,
-                                     int color, uint32_t opacity);
+                                    float glyphInTextureStartY,
+                                    float glyphInTextureWidth,
+                                    float glyphInTextureHeight,
+                                    float displayStartX, float displayStartY,
+                                    float displayEndX, float displayEndY,
+                                    int color, uint32_t opacity);
 static DrawGlyphProc gameExeDrawGlyph = NULL;  // = (DrawGlyphProc)0x42F950;
 static DrawGlyphProc gameExeDrawGlyphReal = NULL;
 
@@ -251,22 +251,23 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
 int __cdecl getSc3StringDisplayWidthHook(char *sc3string,
                                          unsigned int maxCharacters,
                                          int baseGlyphSize);
-int __cdecl sghdGetLinksFromSc3StringHook(int xOffset, int yOffset, int lineLength,
-                                      char *sc3string, int lineSkipCount,
-                                      int lineDisplayCount, int baseGlyphSize,
-                                      LinkMetrics_t *result);
-int __cdecl sghdDrawInteractiveMailHook(int textureId, int xOffset, int yOffset,
-                                    signed int lineLength, char *string,
-                                    unsigned int lineSkipCount,
-                                    unsigned int lineDisplayCount, int color,
-                                    unsigned int glyphSize, int opacity,
-                                    int unselectedLinkColor,
-                                    int selectedLinkColor, int selectedLink);
+int __cdecl sghdGetLinksFromSc3StringHook(int xOffset, int yOffset,
+                                          int lineLength, char *sc3string,
+                                          int lineSkipCount,
+                                          int lineDisplayCount,
+                                          int baseGlyphSize,
+                                          LinkMetrics_t *result);
+int __cdecl sghdDrawInteractiveMailHook(
+    int textureId, int xOffset, int yOffset, signed int lineLength,
+    char *string, unsigned int lineSkipCount, unsigned int lineDisplayCount,
+    int color, unsigned int glyphSize, int opacity, int unselectedLinkColor,
+    int selectedLinkColor, int selectedLink);
 int __cdecl sghdDrawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
-                                  char *sc3string, unsigned int lineSkipCount,
-                                  unsigned int lineDisplayCount, int color,
-                                  unsigned int baseGlyphSize, int opacity,
-                                  int selectedLink);
+                                      char *sc3string,
+                                      unsigned int lineSkipCount,
+                                      unsigned int lineDisplayCount, int color,
+                                      unsigned int baseGlyphSize, int opacity,
+                                      int selectedLink);
 int __cdecl getSc3StringLineCountHook(int lineLength, char *sc3string,
                                       unsigned int baseGlyphSize);
 int __cdecl sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
@@ -489,7 +490,8 @@ void semiTokeniseSc3String(char *sc3string, std::list<StringWord_t> &words,
         break;
       default:
         int glyphId = (uint8_t)sc3string[1] + ((c & 0x7f) << 8);
-		uint16_t glyphWidth = (baseGlyphSize * widths[glyphId]) / FONT_CELL_WIDTH;
+        uint16_t glyphWidth =
+            (baseGlyphSize * widths[glyphId]) / FONT_CELL_WIDTH;
         if (glyphId == GLYPH_ID_FULLWIDTH_SPACE ||
             glyphId == GLYPH_ID_HALFWIDTH_SPACE) {
           word.end = sc3string - 1;
@@ -633,7 +635,7 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
 
   if (curLineLength == 0) result->lines--;
   // TODO: check if this is now fixed in SGHD
-  //result->lines++;
+  // result->lines++;
 
   result->linkCount = lastLinkNumber + 1;
   result->curColor = currentColor;
@@ -692,10 +694,12 @@ int __cdecl getSc3StringDisplayWidthHook(char *sc3string,
   return result;
 }
 
-int __cdecl sghdGetLinksFromSc3StringHook(int xOffset, int yOffset, int lineLength,
-                                      char *sc3string, int lineSkipCount,
-                                      int lineDisplayCount, int baseGlyphSize,
-                                      LinkMetrics_t *result) {
+int __cdecl sghdGetLinksFromSc3StringHook(int xOffset, int yOffset,
+                                          int lineLength, char *sc3string,
+                                          int lineSkipCount,
+                                          int lineDisplayCount,
+                                          int baseGlyphSize,
+                                          LinkMetrics_t *result) {
   ProcessedSc3String_t str;
 
   if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
@@ -725,13 +729,11 @@ int __cdecl sghdGetLinksFromSc3StringHook(int xOffset, int yOffset, int lineLeng
 }
 
 // This is also used for @channel threads
-int __cdecl sghdDrawInteractiveMailHook(int textureId, int xOffset, int yOffset,
-                                    signed int lineLength, char *sc3string,
-                                    unsigned int lineSkipCount,
-                                    unsigned int lineDisplayCount, int color,
-                                    unsigned int baseGlyphSize, int opacity,
-                                    int unselectedLinkColor,
-                                    int selectedLinkColor, int selectedLink) {
+int __cdecl sghdDrawInteractiveMailHook(
+    int textureId, int xOffset, int yOffset, signed int lineLength,
+    char *sc3string, unsigned int lineSkipCount, unsigned int lineDisplayCount,
+    int color, unsigned int baseGlyphSize, int opacity, int unselectedLinkColor,
+    int selectedLinkColor, int selectedLink) {
   ProcessedSc3String_t str;
 
   if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
@@ -769,10 +771,11 @@ int __cdecl sghdDrawInteractiveMailHook(int textureId, int xOffset, int yOffset,
 }
 
 int __cdecl sghdDrawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
-                                  char *sc3string, unsigned int lineSkipCount,
-                                  unsigned int lineDisplayCount, int color,
-                                  unsigned int baseGlyphSize, int opacity,
-                                  int selectedLink) {
+                                      char *sc3string,
+                                      unsigned int lineSkipCount,
+                                      unsigned int lineDisplayCount, int color,
+                                      unsigned int baseGlyphSize, int opacity,
+                                      int selectedLink) {
   ProcessedSc3String_t str;
 
   if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
