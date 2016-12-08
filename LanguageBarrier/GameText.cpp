@@ -489,13 +489,13 @@ void semiTokeniseSc3String(char *sc3string, std::list<StringWord_t> &words,
         break;
       default:
         int glyphId = (uint8_t)sc3string[1] + ((c & 0x7f) << 8);
+		uint16_t glyphWidth = (baseGlyphSize * widths[glyphId]) / FONT_CELL_WIDTH;
         if (glyphId == GLYPH_ID_FULLWIDTH_SPACE ||
             glyphId == GLYPH_ID_HALFWIDTH_SPACE) {
           word.end = sc3string - 1;
           words.push_back(word);
-          word = {sc3string, NULL, widths[glyphId], true, false};
+          word = {sc3string, NULL, glyphWidth, true, false};
         } else {
-          int glyphWidth = (baseGlyphSize * widths[glyphId]) / FONT_CELL_WIDTH;
           if (word.cost + glyphWidth > lineLength) {
             word.end = sc3string - 1;
             words.push_back(word);
@@ -632,10 +632,8 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
   }
 
   if (curLineLength == 0) result->lines--;
-  // For some reason we come up one line too short for some mails (e.g. Moeka's
-  // first). Unfortunately, this workaround also adds a blank line below mail
-  // subjects, but it's better than having them be unreadable.
-  result->lines++;
+  // TODO: check if this is now fixed in SGHD
+  //result->lines++;
 
   result->linkCount = lastLinkNumber + 1;
   result->curColor = currentColor;
@@ -666,6 +664,7 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
                      str.displayEndX[i], str.displayEndY[i], str.color[i],
                      opacity);
   }
+
   return str.lines;
 }
 
