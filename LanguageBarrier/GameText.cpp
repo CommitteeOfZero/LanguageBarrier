@@ -321,6 +321,27 @@ void gameTextInit() {
     VirtualProtect(gameExeBacklogHighlightHeight, 1, oldProtect, &oldProtect);
   }
 
+  if (HAS_RINE) {
+    void *call;
+
+    call = (void *)sigScan("game", "rineNameOutlineUpperCall");
+    memset_perms(call, INST_NOP, INST_CALL_LEN);
+
+    if (RINE_BLACK_NAMES) {
+      call = (void *)sigScan("game", "rineNameOutlineLowerCall");
+      memset_perms(call, INST_NOP, INST_CALL_LEN);
+
+      DWORD oldProtect;
+      int *color = (int *)sigScan("game", "rineNameColor");
+      VirtualProtect(color, sizeof(int), PAGE_READWRITE, &oldProtect);
+      *color = 0;
+      VirtualProtect(color, sizeof(int), oldProtect, &oldProtect);
+    }
+
+    call = (void *)sigScan("game", "rineMessageShadowCall");
+    memset_perms(call, INST_NOP, INST_CALL_LEN);
+  }
+
   gameExeGlyphWidthsFont1 = (uint8_t *)sigScan("game", "useOfGlyphWidthsFont1");
   gameExeGlyphWidthsFont2 = (uint8_t *)sigScan("game", "useOfGlyphWidthsFont2");
   gameExeColors = (int *)sigScan("game", "useOfColors");

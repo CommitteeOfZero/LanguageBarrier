@@ -11,6 +11,13 @@
 static bool isInitialised = false;
 
 namespace lb {
+void *memset_perms(void *dst, int val, size_t size) {
+  DWORD oldProtect;
+  VirtualProtect(dst, size, PAGE_READWRITE, &oldProtect);
+  void *retval = memset(dst, val, size);
+  VirtualProtect(dst, size, oldProtect, &oldProtect);
+  return retval;
+}
 void loadJsonConstants() {
   LanguageBarrierLog("loading constants from gamedef.json/patchdef.json...");
 
@@ -38,6 +45,10 @@ void loadJsonConstants() {
     SGHD_LINK_UNDERLINE_GLYPH_Y =
         config["gamedef"]["sghdLinkUnderlineGlyphY"].get<float>();
     SGHD_PHONE_X_PADDING = config["patch"]["sghdPhoneXPadding"].get<int>();
+  }
+  HAS_RINE = config["gamedef"]["hasRine"].get<bool>();
+  if (HAS_RINE) {
+    RINE_BLACK_NAMES = config["patch"]["rineBlackNames"].get<bool>();
   }
   DIALOGUE_REDESIGN_YOFFSET_SHIFT =
       config["patch"]["dialogueRedesignYOffsetShift"].get<int>();

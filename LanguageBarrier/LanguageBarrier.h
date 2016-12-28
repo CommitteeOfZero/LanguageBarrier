@@ -1,6 +1,9 @@
 #ifndef __LANGUAGEBARRIER_H__
 #define __LANGUAGEBARRIER_H__
 
+#define INST_NOP (0x90)
+#define INST_CALL_LEN (5)
+
 #ifdef DEFINE_JSON_CONSTANTS
 #define LB_GLOBAL
 #else
@@ -18,6 +21,7 @@
 #include "MinHook.h"
 
 namespace lb {
+void *memset_perms(void *dst, int val, size_t size);
 void LanguageBarrierInit();
 void LanguageBarrierLog(const std::string &text);
 bool scanCreateEnableHook(char *category, char *name, uintptr_t *ppTarget,
