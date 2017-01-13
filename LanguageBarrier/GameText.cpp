@@ -119,6 +119,15 @@ typedef int(__cdecl *DrawGlyphProc)(int textureId, float glyphInTextureStartX,
 static DrawGlyphProc gameExeDrawGlyph = NULL;  // = (DrawGlyphProc)0x42F950;
 static DrawGlyphProc gameExeDrawGlyphReal = NULL;
 
+typedef unsigned int(__cdecl *Sg0DrawGlyph2Proc)(
+    int textureId, int a2, float glyphInTextureStartX,
+    float glyphInTextureStartY, float glyphInTextureWidth,
+    float glyphInTextureHeight, float a7, float a8, float a9, float a10,
+    float a11, float a12, float a13, float a14, signed int inColor,
+    signed int opacity);
+static Sg0DrawGlyph2Proc gameExeSg0DrawGlyph2 = NULL;
+static Sg0DrawGlyph2Proc gameExeSg0DrawGlyph2Real = NULL;
+
 typedef int(__cdecl *DrawRectangleProc)(float X, float Y, float width,
                                         float height, int color,
                                         uint32_t opacity);
@@ -301,6 +310,14 @@ int __cdecl sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
                              float glyphInTextureHeight, float displayStartX,
                              float displayStartY, float displayEndX,
                              float displayEndY, int color, uint32_t opacity);
+unsigned int __cdecl sg0DrawGlyph2Hook(int textureId, int a2,
+                                       float glyphInTextureStartX,
+                                       float glyphInTextureStartY,
+                                       float glyphInTextureWidth,
+                                       float glyphInTextureHeight, float a7,
+                                       float a8, float a9, float a10, float a11,
+                                       float a12, float a13, float a14,
+                                       signed int inColor, signed int opacity);
 // There are a bunch more functions like these but I haven't seen them get hit
 // during debugging and the original code *mostly* works okay if it recognises
 // western text as variable-width
@@ -326,6 +343,9 @@ void gameTextInit() {
     scanCreateEnableHook("game", "drawGlyph", (uintptr_t *)&gameExeDrawGlyph,
                          (LPVOID)sg0DrawGlyphHook,
                          (LPVOID *)&gameExeDrawGlyphReal);
+    scanCreateEnableHook(
+        "game", "sg0DrawGlyph2", (uintptr_t *)&gameExeSg0DrawGlyph2,
+        (LPVOID)sg0DrawGlyph2Hook, (LPVOID *)&gameExeSg0DrawGlyph2Real);
   } else {
     gameExeDrawGlyph = (DrawGlyphProc)sigScan("game", "drawGlyph");
   }
@@ -939,5 +959,22 @@ int sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
       textureId, glyphInTextureStartX, glyphInTextureStartY,
       glyphInTextureWidth, glyphInTextureHeight, displayStartX, displayStartY,
       displayEndX, displayEndY, color, opacity);
+}
+unsigned int sg0DrawGlyph2Hook(int textureId, int a2,
+                               float glyphInTextureStartX,
+                               float glyphInTextureStartY,
+                               float glyphInTextureWidth,
+                               float glyphInTextureHeight, float a7, float a8,
+                               float a9, float a10, float a11, float a12,
+                               float a13, float a14, signed int inColor,
+                               signed int opacity) {
+  if (glyphInTextureStartY > 4080.0) {
+    glyphInTextureStartY += 4080.0;
+    --textureId;
+  }
+  return gameExeSg0DrawGlyph2Real(textureId, a2, glyphInTextureStartX,
+                                  glyphInTextureStartY, glyphInTextureWidth,
+                                  glyphInTextureHeight, a7, a8, a9, a10, a11,
+                                  a12, a13, a14, inColor, opacity);
 }
 }
