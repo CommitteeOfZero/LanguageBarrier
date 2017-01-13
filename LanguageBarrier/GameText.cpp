@@ -134,6 +134,12 @@ static DrawPhoneTextProc gameExeDrawPhoneText =
     NULL;  // = (DrawPhoneTextProc)0x444F70;
 static DrawPhoneTextProc gameExeDrawPhoneTextReal = NULL;
 
+typedef signed int(__cdecl *DrawSingleTextLineProc)(
+    int textureId, int startX, signed int startY, unsigned int a4, char *string,
+    signed int maxLength, int color, int glyphSize, signed int opacity);
+static DrawSingleTextLineProc gameExeDrawSingleTextLine = NULL;
+static DrawSingleTextLineProc gameExeDrawSingleTextLineReal = NULL;
+
 typedef int(__cdecl *GetSc3StringDisplayWidthProc)(char *string,
                                                    unsigned int maxCharacters,
                                                    int baseGlyphSize);
@@ -189,6 +195,20 @@ static uintptr_t gameExeDialogueLayoutWidthLookup2Return = NULL;
 static uintptr_t gameExeDialogueLayoutWidthLookup3 = NULL;
 static uintptr_t gameExeDialogueLayoutWidthLookup3Return = NULL;
 
+static uintptr_t gameExeClearlistDrawRet1 = NULL;
+static uintptr_t gameExeClearlistDrawRet2 = NULL;
+static uintptr_t gameExeClearlistDrawRet3 = NULL;
+static uintptr_t gameExeClearlistDrawRet4 = NULL;
+static uintptr_t gameExeClearlistDrawRet5 = NULL;
+static uintptr_t gameExeClearlistDrawRet6 = NULL;
+static uintptr_t gameExeClearlistDrawRet7 = NULL;
+static uintptr_t gameExeClearlistDrawRet8 = NULL;
+static uintptr_t gameExeClearlistDrawRet9 = NULL;
+static uintptr_t gameExeClearlistDrawRet10 = NULL;
+static uintptr_t gameExeClearlistDrawRet11 = NULL;
+static uintptr_t gameExeClearlistDrawRet12 = NULL;
+static uintptr_t gameExeClearlistDrawRet13 = NULL;
+
 static DialoguePage_t *gameExeDialoguePages =
     NULL;  // (DialoguePage_t *)0x164D680;
 
@@ -240,6 +260,11 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
                               int lineLength, char *sc3string,
                               int lineSkipCount, int lineDisplayCount,
                               int color, int baseGlyphSize, int opacity);
+signed int __cdecl drawSingleTextLineHook(int textureId, int startX,
+                                          signed int startY, unsigned int a4,
+                                          char *string, signed int maxLength,
+                                          int color, int glyphSize,
+                                          signed int opacity);
 void semiTokeniseSc3String(char *sc3string, std::list<StringWord_t> &words,
                            int baseGlyphSize, int lineLength);
 void processSc3TokenList(int xOffset, int yOffset, int lineLength,
@@ -361,6 +386,25 @@ void gameTextInit() {
   scanCreateEnableHook(
       "game", "drawPhoneText", (uintptr_t *)&gameExeDrawPhoneText,
       (LPVOID)drawPhoneTextHook, (LPVOID *)&gameExeDrawPhoneTextReal);
+  if (NEEDS_CLEARLIST_TEXT_POSITION_ADJUST) {
+    scanCreateEnableHook("game", "drawSingleTextLine",
+                         (uintptr_t *)&gameExeDrawSingleTextLine,
+                         (LPVOID)drawSingleTextLineHook,
+                         (LPVOID *)&gameExeDrawSingleTextLineReal);
+    gameExeClearlistDrawRet1 = sigScan("game", "clearlistDrawRet1");
+    gameExeClearlistDrawRet2 = sigScan("game", "clearlistDrawRet2");
+    gameExeClearlistDrawRet3 = sigScan("game", "clearlistDrawRet3");
+    gameExeClearlistDrawRet4 = sigScan("game", "clearlistDrawRet4");
+    gameExeClearlistDrawRet5 = sigScan("game", "clearlistDrawRet5");
+    gameExeClearlistDrawRet6 = sigScan("game", "clearlistDrawRet6");
+    gameExeClearlistDrawRet7 = sigScan("game", "clearlistDrawRet7");
+    gameExeClearlistDrawRet8 = sigScan("game", "clearlistDrawRet8");
+    gameExeClearlistDrawRet9 = sigScan("game", "clearlistDrawRet9");
+    gameExeClearlistDrawRet10 = sigScan("game", "clearlistDrawRet10");
+    gameExeClearlistDrawRet11 = sigScan("game", "clearlistDrawRet11");
+    gameExeClearlistDrawRet12 = sigScan("game", "clearlistDrawRet12");
+    gameExeClearlistDrawRet13 = sigScan("game", "clearlistDrawRet13");
+  }
   // The following both have the same pattern and 'occurrence: 0' in the
   // signatures.json.
   // That's because after you hook one, the first match goes away.
@@ -689,6 +733,46 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
   }
 
   return str.lines;
+}
+
+signed int drawSingleTextLineHook(int textureId, int startX, signed int startY,
+                                  unsigned int a4, char *string,
+                                  signed int maxLength, int color,
+                                  int glyphSize, signed int opacity) {
+  // yolo
+  if (NEEDS_CLEARLIST_TEXT_POSITION_ADJUST) {
+    uintptr_t retaddr;
+    __asm {
+		push eax
+		mov eax, [ebp + 4]
+		mov retaddr, eax
+		pop eax
+    }
+    if (retaddr == gameExeClearlistDrawRet1 ||
+        retaddr == gameExeClearlistDrawRet2 ||
+        retaddr == gameExeClearlistDrawRet3 ||
+        retaddr == gameExeClearlistDrawRet4 ||
+        retaddr == gameExeClearlistDrawRet5 ||
+        retaddr == gameExeClearlistDrawRet6) {
+      startY += 32;
+      startX -= 264;
+    }
+    else if (retaddr == gameExeClearlistDrawRet7 ||
+             retaddr == gameExeClearlistDrawRet8 ||
+             retaddr == gameExeClearlistDrawRet9) {
+      startY += 32;
+      startX -= 192;
+    }
+    else if (retaddr == gameExeClearlistDrawRet10 ||
+             retaddr == gameExeClearlistDrawRet11 ||
+             retaddr == gameExeClearlistDrawRet12 ||
+             retaddr == gameExeClearlistDrawRet13) {
+      startY += 32;
+      startX -= 150;
+    }
+  }
+  return gameExeDrawSingleTextLineReal(textureId, startX, startY, a4, string,
+                                       maxLength, color, glyphSize, opacity);
 }
 
 int __cdecl getSc3StringDisplayWidthHook(char *sc3string,
