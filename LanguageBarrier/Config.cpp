@@ -37,10 +37,10 @@ void configInit() {
     }
   }
 }
-const std::string& configGetGameName() {
+const std::string configGetGameName() {
   return config["gamedef"]["gameName"].get<std::string>();
 }
-const std::string& configGetPatchName() {
+const std::string configGetPatchName() {
   return patchdef["patchName"].get<std::string>();
 }
 void configLoadFiles() {

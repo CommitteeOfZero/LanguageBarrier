@@ -13,8 +13,8 @@
 namespace lb {
 CONFIG_GLOBAL json config;
 void configInit();
-const std::string& configGetGameName();
-const std::string& configGetPatchName();
+const std::string configGetGameName();
+const std::string configGetPatchName();
 }
 
 #endif  // !__CONFIG_H__
