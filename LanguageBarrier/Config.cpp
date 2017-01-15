@@ -37,6 +37,14 @@ void configInit() {
     }
   }
 }
+const std::string& configGetGameName()
+{
+	return config["gamedef"]["gameName"].get<std::string>();
+}
+const std::string& configGetPatchName()
+{
+	return patchdef["patchName"].get<std::string>();
+}
 void configLoadFiles() {
   {
     std::ifstream i("languagebarrier\\gamedef.json");

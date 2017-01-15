@@ -81,7 +81,12 @@ void LanguageBarrierInit() {
 
   std::remove("languagebarrier\\log.txt");
   // TODO: proper versioning
-  LanguageBarrierLog("LanguageBarrier for STEINS;GATE v1.01");
+  LanguageBarrierLog("LanguageBarrier v1.10");
+  {
+	  std::stringstream logstr;
+	  logstr << "Game :" << configGetGameName() << "\nPatch: " << configGetPatchName();
+	  LanguageBarrierLog(logstr.str());
+  }
   LanguageBarrierLog("**** Start apprication ****");
 
   MH_STATUS mhStatus = MH_Initialize();
@@ -96,11 +101,6 @@ void LanguageBarrierInit() {
   GetModuleFileNameW(NULL, path, MAX_PATH);
   _wsplitpath_s(path, NULL, 0, NULL, 0, exeName, _MAX_FNAME, NULL, 0);
   if (_wcsicmp(exeName, L"Launcher") != 0) {
-    {
-      std::stringstream logstr;
-      logstr << "Game.exe detected";
-      LanguageBarrierLog(logstr.str());
-    }
     loadJsonConstants();
     gameInit();
   }
