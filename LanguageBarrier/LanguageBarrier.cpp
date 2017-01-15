@@ -83,9 +83,10 @@ void LanguageBarrierInit() {
   // TODO: proper versioning
   LanguageBarrierLog("LanguageBarrier v1.10");
   {
-	  std::stringstream logstr;
-	  logstr << "Game :" << configGetGameName() << "\nPatch: " << configGetPatchName();
-	  LanguageBarrierLog(logstr.str());
+    std::stringstream logstr;
+    logstr << "Game :" << configGetGameName()
+           << "\r\nPatch: " << configGetPatchName();
+    LanguageBarrierLog(logstr.str());
   }
   LanguageBarrierLog("**** Start apprication ****");
 
@@ -100,7 +101,8 @@ void LanguageBarrierInit() {
   WCHAR path[MAX_PATH], exeName[_MAX_FNAME];
   GetModuleFileNameW(NULL, path, MAX_PATH);
   _wsplitpath_s(path, NULL, 0, NULL, 0, exeName, _MAX_FNAME, NULL, 0);
-  if (wcslen(exeName) < wcslen(L"Launcher") || _wcsnicmp(exeName, L"Launcher", wcslen(L"Launcher")) != 0) {
+  if (wcslen(exeName) < wcslen(L"Launcher") ||
+      _wcsnicmp(exeName, L"Launcher", wcslen(L"Launcher")) != 0) {
     loadJsonConstants();
     gameInit();
   }

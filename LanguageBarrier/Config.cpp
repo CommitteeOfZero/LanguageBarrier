@@ -37,13 +37,11 @@ void configInit() {
     }
   }
 }
-const std::string& configGetGameName()
-{
-	return config["gamedef"]["gameName"].get<std::string>();
+const std::string& configGetGameName() {
+  return config["gamedef"]["gameName"].get<std::string>();
 }
-const std::string& configGetPatchName()
-{
-	return patchdef["patchName"].get<std::string>();
+const std::string& configGetPatchName() {
+  return patchdef["patchName"].get<std::string>();
 }
 void configLoadFiles() {
   {
@@ -78,7 +76,7 @@ void configLoadFiles() {
 
     try {
       std::ifstream i2(path.str());
-	  i2.exceptions(i2.exceptions() | std::ifstream::failbit);
+      i2.exceptions(i2.exceptions() | std::ifstream::failbit);
       json j;
       j << i2;
       rawConfig = json_merge(defaultconfig, j);
