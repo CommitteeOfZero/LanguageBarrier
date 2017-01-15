@@ -228,7 +228,7 @@ static int8_t *gameExeBacklogHighlightHeight = NULL;  // = (int8_t *)0x435DD4;
 
 static uint8_t widths[lb::TOTAL_NUM_FONT_CELLS];
 
-static std::string *outlineBuffer;
+static std::string *outlineBuffer = NULL;
 
 // MSVC doesn't like having these inside namespaces
 __declspec(naked) void dialogueLayoutWidthLookup1Hook() {
@@ -325,19 +325,21 @@ unsigned int __cdecl sg0DrawGlyph2Hook(int textureId, int a2,
 // Western translations) it considers full-width)
 
 void gameTextInit() {
-  std::ifstream in("languagebarrier\\font-outline.png",
-                   std::ios::in | std::ios::binary);
-  in.seekg(0, std::ios::end);
-  outlineBuffer = new std::string(in.tellg(), 0);
-  in.seekg(0, std::ios::beg);
-  in.read(&((*outlineBuffer)[0]), outlineBuffer->size());
-  in.close();
-  // gee I sure hope nothing important ever goes in OUTLINE_TEXTURE_ID...
-  gameLoadTexture(OUTLINE_TEXTURE_ID, &((*outlineBuffer)[0]),
-                  outlineBuffer->size());
-  // the game loads this asynchronously - I'm not sure how to be notified it's
-  // done and I can free the buffer
-  // so I'll just do it in a hook
+  if (IMPROVE_DIALOGUE_OUTLINES) {
+    std::ifstream in("languagebarrier\\font-outline.png",
+                     std::ios::in | std::ios::binary);
+    in.seekg(0, std::ios::end);
+    outlineBuffer = new std::string(in.tellg(), 0);
+    in.seekg(0, std::ios::beg);
+    in.read(&((*outlineBuffer)[0]), outlineBuffer->size());
+    in.close();
+    // gee I sure hope nothing important ever goes in OUTLINE_TEXTURE_ID...
+    gameLoadTexture(OUTLINE_TEXTURE_ID, &((*outlineBuffer)[0]),
+                    outlineBuffer->size());
+    // the game loads this asynchronously - I'm not sure how to be notified it's
+    // done and I can free the buffer
+    // so I'll just do it in a hook
+  }
 
   if (config["gamedef"]["drawGlyphVersion"].get<std::string>() == "sg0") {
     scanCreateEnableHook("game", "drawGlyph", (uintptr_t *)&gameExeDrawGlyph,
@@ -393,12 +395,14 @@ void gameTextInit() {
   gameExeDialoguePages =
       (DialoguePage_t *)sigScan("game", "useOfDialoguePages");
 
-  scanCreateEnableHook(
-      "game", "drawDialogue", (uintptr_t *)&gameExeDrawDialogue,
-      (LPVOID)drawDialogueHook, (LPVOID *)&gameExeDrawDialogueReal);
-  scanCreateEnableHook(
-      "game", "drawDialogue2", (uintptr_t *)&gameExeDrawDialogue2,
-      (LPVOID)drawDialogue2Hook, (LPVOID *)&gameExeDrawDialogue2Real);
+  if (IMPROVE_DIALOGUE_OUTLINES) {
+    scanCreateEnableHook(
+        "game", "drawDialogue", (uintptr_t *)&gameExeDrawDialogue,
+        (LPVOID)drawDialogueHook, (LPVOID *)&gameExeDrawDialogueReal);
+    scanCreateEnableHook(
+        "game", "drawDialogue2", (uintptr_t *)&gameExeDrawDialogue2,
+        (LPVOID)drawDialogue2Hook, (LPVOID *)&gameExeDrawDialogue2Real);
+  }
   scanCreateEnableHook("game", "dialogueLayoutRelated",
                        (uintptr_t *)&gameExeDialogueLayoutRelated,
                        (LPVOID)dialogueLayoutRelatedHook,

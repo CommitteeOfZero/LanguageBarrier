@@ -61,8 +61,12 @@ void loadJsonConstants() {
     BACKLOG_HIGHLIGHT_HEIGHT_SHIFT =
         config["patch"]["backlogHighlightHeightShift"].get<int8_t>();
   }
-  OUTLINE_EXTRA_X = config["patch"]["outlineExtraX"].get<float>();
-  OUTLINE_TEXTURE_ID = config["patch"]["outlineTextureId"].get<uint8_t>();
+  IMPROVE_DIALOGUE_OUTLINES =
+      config["patch"]["improveDialogueOutlines"].get<bool>();
+  if (IMPROVE_DIALOGUE_OUTLINES) {
+    OUTLINE_EXTRA_X = config["patch"]["outlineExtraX"].get<float>();
+    OUTLINE_TEXTURE_ID = config["patch"]["outlineTextureId"].get<uint8_t>();
+  }
   GLYPH_ID_FULLWIDTH_SPACE =
       config["gamedef"]["glyphIdFullwidthSpace"].get<uint16_t>();
   GLYPH_ID_HALFWIDTH_SPACE =
