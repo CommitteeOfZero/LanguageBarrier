@@ -3,13 +3,15 @@
 
 namespace lb {
 json json_merge(const json &a, const json &b) {
-  json result = a.flatten();
-  json tmp = b.flatten();
+  if (!a.is_object() || !b.is_object()) return b;
 
-  for (json::iterator it = tmp.begin(); it != tmp.end(); ++it) {
-    result[it.key()] = it.value();
+  json result = a;
+
+  for (json::const_iterator it = b.begin(); it != b.end(); ++it) {
+    const auto &key = it.key();
+    result[key] = json_merge(a[key], b[key]);
   }
 
-  return result.unflatten();
+  return result;
 }
 }
