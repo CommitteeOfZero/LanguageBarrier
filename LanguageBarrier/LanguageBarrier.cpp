@@ -88,8 +88,12 @@ void LanguageBarrierInit() {
   LanguageBarrierLog("LanguageBarrier v1.10");
   {
     std::stringstream logstr;
-    logstr << "Game :" << configGetGameName() << std::endl
-           << "Patch: " << configGetPatchName();
+    logstr << "Game: " << configGetGameName();
+    LanguageBarrierLog(logstr.str());
+  }
+  {
+    std::stringstream logstr;
+    logstr << "Patch: " << configGetPatchName();
     LanguageBarrierLog(logstr.str());
   }
   LanguageBarrierLog("**** Start apprication ****");
