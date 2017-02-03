@@ -10,6 +10,7 @@
 #include "BinkMod.h"
 #include "Config.h"
 #include "GameText.h"
+#include "DialogueWordwrap.h"
 
 typedef int(__cdecl *EarlyInitProc)(int unk0, int unk1);
 static EarlyInitProc gameExeEarlyInit = NULL;
@@ -34,7 +35,8 @@ static CloseAllSystemsProc gameExeCloseAllSystemsReal = NULL;
 
 // correct prototype chosen at runtime
 typedef int(__cdecl *SghdGslPngLoadProc)(int textureId, void *png, int size);
-typedef int(__cdecl *Sg0GslPngLoadProc)(int textureId, void *png, int size, int unused0, int unused1);
+typedef int(__cdecl *Sg0GslPngLoadProc)(int textureId, void *png, int size,
+                                        int unused0, int unused1);
 static uintptr_t gameExeGslPngload = NULL;
 
 typedef FILE *(__cdecl *FopenProc)(const char *filename, const char *mode);
@@ -114,7 +116,7 @@ static uintptr_t gameExePCurrentBgm = NULL;
 static uintptr_t gameExePLoopBgm = NULL;
 static uintptr_t gameExePShouldPlayBgm = NULL;
 // scroll height is +6A78
-static int* gameExeScriptIdsToFileIds = NULL;
+static int *gameExeScriptIdsToFileIds = NULL;
 
 static std::string stringReplacementTable;
 static void *c0dataMpk = NULL;
@@ -201,6 +203,9 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
           (LPVOID)&mpkFopenByIdHook, (LPVOID *)&gameExeMpkFopenByIdReal))
     return retval;
 
+  if (config["patch"]["redoDialogueWordwrap"].get<bool>() == true) {
+    dialogueWordwrapInit();
+  }
   if (config["patch"]["hookText"].get<bool>() == true) {
     gameTextInit();
   }
@@ -321,14 +326,12 @@ FILE *clibFopenHook(const char *filename, const char *mode) {
 // TODO: I probably shouldn't be writing these in assembly given it looks like
 // they're all cdecl or thiscall anyway
 void gameLoadTexture(uint8_t textureId, void *buffer, size_t sz) {
-	if (config["gamedef"]["gslPngLoadVersion"].get<std::string>() == "sghd")
-	{
-		((SghdGslPngLoadProc)gameExeGslPngload)(textureId, buffer, sz);
-	}
-	else if (config["gamedef"]["gslPngLoadVersion"].get<std::string>() == "sg0")
-	{
-		((Sg0GslPngLoadProc)gameExeGslPngload)(textureId, buffer, sz, 0, 0);
-	}
+  if (config["gamedef"]["gslPngLoadVersion"].get<std::string>() == "sghd") {
+    ((SghdGslPngLoadProc)gameExeGslPngload)(textureId, buffer, sz);
+  } else if (config["gamedef"]["gslPngLoadVersion"].get<std::string>() ==
+             "sg0") {
+    ((Sg0GslPngLoadProc)gameExeGslPngload)(textureId, buffer, sz, 0, 0);
+  }
 }
 // returns an archive object
 void *gameMountMpk(char *mountpoint, char *directory, char *filename) {
