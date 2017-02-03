@@ -65,6 +65,8 @@ void loadJsonConstants() {
       config["patch"]["improveDialogueOutlines"].get<bool>();
   if (IMPROVE_DIALOGUE_OUTLINES) {
     OUTLINE_EXTRA_X = config["patch"]["outlineExtraX"].get<float>();
+    OUTLINE_CELL_WIDTH = config["patch"]["outlineCellWidth"].get<uint8_t>();
+    OUTLINE_CELL_HEIGHT = config["patch"]["outlineCellHeight"].get<uint8_t>();
     OUTLINE_TEXTURE_ID = config["patch"]["outlineTextureId"].get<uint8_t>();
   }
   GLYPH_ID_FULLWIDTH_SPACE =

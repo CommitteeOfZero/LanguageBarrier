@@ -26,7 +26,11 @@ LB_GLOBAL int DIALOGUE_REDESIGN_LINEHEIGHT_SHIFT;
 LB_GLOBAL bool HAS_BACKLOG_UNDERLINE;
 LB_GLOBAL int8_t BACKLOG_HIGHLIGHT_DEFAULT_HEIGHT;
 LB_GLOBAL int8_t BACKLOG_HIGHLIGHT_HEIGHT_SHIFT;
+// OUTLINE_EXTRA_X is also used as vertical padding for the outline (see
+// drawDialogueHook)
 LB_GLOBAL float OUTLINE_EXTRA_X;
+LB_GLOBAL uint8_t OUTLINE_CELL_WIDTH;
+LB_GLOBAL uint8_t OUTLINE_CELL_HEIGHT;
 // arbitrarily chosen; I hope the game doesn't try to use this
 LB_GLOBAL uint8_t OUTLINE_TEXTURE_ID;
 static const int LINECOUNT_DISABLE_OR_ERROR = 0xFF;
