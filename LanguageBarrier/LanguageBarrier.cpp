@@ -182,21 +182,4 @@ bool createEnableApiHook(LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour,
 
   return true;
 }
-//-------------------------------------------------------------------------
-MH_STATUS MH_CreateHookApiEx(LPCWSTR pszModule, LPCSTR pszProcName,
-                             LPVOID pDetour, LPVOID *ppOriginal,
-                             LPVOID *ppTarget) {
-  HMODULE hModule;
-  LPVOID pTarget;
-
-  hModule = GetModuleHandleW(pszModule);
-  if (hModule == NULL) return MH_ERROR_MODULE_NOT_FOUND;
-
-  pTarget = (LPVOID)GetProcAddress(hModule, pszProcName);
-  if (pTarget == NULL) return MH_ERROR_FUNCTION_NOT_FOUND;
-
-  if (ppTarget != NULL) *ppTarget = pTarget;
-
-  return MH_CreateHook(pTarget, pDetour, ppOriginal);
-}
 }
