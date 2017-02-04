@@ -2,7 +2,7 @@
 #define __DIALOGUE_WORDWRAP_H__
 
 namespace lb {
-bool dialogueWordwrapInit();
+void dialogueWordwrapInit();
 }
 
 #endif  // !__DIALOGUE_WORDWRAP_H__

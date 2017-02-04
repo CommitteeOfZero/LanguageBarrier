@@ -118,6 +118,7 @@ endlocal</Command>
   <ItemGroup>
     <ClInclude Include="BinkMod.h" />
     <ClInclude Include="Config.h" />
+    <ClInclude Include="DialogueWordwrap.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameText.h" />
     <ClInclude Include="LanguageBarrier.h" />
@@ -129,6 +130,7 @@ endlocal</Command>
   <ItemGroup>
     <ClCompile Include="BinkMod.cpp" />
     <ClCompile Include="Config.cpp" />
+    <ClCompile Include="DialogueWordwrap.cpp" />
     <ClCompile Include="dinput8.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='dinput8-Debug|Win32'">false</CompileAsManaged>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='dinput8-Debug|Win32'">

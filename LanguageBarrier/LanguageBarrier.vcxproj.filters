@@ -42,6 +42,9 @@
     <ClInclude Include="SigExpr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DialogueWordwrap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LanguageBarrier.cpp">
@@ -69,6 +72,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Config.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DialogueWordwrap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
