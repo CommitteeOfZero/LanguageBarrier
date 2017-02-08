@@ -32,7 +32,7 @@ LB_GLOBAL float OUTLINE_EXTRA_X;
 LB_GLOBAL uint8_t OUTLINE_CELL_WIDTH;
 LB_GLOBAL uint8_t OUTLINE_CELL_HEIGHT;
 // arbitrarily chosen; I hope the game doesn't try to use this
-LB_GLOBAL uint8_t OUTLINE_TEXTURE_ID;
+LB_GLOBAL uint16_t OUTLINE_TEXTURE_ID;
 static const int LINECOUNT_DISABLE_OR_ERROR = 0xFF;
 static const uint8_t NOT_A_LINK = 0xFF;
 LB_GLOBAL int SGHD_PHONE_X_PADDING;
