@@ -23,7 +23,7 @@ static const int DIALOGUE_REDESIGN_YOFFSET_SHIFT = 15;
 static const int DIALOGUE_REDESIGN_LINEHEIGHT_SHIFT = -3;
 static const float OUTLINE_EXTRA_X = 4.0f;
 // arbitrarily chosen; I hope the game doesn't try to use this
-static const uint16_t OUTLINE_TEXTURE_ID = 300;
+static const uint16_t OUTLINE_TEXTURE_ID = 350;
 static const int LINECOUNT_DISABLE_OR_ERROR = 0xFF;
 static const uint8_t NOT_A_LINK = 0xFF;
 static const int PHONE_X_PADDING = 2;
