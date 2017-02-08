@@ -320,7 +320,7 @@ int __fastcall closeAllSystemsHook(void *pThis, void *EDX) {
 
 // TODO: I probably shouldn't be writing these in assembly given it looks like
 // they're all cdecl or thiscall anyway
-void gameLoadTexture(uint8_t textureId, void *buffer, size_t sz) {
+void gameLoadTexture(uint16_t textureId, void *buffer, size_t sz) {
   __asm {
     push ebx
     push [sz]
