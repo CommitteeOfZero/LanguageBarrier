@@ -378,11 +378,8 @@ void gameTextInit() {
       call = (void *)sigScan("game", "rineNameOutlineLowerCall");
       memset_perms(call, INST_NOP, INST_CALL_LEN);
 
-      DWORD oldProtect;
       int *color = (int *)sigScan("game", "rineNameColor");
-      VirtualProtect(color, sizeof(int), PAGE_READWRITE, &oldProtect);
-      *color = 0;
-      VirtualProtect(color, sizeof(int), oldProtect, &oldProtect);
+      memset_perms(color, 0, sizeof(int));
     }
 
     call = (void *)sigScan("game", "rineMessageShadowCall");

@@ -175,6 +175,26 @@ void gameInit() {
         *((D3DPRESENT_PARAMETERS **)sigScan("game", "useOfPresentParameters"));
   }
 
+  if (config["patch"]["textureFiltering"].get<bool>() == true) {
+    LanguageBarrierLog("Forcing bilinear filtering");
+    uint8_t *branch = (uint8_t *)sigScan("game", "textureFilteringBranch");
+    if (branch != NULL) {
+      // original code: if (stuff) { setTextureFiltering(Point) } else {
+      // setTextureFiltering(Linear) }
+      // patch 'je' to 'jmp' -> always go to else block
+      memset_perms(branch, INST_JMP_SHORT, 1);
+    }
+  }
+
+  if (config["gamedef"]["hasAutoSkipHide"].get<bool>() == true &&
+      config["patch"]["shouldHideAutoSkip"].get<bool>() == true) {
+    LanguageBarrierLog("Hiding auto/skip buttons");
+    uint8_t *branch = (uint8_t *)sigScan("game", "autoSkipHideBranch");
+    if (branch != NULL) {
+      memset_perms(branch, INST_JMP_SHORT, 1);
+    }
+  }
+
   gameExeScriptIdsToFileIds = (int *)sigScan("game", "useOfScriptIdsToFileIds");
   gameExeAudioPlayers = *(CPlayer **)sigScan("game", "useOfAudioPlayers");
 
@@ -208,20 +228,6 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
   }
   if (config["patch"]["hookText"].get<bool>() == true) {
     gameTextInit();
-  }
-
-  if (config["patch"]["textureFiltering"].get<bool>() == true) {
-    LanguageBarrierLog("Forcing bilinear filtering");
-    uint8_t *branch = (uint8_t *)sigScan("game", "textureFilteringBranch");
-    if (branch != NULL) {
-      // original code: if (stuff) { setTextureFiltering(Point) } else {
-      // setTextureFiltering(Linear) }
-      // patch 'je' to 'jmp' -> always go to else block
-      DWORD oldProtect;
-      VirtualProtect(branch, 1, PAGE_READWRITE, &oldProtect);
-      *branch = 0xEB;
-      VirtualProtect(branch, 1, oldProtect, &oldProtect);
-    }
   }
 
   return retval;

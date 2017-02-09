@@ -3,6 +3,7 @@
 
 #define INST_NOP (0x90)
 #define INST_CALL_LEN (5)
+#define INST_JMP_SHORT (0xEB)
 
 #ifdef DEFINE_JSON_CONSTANTS
 #define LB_GLOBAL
