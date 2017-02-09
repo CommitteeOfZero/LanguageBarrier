@@ -514,14 +514,15 @@ void __cdecl drawDialogueHook(int fontNumber, int pageNumber, uint32_t opacity,
         gameExeDrawGlyph(
             OUTLINE_TEXTURE_ID,
             OUTLINE_CELL_WIDTH * page->glyphCol[i] * COORDS_MULTIPLIER,
-            OUTLINE_CELL_HEIGHT * page->glyphRow[i] * COORDS_MULTIPLIER +
-                OUTLINE_EXTRA_X,
-            page->glyphOrigWidth[i] * COORDS_MULTIPLIER + (2 * OUTLINE_EXTRA_X),
-            page->glyphOrigHeight[i] * COORDS_MULTIPLIER,
-            displayStartX - OUTLINE_EXTRA_X, displayStartY,
+            OUTLINE_CELL_HEIGHT * page->glyphRow[i] * COORDS_MULTIPLIER,
+            page->glyphOrigWidth[i] * COORDS_MULTIPLIER + (2 * OUTLINE_PADDING),
+            page->glyphOrigHeight[i] * COORDS_MULTIPLIER +
+                (2 * OUTLINE_PADDING),
+            displayStartX - OUTLINE_PADDING, displayStartY - OUTLINE_PADDING,
             displayStartX + (COORDS_MULTIPLIER * page->glyphDisplayWidth[i]) +
-                OUTLINE_EXTRA_X,
-            displayStartY + (COORDS_MULTIPLIER * page->glyphDisplayHeight[i]),
+                OUTLINE_PADDING,
+            displayStartY + (COORDS_MULTIPLIER * page->glyphDisplayHeight[i]) +
+                OUTLINE_PADDING,
             page->charOutlineColor[i], _opacity);
       }
 
