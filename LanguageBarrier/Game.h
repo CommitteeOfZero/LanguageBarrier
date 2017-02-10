@@ -20,6 +20,7 @@ bool gameGetBgmShouldLoop();
 void gameSetBgmShouldPlay(bool shouldPlay);
 bool gameGetBgmShouldPlay();
 void gameSetBgmPaused(bool paused);
+bool gameGetBgmIsPlaying();
 }
 
 #endif  // !__GAME_H__

@@ -374,4 +374,7 @@ void gameSetBgmPaused(bool paused) {
     return;
   gameExeAudioPlayers[AUDIO_PLAYER_ID_BGM1].playbackState = paused ? 4 : 2;
 }
+bool gameGetBgmIsPlaying() {
+  return gameExeAudioPlayers[AUDIO_PLAYER_ID_BGM1].playbackState == 2;
+}
 }

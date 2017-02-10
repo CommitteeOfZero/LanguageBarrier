@@ -60,6 +60,7 @@ typedef struct {
   uint32_t destheight;
   uint32_t lastFrameNum;
   csri_inst* csri;
+  int bgmState;
 } BinkModState_t;
 
 static std::unordered_map<BINK*, BinkModState_t*> stateMap;
@@ -125,13 +126,14 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
     // ...meh, if the music's fine who cares
     uint32_t bgmId =
         config["patch"]["fmv"]["audioRedirection"][tmp].get<uint32_t>();
-    gameSetBgm(bgmId, false);
     // we'll disable Bink audio in BinkSetVolumeHook. If we tried to do it here,
     // the game would just override it. If we tried to use BinkSetSoundOnOff,
     // the video wouldn't show (maybe the game thinks there's been an error).
     state->bgmId = bgmId;
-  } else
+    state->bgmState = 0;
+  } else {
     state->bgmId = 0;
+  }
 
   std::string subFileName;
   // TODO: support more than one track?
@@ -194,6 +196,31 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
     return BinkCopyToBuffer(bnk, dest, destpitch, destheight, destx, desty,
                             flags);
   BinkModState_t* state = stateMap[bnk];
+
+  if (state->bgmId > 0 && state->bgmState < 4) {
+    // synchronise audio/video: only allow the video to start playing beyond the
+    // first frame once we detect our BGM has started
+    bnk->FrameNum = 0;
+    switch (state->bgmState) {
+      case 0:
+        gameSetBgm(BGM_CLEAR, true);
+        gameSetBgmShouldPlay(false);
+        state->bgmState = 1;
+        break;
+      case 1:
+        if (!gameGetBgmIsPlaying()) state->bgmState = 2;
+        break;
+      case 2:
+        gameSetBgm(state->bgmId, false);
+        state->bgmState = 3;
+        break;
+      case 3:
+        if (gameGetBgmIsPlaying()) state->bgmState = 4;
+        break;
+    }
+    return BinkCopyToBuffer(bnk, dest, destpitch, destheight, destx, desty,
+                            flags);
+  }
 
   if (state->csri == NULL)
     return BinkCopyToBuffer(bnk, dest, destpitch, destheight, destx, desty,
