@@ -197,6 +197,8 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
                             flags);
   BinkModState_t* state = stateMap[bnk];
 
+  uint32_t destwidth = destpitch / 4;
+
   if (state->bgmId > 0 && state->bgmState < 4) {
     // synchronise audio/video: only allow the video to start playing beyond the
     // first frame once we detect our BGM has started
@@ -218,15 +220,23 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
         if (gameGetBgmIsPlaying()) state->bgmState = 4;
         break;
     }
-    return BinkCopyToBuffer(bnk, dest, destpitch, destheight, destx, desty,
-                            flags);
+
+    // black screen
+    size_t i, imax;
+    for (i = 0, imax = destwidth * destheight; i < imax; i += 4) {
+      __m128i* vec = (__m128i*)((uint32_t*)dest + i);
+      *vec = MaskFF000000;
+    }
+    for (; i < imax; i++) {
+      ((uint32_t*)dest)[i] = 0xFF000000;
+    }
+    return 0;
   }
 
   if (state->csri == NULL)
     return BinkCopyToBuffer(bnk, dest, destpitch, destheight, destx, desty,
                             flags);
 
-  uint32_t destwidth = destpitch / 4;
   double time = ((double)bnk->FrameRateDiv * (double)bnk->FrameNum) /
                 (double)bnk->FrameRate;
   size_t align = SimdAlignment();
