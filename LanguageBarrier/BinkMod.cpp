@@ -202,7 +202,7 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
   if (state->bgmId > 0 && state->bgmState < 4) {
     // synchronise audio/video: only allow the video to start playing beyond the
     // first frame once we detect our BGM has started
-    bnk->FrameNum = 0;
+
     switch (state->bgmState) {
       case 0:
         gameSetBgm(BGM_CLEAR, true);
@@ -221,16 +221,19 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
         break;
     }
 
-    // black screen
-    size_t i, imax;
-    for (i = 0, imax = destwidth * destheight; i < imax; i += 4) {
-      __m128i* vec = (__m128i*)((uint32_t*)dest + i);
-      *vec = MaskFF000000;
+    if (state->bgmState < 4) {
+      bnk->FrameNum = 0;
+      // black screen
+      size_t i, imax;
+      for (i = 0, imax = destwidth * destheight; i < imax; i += 4) {
+        __m128i* vec = (__m128i*)((uint32_t*)dest + i);
+        *vec = MaskFF000000;
+      }
+      for (; i < imax; i++) {
+        ((uint32_t*)dest)[i] = 0xFF000000;
+      }
+      return 0;
     }
-    for (; i < imax; i++) {
-      ((uint32_t*)dest)[i] = 0xFF000000;
-    }
-    return 0;
   }
 
   if (state->csri == NULL)
