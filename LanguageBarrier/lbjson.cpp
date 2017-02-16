@@ -9,7 +9,11 @@ json json_merge(const json &a, const json &b) {
 
   for (json::const_iterator it = b.begin(); it != b.end(); ++it) {
     const auto &key = it.key();
-    result[key] = json_merge(a[key], b[key]);
+    if (a.count(key) != 1) {
+      result[key] = b[key];
+    } else {
+      result[key] = json_merge(a[key], b[key]);
+    }
   }
 
   return result;
