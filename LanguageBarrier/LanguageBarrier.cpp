@@ -75,6 +75,7 @@ void loadJsonConstants() {
       config["gamedef"]["glyphIdHalfwidthSpace"].get<uint16_t>();
   NEEDS_CLEARLIST_TEXT_POSITION_ADJUST =
       config["gamedef"]["needsClearlistTextPositionAdjust"].get<bool>();
+  HAS_SPLIT_FONT = config["gamedef"]["hasSplitFont"].get<bool>();
 }
 void LanguageBarrierInit() {
   if (isInitialised) {
@@ -181,5 +182,13 @@ bool createEnableApiHook(LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour,
   LanguageBarrierLog(logstr.str());
 
   return true;
+}
+void slurpFile(const std::string &fileName, std::string **ppBuffer) {
+  std::ifstream in(fileName, std::ios::in | std::ios::binary);
+  in.seekg(0, std::ios::end);
+  *ppBuffer = new std::string(in.tellg(), 0);
+  in.seekg(0, std::ios::beg);
+  in.read(&((**ppBuffer)[0]), (*ppBuffer)->size());
+  in.close();
 }
 }

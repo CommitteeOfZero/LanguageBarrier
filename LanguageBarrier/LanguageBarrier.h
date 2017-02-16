@@ -29,6 +29,7 @@ bool scanCreateEnableHook(char *category, char *name, uintptr_t *ppTarget,
                           LPVOID pDetour, LPVOID *ppOriginal);
 bool createEnableApiHook(LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour,
                          LPVOID *ppOriginal);
+void slurpFile(const std::string &fileName, std::string **ppBuffer);
 }
 
 #endif  // !__LANGUAGEBARRIER_H__

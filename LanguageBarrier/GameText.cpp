@@ -119,15 +119,6 @@ typedef int(__cdecl *DrawGlyphProc)(int textureId, float glyphInTextureStartX,
 static DrawGlyphProc gameExeDrawGlyph = NULL;  // = (DrawGlyphProc)0x42F950;
 static DrawGlyphProc gameExeDrawGlyphReal = NULL;
 
-typedef unsigned int(__cdecl *Sg0DrawGlyph2Proc)(
-    int textureId, int a2, float glyphInTextureStartX,
-    float glyphInTextureStartY, float glyphInTextureWidth,
-    float glyphInTextureHeight, float a7, float a8, float a9, float a10,
-    float a11, float a12, float a13, float a14, signed int inColor,
-    signed int opacity);
-static Sg0DrawGlyph2Proc gameExeSg0DrawGlyph2 = NULL;
-static Sg0DrawGlyph2Proc gameExeSg0DrawGlyph2Real = NULL;
-
 typedef int(__cdecl *DrawRectangleProc)(float X, float Y, float width,
                                         float height, int color,
                                         uint32_t opacity);
@@ -228,7 +219,7 @@ static int8_t *gameExeBacklogHighlightHeight = NULL;  // = (int8_t *)0x435DD4;
 
 static uint8_t widths[lb::TOTAL_NUM_FONT_CELLS];
 
-static std::string *outlineBuffer = NULL;
+static std::string *fontBuffers[3] = {0};
 
 // MSVC doesn't like having these inside namespaces
 __declspec(naked) void dialogueLayoutWidthLookup1Hook() {
@@ -304,20 +295,6 @@ int __cdecl sghdDrawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
                                       int selectedLink);
 int __cdecl getSc3StringLineCountHook(int lineLength, char *sc3string,
                                       unsigned int baseGlyphSize);
-int __cdecl sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
-                             float glyphInTextureStartY,
-                             float glyphInTextureWidth,
-                             float glyphInTextureHeight, float displayStartX,
-                             float displayStartY, float displayEndX,
-                             float displayEndY, int color, uint32_t opacity);
-unsigned int __cdecl sg0DrawGlyph2Hook(int textureId, int a2,
-                                       float glyphInTextureStartX,
-                                       float glyphInTextureStartY,
-                                       float glyphInTextureWidth,
-                                       float glyphInTextureHeight, float a7,
-                                       float a8, float a9, float a10, float a11,
-                                       float a12, float a13, float a14,
-                                       signed int inColor, signed int opacity);
 // There are a bunch more functions like these but I haven't seen them get hit
 // during debugging and the original code *mostly* works okay if it recognises
 // western text as variable-width
@@ -326,31 +303,39 @@ unsigned int __cdecl sg0DrawGlyph2Hook(int textureId, int a2,
 
 void gameTextInit() {
   if (IMPROVE_DIALOGUE_OUTLINES) {
-    std::ifstream in("languagebarrier\\font-outline.png",
-                     std::ios::in | std::ios::binary);
-    in.seekg(0, std::ios::end);
-    outlineBuffer = new std::string(in.tellg(), 0);
-    in.seekg(0, std::ios::beg);
-    in.read(&((*outlineBuffer)[0]), outlineBuffer->size());
-    in.close();
-    // gee I sure hope nothing important ever goes in OUTLINE_TEXTURE_ID...
-    gameLoadTexture(OUTLINE_TEXTURE_ID, &((*outlineBuffer)[0]),
-                    outlineBuffer->size());
-    // the game loads this asynchronously - I'm not sure how to be notified it's
-    // done and I can free the buffer
-    // so I'll just do it in a hook
+    {
+      std::stringstream ss;
+      ss << "languagebarrier\\"
+         << config["patch"]["fontOutlineAFileName"].get<std::string>();
+      slurpFile(ss.str(), fontBuffers);
+      gameLoadTexture(OUTLINE_TEXTURE_ID, (void *)(fontBuffers[0]->c_str()),
+                      fontBuffers[0]->size());
+    }
+    if (HAS_SPLIT_FONT) {
+      std::stringstream ss;
+      ss << "languagebarrier\\"
+         << config["patch"]["fontOutlineBFileName"].get<std::string>();
+      slurpFile(ss.str(), fontBuffers + 1);
+      gameLoadTexture(OUTLINE_TEXTURE_ID + 1, (void *)(fontBuffers[1]->c_str()),
+                      fontBuffers[1]->size());
+    }
   }
+  if (HAS_SPLIT_FONT) {
+    std::stringstream ss;
+    ss << "languagebarrier\\"
+       << config["patch"]["fontBFileName"].get<std::string>();
+    slurpFile(ss.str(), fontBuffers + 2);
+    gameLoadTexture(FIRST_FONT_ID + 1, (void *)(fontBuffers[2]->c_str()),
+                    fontBuffers[2]->size());
+    // FONT2_B
+    gameLoadTexture(FIRST_FONT_ID + 3, (void *)(fontBuffers[2]->c_str()),
+                    fontBuffers[2]->size());
+  }
+  // the game loads these asynchronously - I'm not sure how to be notified it's
+  // done and I can free the buffers
+  // so I'll just do it in a hook
 
-  if (config["gamedef"]["drawGlyphVersion"].get<std::string>() == "sg0") {
-    scanCreateEnableHook("game", "drawGlyph", (uintptr_t *)&gameExeDrawGlyph,
-                         (LPVOID)sg0DrawGlyphHook,
-                         (LPVOID *)&gameExeDrawGlyphReal);
-    scanCreateEnableHook(
-        "game", "sg0DrawGlyph2", (uintptr_t *)&gameExeSg0DrawGlyph2,
-        (LPVOID)sg0DrawGlyph2Hook, (LPVOID *)&gameExeSg0DrawGlyph2Real);
-  } else {
-    gameExeDrawGlyph = (DrawGlyphProc)sigScan("game", "drawGlyph");
-  }
+  gameExeDrawGlyph = (DrawGlyphProc)sigScan("game", "drawGlyph");
   gameExeDrawRectangle = (DrawRectangleProc)sigScan("game", "drawRectangle");
   gameExeSc3Eval = (Sc3EvalProc)sigScan("game", "sc3Eval");
 
@@ -484,10 +469,12 @@ void gameTextInit() {
 int __cdecl dialogueLayoutRelatedHook(int unk0, int *unk1, int *unk2, int unk3,
                                       int unk4, int unk5, int unk6, int yOffset,
                                       int lineHeight) {
-  if (outlineBuffer != NULL) {
-    // let's just do this here, should be loaded by now...
-    delete outlineBuffer;
-    outlineBuffer = NULL;
+  for (size_t i = 0; i < sizeof(fontBuffers) / sizeof(*fontBuffers); i++) {
+    if (fontBuffers[i] != NULL) {
+      // let's just do this here, should be loaded by now...
+      delete fontBuffers[i];
+      fontBuffers[i] = NULL;
+    }
   }
 
   return gameExeDialogueLayoutRelatedReal(
@@ -941,43 +928,5 @@ int __cdecl getSc3StringLineCountHook(int lineLength, char *sc3string,
   processSc3TokenList(0, 0, lineLength, words, LINECOUNT_DISABLE_OR_ERROR, 0,
                       baseGlyphSize, &str, true, 1.0f, -1, NOT_A_LINK, 0);
   return str.lines + 1;
-}
-int sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
-                     float glyphInTextureStartY, float glyphInTextureWidth,
-                     float glyphInTextureHeight, float displayStartX,
-                     float displayStartY, float displayEndX, float displayEndY,
-                     int color, uint32_t opacity) {
-  // undoes the following:
-  // if (glyphInTextureStartY > 4080.0) {
-  //   glyphInTextureStartY -= 4080.0;
-  //   ++textureId;
-  // }
-  // we store the font texture as PNG - like SGHD - so we don't need to split it
-
-  if (glyphInTextureStartY > 4080.0) {
-    glyphInTextureStartY += 4080.0;
-    --textureId;
-  }
-  return gameExeDrawGlyphReal(
-      textureId, glyphInTextureStartX, glyphInTextureStartY,
-      glyphInTextureWidth, glyphInTextureHeight, displayStartX, displayStartY,
-      displayEndX, displayEndY, color, opacity);
-}
-unsigned int sg0DrawGlyph2Hook(int textureId, int a2,
-                               float glyphInTextureStartX,
-                               float glyphInTextureStartY,
-                               float glyphInTextureWidth,
-                               float glyphInTextureHeight, float a7, float a8,
-                               float a9, float a10, float a11, float a12,
-                               float a13, float a14, signed int inColor,
-                               signed int opacity) {
-  if (glyphInTextureStartY > 4080.0) {
-    glyphInTextureStartY += 4080.0;
-    --textureId;
-  }
-  return gameExeSg0DrawGlyph2Real(textureId, a2, glyphInTextureStartX,
-                                  glyphInTextureStartY, glyphInTextureWidth,
-                                  glyphInTextureHeight, a7, a8, a9, a10, a11,
-                                  a12, a13, a14, inColor, opacity);
 }
 }
