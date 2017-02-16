@@ -67,7 +67,7 @@ void loadJsonConstants() {
     OUTLINE_PADDING = config["patch"]["outlinePadding"].get<float>();
     OUTLINE_CELL_WIDTH = config["patch"]["outlineCellWidth"].get<uint8_t>();
     OUTLINE_CELL_HEIGHT = config["patch"]["outlineCellHeight"].get<uint8_t>();
-    OUTLINE_TEXTURE_ID = config["patch"]["outlineTextureId"].get<uint8_t>();
+    OUTLINE_TEXTURE_ID = config["patch"]["outlineTextureId"].get<uint16_t>();
   }
   GLYPH_ID_FULLWIDTH_SPACE =
       config["gamedef"]["glyphIdFullwidthSpace"].get<uint16_t>();
