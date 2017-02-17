@@ -120,11 +120,11 @@ static DrawGlyphProc gameExeDrawGlyph = NULL;  // = (DrawGlyphProc)0x42F950;
 static DrawGlyphProc gameExeDrawGlyphReal = NULL;
 
 typedef unsigned int(__cdecl *Sg0DrawGlyph2Proc)(
-	int textureId, int a2, float glyphInTextureStartX,
-	float glyphInTextureStartY, float glyphInTextureWidth,
-	float glyphInTextureHeight, float a7, float a8, float a9, float a10,
-	float a11, float a12, float a13, float a14, signed int inColor,
-	signed int opacity);
+    int textureId, int a2, float glyphInTextureStartX,
+    float glyphInTextureStartY, float glyphInTextureWidth,
+    float glyphInTextureHeight, float a7, float a8, float a9, float a10,
+    float a11, float a12, float a13, float a14, signed int inColor,
+    signed int opacity);
 static Sg0DrawGlyph2Proc gameExeSg0DrawGlyph2 = NULL;
 static Sg0DrawGlyph2Proc gameExeSg0DrawGlyph2Real = NULL;
 
@@ -306,19 +306,19 @@ int __cdecl sghdDrawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
 int __cdecl getSc3StringLineCountHook(int lineLength, char *sc3string,
                                       unsigned int baseGlyphSize);
 int __cdecl sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
-	float glyphInTextureStartY,
-	float glyphInTextureWidth,
-	float glyphInTextureHeight, float displayStartX,
-	float displayStartY, float displayEndX,
-	float displayEndY, int color, uint32_t opacity);
+                             float glyphInTextureStartY,
+                             float glyphInTextureWidth,
+                             float glyphInTextureHeight, float displayStartX,
+                             float displayStartY, float displayEndX,
+                             float displayEndY, int color, uint32_t opacity);
 unsigned int __cdecl sg0DrawGlyph2Hook(int textureId, int a2,
-	float glyphInTextureStartX,
-	float glyphInTextureStartY,
-	float glyphInTextureWidth,
-	float glyphInTextureHeight, float a7,
-	float a8, float a9, float a10, float a11,
-	float a12, float a13, float a14,
-	signed int inColor, signed int opacity);
+                                       float glyphInTextureStartX,
+                                       float glyphInTextureStartY,
+                                       float glyphInTextureWidth,
+                                       float glyphInTextureHeight, float a7,
+                                       float a8, float a9, float a10, float a11,
+                                       float a12, float a13, float a14,
+                                       signed int inColor, signed int opacity);
 // There are a bunch more functions like these but I haven't seen them get hit
 // during debugging and the original code *mostly* works okay if it recognises
 // western text as variable-width
@@ -343,8 +343,9 @@ void gameTextInit() {
       gameLoadTexture(OUTLINE_TEXTURE_ID + 1, (void *)(fontBuffers[1]->c_str()),
                       fontBuffers[1]->size());
 
-	  float outlineRowHeightScaled = OUTLINE_CELL_HEIGHT * COORDS_MULTIPLIER;
-	  SPLIT_FONT_OUTLINE_A_HEIGHT = floorf(4096 / outlineRowHeightScaled) * outlineRowHeightScaled;
+      float outlineRowHeightScaled = OUTLINE_CELL_HEIGHT * COORDS_MULTIPLIER;
+      SPLIT_FONT_OUTLINE_A_HEIGHT =
+          floorf(4096 / outlineRowHeightScaled) * outlineRowHeightScaled;
     }
   }
   if (HAS_SPLIT_FONT) {
@@ -363,16 +364,15 @@ void gameTextInit() {
   // so I'll just do it in a hook
 
   if (config["gamedef"]["drawGlyphVersion"].get<std::string>() == "sg0") {
-	  scanCreateEnableHook("game", "drawGlyph", (uintptr_t *)&gameExeDrawGlyph,
-		  (LPVOID)sg0DrawGlyphHook,
-		  (LPVOID *)&gameExeDrawGlyphReal);
-	  scanCreateEnableHook(
-		  "game", "sg0DrawGlyph2", (uintptr_t *)&gameExeSg0DrawGlyph2,
-		  (LPVOID)sg0DrawGlyph2Hook, (LPVOID *)&gameExeSg0DrawGlyph2Real);
-  }
-  else {
-	  // TODO (?): Split font support for non-sg0 drawGlyph
-	  gameExeDrawGlyph = (DrawGlyphProc)sigScan("game", "drawGlyph");
+    scanCreateEnableHook("game", "drawGlyph", (uintptr_t *)&gameExeDrawGlyph,
+                         (LPVOID)sg0DrawGlyphHook,
+                         (LPVOID *)&gameExeDrawGlyphReal);
+    scanCreateEnableHook(
+        "game", "sg0DrawGlyph2", (uintptr_t *)&gameExeSg0DrawGlyph2,
+        (LPVOID)sg0DrawGlyph2Hook, (LPVOID *)&gameExeSg0DrawGlyph2Real);
+  } else {
+    // TODO (?): Split font support for non-sg0 drawGlyph
+    gameExeDrawGlyph = (DrawGlyphProc)sigScan("game", "drawGlyph");
   }
   gameExeDrawRectangle = (DrawRectangleProc)sigScan("game", "drawRectangle");
   gameExeSc3Eval = (Sc3EvalProc)sigScan("game", "sc3Eval");
@@ -383,12 +383,9 @@ void gameTextInit() {
     // gameExeBacklogHighlightHeight is (negative) offset (from vertical end of
     // glyph):
     // add eax,-0x22 (83 C0 DE) -> add eax,-0x17 (83 C0 E9)
-    DWORD oldProtect;
-    VirtualProtect(gameExeBacklogHighlightHeight, 1, PAGE_READWRITE,
-                   &oldProtect);
-    *gameExeBacklogHighlightHeight =
-        BACKLOG_HIGHLIGHT_DEFAULT_HEIGHT + BACKLOG_HIGHLIGHT_HEIGHT_SHIFT;
-    VirtualProtect(gameExeBacklogHighlightHeight, 1, oldProtect, &oldProtect);
+    memset_perms(
+        gameExeBacklogHighlightHeight,
+        BACKLOG_HIGHLIGHT_DEFAULT_HEIGHT + BACKLOG_HIGHLIGHT_HEIGHT_SHIFT, 1);
   }
 
   if (HAS_RINE) {
@@ -967,67 +964,62 @@ int __cdecl getSc3StringLineCountHook(int lineLength, char *sc3string,
   return str.lines + 1;
 }
 int sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
-	float glyphInTextureStartY, float glyphInTextureWidth,
-	float glyphInTextureHeight, float displayStartX,
-	float displayStartY, float displayEndX, float displayEndY,
-	int color, uint32_t opacity) {
-
-	if (!HAS_SPLIT_FONT)
-	{
-		if (glyphInTextureStartY > 4080.0) {
-			glyphInTextureStartY += 4080.0;
-			--textureId;
-		}
-	}
-	else if (textureId == OUTLINE_TEXTURE_ID) {
-		float origStartY = glyphInTextureStartY;
-		// undo the game's splitting
-		if (glyphInTextureStartY > 4080.0) {
-			glyphInTextureStartY += 4080.0;
-			--textureId;
-		}
-		// split it ourselves
-		if (origStartY >= SPLIT_FONT_OUTLINE_A_HEIGHT) {
-			glyphInTextureStartY -= SPLIT_FONT_OUTLINE_A_HEIGHT;
-			++textureId;
-		}
-	}
-	return gameExeDrawGlyphReal(
-		textureId, glyphInTextureStartX, glyphInTextureStartY,
-		glyphInTextureWidth, glyphInTextureHeight, displayStartX, displayStartY,
-		displayEndX, displayEndY, color, opacity);
+                     float glyphInTextureStartY, float glyphInTextureWidth,
+                     float glyphInTextureHeight, float displayStartX,
+                     float displayStartY, float displayEndX, float displayEndY,
+                     int color, uint32_t opacity) {
+  if (!HAS_SPLIT_FONT) {
+    if (glyphInTextureStartY > 4080.0) {
+      glyphInTextureStartY += 4080.0;
+      --textureId;
+    }
+  } else if (textureId == OUTLINE_TEXTURE_ID) {
+    float origStartY = glyphInTextureStartY;
+    // undo the game's splitting
+    if (glyphInTextureStartY > 4080.0) {
+      glyphInTextureStartY += 4080.0;
+      --textureId;
+    }
+    // split it ourselves
+    if (origStartY >= SPLIT_FONT_OUTLINE_A_HEIGHT) {
+      glyphInTextureStartY -= SPLIT_FONT_OUTLINE_A_HEIGHT;
+      ++textureId;
+    }
+  }
+  return gameExeDrawGlyphReal(
+      textureId, glyphInTextureStartX, glyphInTextureStartY,
+      glyphInTextureWidth, glyphInTextureHeight, displayStartX, displayStartY,
+      displayEndX, displayEndY, color, opacity);
 }
 unsigned int sg0DrawGlyph2Hook(int textureId, int a2,
-	float glyphInTextureStartX,
-	float glyphInTextureStartY,
-	float glyphInTextureWidth,
-	float glyphInTextureHeight, float a7, float a8,
-	float a9, float a10, float a11, float a12,
-	float a13, float a14, signed int inColor,
-	signed int opacity) {
-	if (!HAS_SPLIT_FONT)
-	{
-		if (glyphInTextureStartY > 4080.0) {
-			glyphInTextureStartY += 4080.0;
-			--textureId;
-		}
-	}
-	else if (textureId == OUTLINE_TEXTURE_ID) {
-		float origStartY = glyphInTextureStartY;
-		// undo the game's splitting
-		if (glyphInTextureStartY > 4080.0) {
-			glyphInTextureStartY += 4080.0;
-			--textureId;
-		}
-		// split it ourselves
-		if (origStartY >= SPLIT_FONT_OUTLINE_A_HEIGHT) {
-			glyphInTextureStartY -= SPLIT_FONT_OUTLINE_A_HEIGHT;
-			++textureId;
-		}
-	}
-	return gameExeSg0DrawGlyph2Real(textureId, a2, glyphInTextureStartX,
-		glyphInTextureStartY, glyphInTextureWidth,
-		glyphInTextureHeight, a7, a8, a9, a10, a11,
-		a12, a13, a14, inColor, opacity);
+                               float glyphInTextureStartX,
+                               float glyphInTextureStartY,
+                               float glyphInTextureWidth,
+                               float glyphInTextureHeight, float a7, float a8,
+                               float a9, float a10, float a11, float a12,
+                               float a13, float a14, signed int inColor,
+                               signed int opacity) {
+  if (!HAS_SPLIT_FONT) {
+    if (glyphInTextureStartY > 4080.0) {
+      glyphInTextureStartY += 4080.0;
+      --textureId;
+    }
+  } else if (textureId == OUTLINE_TEXTURE_ID) {
+    float origStartY = glyphInTextureStartY;
+    // undo the game's splitting
+    if (glyphInTextureStartY > 4080.0) {
+      glyphInTextureStartY += 4080.0;
+      --textureId;
+    }
+    // split it ourselves
+    if (origStartY >= SPLIT_FONT_OUTLINE_A_HEIGHT) {
+      glyphInTextureStartY -= SPLIT_FONT_OUTLINE_A_HEIGHT;
+      ++textureId;
+    }
+  }
+  return gameExeSg0DrawGlyph2Real(textureId, a2, glyphInTextureStartX,
+                                  glyphInTextureStartY, glyphInTextureWidth,
+                                  glyphInTextureHeight, a7, a8, a9, a10, a11,
+                                  a12, a13, a14, inColor, opacity);
 }
 }
