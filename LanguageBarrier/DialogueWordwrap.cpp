@@ -21,7 +21,7 @@ enum mask_bytes {
   other = 0x00,
   type1_punct = 0x01,
   type2_punct = 0x02,
-  dialogue_start = 0x07,
+  linebreak = 0x07,
   word_last_char = 0x09,
   word_first_char = 0x0A,
   letter = 0x0B
@@ -62,7 +62,7 @@ void dlgWordwrapGenerateMaskHook(int unk0) {
 
   // If it's a piece of dialogue, we should deal with the name first.
   // s[n] == name_start -> mask[n] = type2_punct (L - Rojikku)
-  // s[n] == name_end -> mask[n] = dialogue_start
+  // s[n] == name_end -> mask[n] = linebreak
   // s[n] == any_character -> mask[n] = letter
   if (gameExeDlgWordwrapString[0] == name_start) {
     gameExeDlgWordwrapMask[pos++] = mask_bytes::type2_punct;
@@ -72,7 +72,7 @@ void dlgWordwrapGenerateMaskHook(int unk0) {
     }
 
     if (unk0)
-      gameExeDlgWordwrapMask[pos++] = mask_bytes::dialogue_start;
+      gameExeDlgWordwrapMask[pos++] = mask_bytes::linebreak;
     else
       gameExeDlgWordwrapMask[pos++] = mask_bytes::type1_punct;
   }
@@ -81,7 +81,8 @@ void dlgWordwrapGenerateMaskHook(int unk0) {
     auto curr = gameExeDlgWordwrapString[pos];
     // s[n] is a control sequence -> mask[n] = other
     if (curr >= 0x8000) {
-      gameExeDlgWordwrapMask[pos] = mask_bytes::other;
+      gameExeDlgWordwrapMask[pos] =
+          curr == 0x8000 ? mask_bytes::linebreak : mask_bytes::other;
       pos++;
       continue;
     }
