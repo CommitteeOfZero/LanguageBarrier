@@ -4,7 +4,7 @@ https://github.com/nlohmann/json
 JSON for Modern C++ is licensed under the MIT License 
 <http://opensource.org/licenses/MIT>:
 
-Copyright (c) 2013-2016 Niels Lohmann
+Copyright (c) 2013-2017 Niels Lohmann
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -28,8 +28,8 @@ SOFTWARE.
 Simd Library
 http://simd.sourceforge.net/
 http://github.com/ermig1979/Simd
-2011-2016 Yermalayeu Ihar [http://sourceforge.net/u/ermig1979/profile/].
-2014-2016 Antonenka Mikhail [http://sourceforge.net/u/misha-minsk/profile/].
+2011-2017 Yermalayeu Ihar [http://sourceforge.net/u/ermig1979/profile/].
+2014-2017 Antonenka Mikhail [http://sourceforge.net/u/misha-minsk/profile/].
 -------------------------------------------------------------------------------
 
 MinHook - The Minimalistic API Hooking Library for x64/x86
