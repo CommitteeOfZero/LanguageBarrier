@@ -199,29 +199,24 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
 
   uint32_t destwidth = destpitch / 4;
 
-  if (state->bgmId > 0 && state->bgmState < 4) {
+  if (state->bgmId > 0 && state->bgmState < 2) {
     // synchronise audio/video: only allow the video to start playing beyond the
     // first frame once we detect our BGM has started
 
     switch (state->bgmState) {
       case 0:
-        gameSetBgm(BGM_CLEAR, true);
-        gameSetBgmShouldPlay(false);
+		gameSetBgm(state->bgmId, false);
+        gameSetBgmShouldPlay(true);
+		// the game sets this back when a track gets enqueued and is ready to play
+		gameSetBgmPaused(true);
         state->bgmState = 1;
         break;
       case 1:
-        if (!gameGetBgmIsPlaying()) state->bgmState = 2;
-        break;
-      case 2:
-        gameSetBgm(state->bgmId, false);
-        state->bgmState = 3;
-        break;
-      case 3:
-        if (gameGetBgmIsPlaying()) state->bgmState = 4;
+        if (gameGetBgmIsPlaying()) state->bgmState = 2;
         break;
     }
 
-    if (state->bgmState < 4) {
+    if (state->bgmState < 2) {
       bnk->FrameNum = 0;
       // black screen
       size_t i, imax;
