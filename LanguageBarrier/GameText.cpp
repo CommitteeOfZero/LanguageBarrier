@@ -220,6 +220,8 @@ static uintptr_t gameExeDialogueLayoutWidthLookup2 = NULL;
 static uintptr_t gameExeDialogueLayoutWidthLookup2Return = NULL;
 static uintptr_t gameExeDialogueLayoutWidthLookup3 = NULL;
 static uintptr_t gameExeDialogueLayoutWidthLookup3Return = NULL;
+static uintptr_t gameExeTipsListWidthLookup = NULL;
+static uintptr_t gameExeTipsListWidthLookupReturn = NULL;
 
 static uintptr_t gameExeClearlistDrawRet1 = NULL;
 static uintptr_t gameExeClearlistDrawRet2 = NULL;
@@ -280,6 +282,13 @@ __declspec(naked) void dialogueLayoutWidthLookup3Hook() {
   __asm {
     movzx ecx, widths[edx]
     jmp gameExeDialogueLayoutWidthLookup3Return
+  }
+}
+
+__declspec(naked) void tipsListWidthLookupHook() {
+  __asm {
+    movzx eax, widths[edx]
+    jmp gameExeTipsListWidthLookupReturn
   }
 }
 
@@ -596,6 +605,7 @@ void gameTextInit() {
   ptrdiff_t lookup1retoffset;
   ptrdiff_t lookup2retoffset;
   ptrdiff_t lookup3retoffset;
+  ptrdiff_t tipsListWidthRetoffset = 0x14;
   if (config["gamedef"].count("dialogueLayoutWidthLookupRetOffsets") == 1 &&
       config["gamedef"]["dialogueLayoutWidthLookupRetOffsets"]
               .get<std::string>() == "ccsteam") {
@@ -635,6 +645,16 @@ void gameTextInit() {
                        dialogueLayoutWidthLookup3Hook, NULL);
   gameExeDialogueLayoutWidthLookup3Return = (uintptr_t)(
       (uint8_t *)gameExeDialogueLayoutWidthLookup3 + lookup3retoffset);
+  if (signatures.count("tipsListWidthLookup") == 1) {
+    configretoffset = signatures["tipsListWidthLookup"].value<int>("return", 0);
+    if (configretoffset)
+      tipsListWidthRetoffset = configretoffset;
+    scanCreateEnableHook("game", "tipsListWidthLookup",
+                         &gameExeTipsListWidthLookup,
+                         tipsListWidthLookupHook, NULL);
+    gameExeTipsListWidthLookupReturn =
+        (uintptr_t)((uint8_t *)gameExeTipsListWidthLookup + tipsListWidthRetoffset);
+  }
 
   FILE *widthsfile = fopen("languagebarrier\\widths.bin", "rb");
   fread(widths, 1, TOTAL_NUM_FONT_CELLS, widthsfile);
