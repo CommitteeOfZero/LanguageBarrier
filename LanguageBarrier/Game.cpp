@@ -1,16 +1,16 @@
-#include "LanguageBarrier.h"
+#include "Game.h"
+#include <d3d9.h>
 #include <fstream>
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
-#include <d3d9.h>
-#include "MinHook.h"
-#include "Game.h"
-#include "SigScan.h"
 #include "BinkMod.h"
 #include "Config.h"
-#include "GameText.h"
 #include "DialogueWordwrap.h"
+#include "GameText.h"
+#include "LanguageBarrier.h"
+#include "MinHook.h"
+#include "SigScan.h"
 
 typedef int(__cdecl *EarlyInitProc)(int unk0, int unk1);
 static EarlyInitProc gameExeEarlyInit = NULL;
@@ -38,6 +38,10 @@ typedef int(__cdecl *SghdGslPngLoadProc)(int textureId, void *png, int size);
 typedef int(__cdecl *Sg0GslPngLoadProc)(int textureId, void *png, int size,
                                         int unused0, int unused1);
 static uintptr_t gameExeGslPngload = NULL;
+
+typedef void(__cdecl *SetSamplerStateWrapperProc)(int sampler, int flags);
+static SetSamplerStateWrapperProc gameExeSetSamplerStateWrapper = NULL;
+static SetSamplerStateWrapperProc gameExeSetSamplerStateWrapperReal = NULL;
 
 typedef FILE *(__cdecl *FopenProc)(const char *filename, const char *mode);
 static FopenProc gameExeClibFopen = NULL;
@@ -128,6 +132,7 @@ int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, void *mpkObject,
 const char *__cdecl getStringFromScriptHook(int scriptId, int stringId);
 int __fastcall closeAllSystemsHook(void *pThis, void *EDX);
 FILE *__cdecl clibFopenHook(const char *filename, const char *mode);
+void __cdecl setSamplerStateWrapperHook(int sampler, int flags);
 
 void gameInit() {
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
@@ -162,28 +167,33 @@ void gameInit() {
                             (LPVOID *)&gameExeClibFopenReal))
     return;
 
+
+  gameExePMgsD3D9State =
+	  *((MgsD3D9State **)sigScan("game", "useOfMgsD3D9State"));
+  gameExePpD3D9Ex = *((IDirect3D9Ex ***)sigScan("game", "useOfD3D9Ex"));
+  gameExePPresentParameters =
+	  *((D3DPRESENT_PARAMETERS **)sigScan("game", "useOfPresentParameters"));
+
+  if (config["patch"]["textureFiltering"].get<bool>() == true) {
+	  /*LanguageBarrierLog("Forcing bilinear filtering");
+	  uint8_t *branch = (uint8_t *)sigScan("game", "textureFilteringBranch");
+	  if (branch != NULL) {
+	  // original code: if (stuff) { setTextureFiltering(Point) } else {
+	  // setTextureFiltering(Linear) }
+	  // patch 'je' to 'jmp' -> always go to else block
+	  memset_perms(branch, INST_JMP_SHORT, 1);
+	  }*/
+	  scanCreateEnableHook("game", "setSamplerStateWrapper",
+		  (uintptr_t *)&gameExeSetSamplerStateWrapper,
+		  (LPVOID)setSamplerStateWrapperHook,
+		  (LPVOID *)&gameExeSetSamplerStateWrapperReal);
+  }
+
   if (config["patch"]["exitBlackScreenFix"].get<bool>() == true) {
     if (!scanCreateEnableHook(
             "game", "closeAllSystems", (uintptr_t *)&gameExeCloseAllSystems,
             (LPVOID)closeAllSystemsHook, (LPVOID *)&gameExeCloseAllSystemsReal))
       return;
-
-    gameExePMgsD3D9State =
-        *((MgsD3D9State **)sigScan("game", "useOfMgsD3D9State"));
-    gameExePpD3D9Ex = *((IDirect3D9Ex ***)sigScan("game", "useOfD3D9Ex"));
-    gameExePPresentParameters =
-        *((D3DPRESENT_PARAMETERS **)sigScan("game", "useOfPresentParameters"));
-  }
-
-  if (config["patch"]["textureFiltering"].get<bool>() == true) {
-    LanguageBarrierLog("Forcing bilinear filtering");
-    uint8_t *branch = (uint8_t *)sigScan("game", "textureFilteringBranch");
-    if (branch != NULL) {
-      // original code: if (stuff) { setTextureFiltering(Point) } else {
-      // setTextureFiltering(Linear) }
-      // patch 'je' to 'jmp' -> always go to else block
-      memset_perms(branch, INST_JMP_SHORT, 1);
-    }
   }
 
   if (config["gamedef"]["hasAutoSkipHide"].get<bool>() == true &&
@@ -329,6 +339,23 @@ FILE *clibFopenHook(const char *filename, const char *mode) {
   return gameExeClibFopenReal(filename, mode);
 }
 
+void setSamplerStateWrapperHook(int sampler, int flags) {
+  gameExeSetSamplerStateWrapperReal(sampler, flags);
+  gameExePMgsD3D9State->device->SetSamplerState(sampler, D3DSAMP_MINFILTER,
+                                                D3DTEXF_LINEAR);
+  gameExePMgsD3D9State->device->SetSamplerState(sampler, D3DSAMP_MAGFILTER,
+                                                D3DTEXF_LINEAR);
+  // TODO: Implement mipmapping specifically for font textures
+#if 0
+  gameExePMgsD3D9State->device->SetSamplerState(sampler, D3DSAMP_MIPFILTER,
+                                                D3DTEXF_LINEAR);
+  gameExePMgsD3D9State->device->SetSamplerState(sampler, D3DSAMP_MAXMIPLEVEL, 0);
+  float mipmapBias = 0.0f;
+  gameExePMgsD3D9State->device->SetSamplerState(sampler, D3DSAMP_MIPMAPLODBIAS,
+                                                *(DWORD *)&mipmapBias);
+#endif
+}
+
 // TODO: I probably shouldn't be writing these in assembly given it looks like
 // they're all cdecl or thiscall anyway
 void gameLoadTexture(uint16_t textureId, void *buffer, size_t sz) {
@@ -377,4 +404,4 @@ void gameSetBgmPaused(bool paused) {
 bool gameGetBgmIsPlaying() {
   return gameExeAudioPlayers[AUDIO_PLAYER_ID_BGM1].playbackState == 2;
 }
-}
+}  // namespace lb
