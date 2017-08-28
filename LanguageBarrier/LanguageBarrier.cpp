@@ -2,11 +2,11 @@
 #include "LanguageBarrier.h"
 #include <ctime>
 #include <fstream>
-#include "MinHook.h"
 #include "Config.h"
 #include "Game.h"
-#include "SigScan.h"
 #include "GameText.h"
+#include "MinHook.h"
+#include "SigScan.h"
 
 static bool isInitialised = false;
 
@@ -49,15 +49,17 @@ void loadJsonConstants() {
   // these are default true for backwards compatibility with S;G0 patch config
   HAS_DOUBLE_GET_SC3_STRING_DISPLAY_WIDTH = true;
   if (config["gamedef"].count("hasDoubleGetSc3StringDisplayWidth") == 1) {
-	  HAS_DOUBLE_GET_SC3_STRING_DISPLAY_WIDTH = config["gamedef"]["hasDoubleGetSc3StringDisplayWidth"].get<bool>();
+    HAS_DOUBLE_GET_SC3_STRING_DISPLAY_WIDTH =
+        config["gamedef"]["hasDoubleGetSc3StringDisplayWidth"].get<bool>();
   }
   HAS_DRAW_PHONE_TEXT = true;
   if (config["gamedef"].count("hasDrawPhoneText") == 1) {
-	  HAS_DRAW_PHONE_TEXT = config["gamedef"]["hasDrawPhoneText"].get<bool>();
+    HAS_DRAW_PHONE_TEXT = config["gamedef"]["hasDrawPhoneText"].get<bool>();
   }
   HAS_GET_SC3_STRING_LINE_COUNT = true;
   if (config["gamedef"].count("hasGetSc3StringLineCount") == 1) {
-	  HAS_GET_SC3_STRING_LINE_COUNT = config["gamedef"]["hasGetSc3StringLineCount"].get<bool>();
+    HAS_GET_SC3_STRING_LINE_COUNT =
+        config["gamedef"]["hasGetSc3StringLineCount"].get<bool>();
   }
   HAS_RINE = config["gamedef"]["hasRine"].get<bool>();
   if (HAS_RINE) {
@@ -204,4 +206,4 @@ void slurpFile(const std::string &fileName, std::string **ppBuffer) {
   in.read(&((**ppBuffer)[0]), (*ppBuffer)->size());
   in.close();
 }
-}
+}  // namespace lb

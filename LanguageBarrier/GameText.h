@@ -47,6 +47,6 @@ LB_GLOBAL bool IMPROVE_DIALOGUE_OUTLINES;
 LB_GLOBAL bool HAS_SPLIT_FONT;
 
 void gameTextInit();
-}
+}  // namespace lb
 
 #endif  // !__GAMETEXT_H__

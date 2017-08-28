@@ -167,26 +167,25 @@ void gameInit() {
                             (LPVOID *)&gameExeClibFopenReal))
     return;
 
-
   gameExePMgsD3D9State =
-	  *((MgsD3D9State **)sigScan("game", "useOfMgsD3D9State"));
+      *((MgsD3D9State **)sigScan("game", "useOfMgsD3D9State"));
   gameExePpD3D9Ex = *((IDirect3D9Ex ***)sigScan("game", "useOfD3D9Ex"));
   gameExePPresentParameters =
-	  *((D3DPRESENT_PARAMETERS **)sigScan("game", "useOfPresentParameters"));
+      *((D3DPRESENT_PARAMETERS **)sigScan("game", "useOfPresentParameters"));
 
   if (config["patch"]["textureFiltering"].get<bool>() == true) {
-	  /*LanguageBarrierLog("Forcing bilinear filtering");
-	  uint8_t *branch = (uint8_t *)sigScan("game", "textureFilteringBranch");
-	  if (branch != NULL) {
-	  // original code: if (stuff) { setTextureFiltering(Point) } else {
-	  // setTextureFiltering(Linear) }
-	  // patch 'je' to 'jmp' -> always go to else block
-	  memset_perms(branch, INST_JMP_SHORT, 1);
-	  }*/
-	  scanCreateEnableHook("game", "setSamplerStateWrapper",
-		  (uintptr_t *)&gameExeSetSamplerStateWrapper,
-		  (LPVOID)setSamplerStateWrapperHook,
-		  (LPVOID *)&gameExeSetSamplerStateWrapperReal);
+    /*LanguageBarrierLog("Forcing bilinear filtering");
+    uint8_t *branch = (uint8_t *)sigScan("game", "textureFilteringBranch");
+    if (branch != NULL) {
+    // original code: if (stuff) { setTextureFiltering(Point) } else {
+    // setTextureFiltering(Linear) }
+    // patch 'je' to 'jmp' -> always go to else block
+    memset_perms(branch, INST_JMP_SHORT, 1);
+    }*/
+    scanCreateEnableHook("game", "setSamplerStateWrapper",
+                         (uintptr_t *)&gameExeSetSamplerStateWrapper,
+                         (LPVOID)setSamplerStateWrapperHook,
+                         (LPVOID *)&gameExeSetSamplerStateWrapperReal);
   }
 
   if (config["patch"]["exitBlackScreenFix"].get<bool>() == true) {
