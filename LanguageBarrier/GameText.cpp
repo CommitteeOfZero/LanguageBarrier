@@ -424,9 +424,11 @@ void gameTextInit() {
                        (uintptr_t *)&gameExeDialogueLayoutRelated,
                        (LPVOID)dialogueLayoutRelatedHook,
                        (LPVOID *)&gameExeDialogueLayoutRelatedReal);
-  scanCreateEnableHook(
-      "game", "drawPhoneText", (uintptr_t *)&gameExeDrawPhoneText,
-      (LPVOID)drawPhoneTextHook, (LPVOID *)&gameExeDrawPhoneTextReal);
+  if (HAS_DRAW_PHONE_TEXT) {
+	  scanCreateEnableHook(
+		  "game", "drawPhoneText", (uintptr_t *)&gameExeDrawPhoneText,
+		  (LPVOID)drawPhoneTextHook, (LPVOID *)&gameExeDrawPhoneTextReal);
+  }
   if (NEEDS_CLEARLIST_TEXT_POSITION_ADJUST) {
     scanCreateEnableHook("game", "drawSingleTextLine",
                          (uintptr_t *)&gameExeDrawSingleTextLine,
@@ -453,10 +455,13 @@ void gameTextInit() {
                        (uintptr_t *)&gameExeGetSc3StringDisplayWidthFont1,
                        (LPVOID)getSc3StringDisplayWidthHook,
                        (LPVOID *)&gameExeGetSc3StringDisplayWidthFont1Real);
-  scanCreateEnableHook("game", "getSc3StringDisplayWidthFont2",
-                       (uintptr_t *)&gameExeGetSc3StringDisplayWidthFont2,
-                       (LPVOID)getSc3StringDisplayWidthHook,
-                       (LPVOID *)&gameExeGetSc3StringDisplayWidthFont2Real);
+
+  if (HAS_DOUBLE_GET_SC3_STRING_DISPLAY_WIDTH) {
+	  scanCreateEnableHook("game", "getSc3StringDisplayWidthFont2",
+		  (uintptr_t *)&gameExeGetSc3StringDisplayWidthFont2,
+		  (LPVOID)getSc3StringDisplayWidthHook,
+		  (LPVOID *)&gameExeGetSc3StringDisplayWidthFont2Real);
+  }
   if (HAS_SGHD_PHONE) {
     scanCreateEnableHook("game", "sghdGetLinksFromSc3String",
                          (uintptr_t *)&gameExeSghdGetLinksFromSc3String,
@@ -471,10 +476,12 @@ void gameTextInit() {
                          (LPVOID)sghdDrawLinkHighlightHook,
                          (LPVOID *)&gameExeSghdDrawLinkHighlightReal);
   }
-  scanCreateEnableHook("game", "getSc3StringLineCount",
-                       (uintptr_t *)&gameExeGetSc3StringLineCount,
-                       (LPVOID)getSc3StringLineCountHook,
-                       (LPVOID *)&gameExeGetSc3StringLineCountReal);
+  if (HAS_GET_SC3_STRING_LINE_COUNT) {
+	  scanCreateEnableHook("game", "getSc3StringLineCount",
+		  (uintptr_t *)&gameExeGetSc3StringLineCount,
+		  (LPVOID)getSc3StringLineCountHook,
+		  (LPVOID *)&gameExeGetSc3StringLineCountReal);
+  }
 
   // no point using the expression parser for these since the code is
   // build-specific anyway

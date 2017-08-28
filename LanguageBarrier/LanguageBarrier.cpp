@@ -46,6 +46,19 @@ void loadJsonConstants() {
         config["gamedef"]["sghdLinkUnderlineGlyphY"].get<float>();
     SGHD_PHONE_X_PADDING = config["patch"]["sghdPhoneXPadding"].get<int>();
   }
+  // these are default true for backwards compatibility with S;G0 patch config
+  HAS_DOUBLE_GET_SC3_STRING_DISPLAY_WIDTH = true;
+  if (config["gamedef"].count("hasDoubleGetSc3StringDisplayWidth") == 1) {
+	  HAS_DOUBLE_GET_SC3_STRING_DISPLAY_WIDTH = config["gamedef"]["hasDoubleGetSc3StringDisplayWidth"].get<bool>();
+  }
+  HAS_DRAW_PHONE_TEXT = true;
+  if (config["gamedef"].count("hasDrawPhoneText") == 1) {
+	  HAS_DRAW_PHONE_TEXT = config["gamedef"]["hasDrawPhoneText"].get<bool>();
+  }
+  HAS_GET_SC3_STRING_LINE_COUNT = true;
+  if (config["gamedef"].count("hasGetSc3StringLineCount") == 1) {
+	  HAS_GET_SC3_STRING_LINE_COUNT = config["gamedef"]["hasGetSc3StringLineCount"].get<bool>();
+  }
   HAS_RINE = config["gamedef"]["hasRine"].get<bool>();
   if (HAS_RINE) {
     RINE_BLACK_NAMES = config["patch"]["rineBlackNames"].get<bool>();
