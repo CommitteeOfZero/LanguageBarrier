@@ -47,13 +47,53 @@ typedef FILE *(__cdecl *FopenProc)(const char *filename, const char *mode);
 static FopenProc gameExeClibFopen = NULL;
 static FopenProc gameExeClibFopenReal = NULL;
 
+struct mpkObject {
+  char field_0;
+  char filename[11];
+  int fileCount;
+  char gap10[919];
+  char field_C;
+};
+
+#pragma pack(push, 1)
+struct mgsFileHandle {
+  char gap0[8];
+  int mpkFileId;
+  char isVirtual;
+  char charD;
+  int gapE;
+  char gap12[22];
+  __int64 size;
+  char gap30[17];
+  char isLoaded;
+  char gap42[206];
+  int dword110;
+  char gap114[4];
+  int filesize;
+  int dword11C;
+  int dword120;
+  int dword124;
+  int dword128;
+  int dword12C;
+  char byte130;
+  char gap131[3];
+  mpkObject *pCurrentMpk;
+  char char138;
+  char gap139[3];
+  char char13C;
+  char gap13D[11];
+  FILE *cFile;
+};
+#pragma pack(pop)
+
 typedef struct {
   int position;
   char gap4[1];
   char byte5;
   char gap6[5];
   char shouldLoop;
-  __declspec(align(8)) char byte10;
+  char gapC[4];
+  char byte10;
   char gap11[11];
   float volume;
   char gap20[20];
@@ -61,10 +101,13 @@ typedef struct {
   void *pvoid38;
   int playbackState;
   char gap40[4];
-  void *file;
+  mgsFileHandle *file;
   char gap48[352];
   int dword1A8;
-  char gap1AC[80];
+  char gap1AC[28];
+  int loopStart1;
+  int loopStart2;
+  char gap1D0[44];
   int dword1FC;
   char gap200[8];
   int dword208;
@@ -103,6 +146,10 @@ typedef struct {
 } CPlayer;
 static CPlayer *gameExeAudioPlayers = NULL;
 
+typedef int(__thiscall *ReadOggMetadataProc)(CPlayer *pThis);
+static ReadOggMetadataProc gameExeReadOggMetadata = NULL;
+static ReadOggMetadataProc gameExeReadOggMetadataReal = NULL;
+
 struct __declspec(align(4)) MgsD3D9State {
   IDirect3DSurface9 *backbuffer;
   int field_4;
@@ -133,6 +180,7 @@ const char *__cdecl getStringFromScriptHook(int scriptId, int stringId);
 int __fastcall closeAllSystemsHook(void *pThis, void *EDX);
 FILE *__cdecl clibFopenHook(const char *filename, const char *mode);
 void __cdecl setSamplerStateWrapperHook(int sampler, int flags);
+int __fastcall readOggMetadataHook(CPlayer *pThis, void *EDX);
 
 void gameInit() {
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
@@ -202,6 +250,13 @@ void gameInit() {
     if (branch != NULL) {
       memset_perms(branch, INST_JMP_SHORT, 1);
     }
+  }
+
+  if (config["patch"].count("overrideLoopMetadata") == 1 &&
+      config["patch"]["overrideLoopMetadata"].get<bool>() == true) {
+    scanCreateEnableHook(
+        "game", "readOggMetadata", (uintptr_t *)&gameExeReadOggMetadata,
+        (LPVOID)readOggMetadataHook, (LPVOID *)&gameExeReadOggMetadataReal);
   }
 
   gameExeScriptIdsToFileIds = (int *)sigScan("game", "useOfScriptIdsToFileIds");
@@ -353,6 +408,29 @@ void setSamplerStateWrapperHook(int sampler, int flags) {
   gameExePMgsD3D9State->device->SetSamplerState(sampler, D3DSAMP_MIPMAPLODBIAS,
                                                 *(DWORD *)&mipmapBias);
 #endif
+}
+
+int __fastcall readOggMetadataHook(CPlayer *pThis, void *EDX) {
+  int ret = gameExeReadOggMetadataReal(pThis);
+  if (pThis->file != NULL && pThis->file->pCurrentMpk != NULL) {
+    char *archiveFn = (char *)pThis->file->pCurrentMpk->filename;
+    if (config["patch"].count("loopMetadata") == 1 &&
+        config["patch"]["loopMetadata"].count(archiveFn) > 0) {
+      std::string fileId = std::to_string(pThis->file->mpkFileId);
+      if (config["patch"]["loopMetadata"][archiveFn].count(fileId) == 1) {
+        int loopStart =
+            config["patch"]["loopMetadata"][archiveFn][fileId]["loopStart"]
+                .get<int>();
+        // there appear to be *loop end* fields in CPlayer, but the looplength
+        // comment is simply ignored by default, so we're not touching them
+        // either
+		// int loopLength = config["patch"]["loopMetadata"][archiveFn][fileId]["loopLength"].get<int>();
+        pThis->loopStart1 = loopStart;
+        pThis->loopStart2 = loopStart;
+      }
+    }
+  }
+  return ret;
 }
 
 // TODO: I probably shouldn't be writing these in assembly given it looks like
