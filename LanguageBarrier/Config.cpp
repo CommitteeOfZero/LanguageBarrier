@@ -1,12 +1,12 @@
 #include "LanguageBarrier.h"
 #define DEFINE_CONFIG
-#include "Config.h"
-#include "lbjson.h"
+#include <ShlObj.h>
+#include <Shlwapi.h>
 #include <codecvt>
 #include <fstream>
 #include <sstream>
-#include <Shlwapi.h>
-#include <ShlObj.h>
+#include "Config.h"
+#include "lbjson.h"
 
 json patchdef;
 json rawConfig;
@@ -34,6 +34,23 @@ void configInit() {
           config["patch"] = json_merge(config["patch"], o["choices"][choice]);
         }
       }
+    }
+
+    std::vector<json> includes;
+
+    if (config["patch"].count("include") == 1) {
+      for (auto file : config["patch"]["include"]) {
+        std::stringstream ss;
+        ss << "languagebarrier\\" << file.get<std::string>() << ".json";
+        std::ifstream i(ss.str());
+        json j;
+        i >> j;
+        includes.push_back(j);
+      }
+    }
+
+    for (const auto& include : includes) {
+      config["patch"] = json_merge(config["patch"], include);
     }
   }
 }
@@ -88,4 +105,4 @@ void configLoadFiles() {
     rawConfig >> o;
   }
 }
-}
+}  // namespace lb
