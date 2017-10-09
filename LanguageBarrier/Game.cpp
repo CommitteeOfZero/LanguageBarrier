@@ -16,11 +16,6 @@ typedef int(__cdecl *EarlyInitProc)(int unk0, int unk1);
 static EarlyInitProc gameExeEarlyInit = NULL;
 static EarlyInitProc gameExeEarlyInitReal = NULL;
 
-typedef int(__thiscall *MpkFopenByIdProc)(void *pThis, void *mpkObject,
-                                          int fileId, int unk3);
-static MpkFopenByIdProc gameExeMpkFopenById = NULL;
-static MpkFopenByIdProc gameExeMpkFopenByIdReal = NULL;
-
 typedef const char *(__cdecl *GetStringFromScriptProc)(int scriptId,
                                                        int stringId);
 static GetStringFromScriptProc gameExeGetStringFromScript = NULL;
@@ -47,13 +42,11 @@ typedef FILE *(__cdecl *FopenProc)(const char *filename, const char *mode);
 static FopenProc gameExeClibFopen = NULL;
 static FopenProc gameExeClibFopenReal = NULL;
 
-struct mpkObject {
-  char field_0;
-  char filename[11];
-  int fileCount;
-  char gap10[919];
-  char field_C;
-};
+static mpkObject *gameExeMpkObjects = NULL;
+typedef int(__thiscall *MpkFopenByIdProc)(void *pThis, mpkObject *mpk,
+                                          int fileId, int unk3);
+static MpkFopenByIdProc gameExeMpkFopenById = NULL;
+static MpkFopenByIdProc gameExeMpkFopenByIdReal = NULL;
 
 #pragma pack(push, 1)
 struct mgsFileHandle {
@@ -170,11 +163,11 @@ static uintptr_t gameExePShouldPlayBgm = NULL;
 static int *gameExeScriptIdsToFileIds = NULL;
 
 static std::string stringReplacementTable;
-static void *c0dataMpk = NULL;
+static mpkObject *c0dataMpk = NULL;
 
 namespace lb {
 int __cdecl earlyInitHook(int unk0, int unk1);
-int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, void *mpkObject,
+int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, mpkObject *mpk,
                                 int fileId, int unk3);
 const char *__cdecl getStringFromScriptHook(int scriptId, int stringId);
 int __fastcall closeAllSystemsHook(void *pThis, void *EDX);
@@ -261,6 +254,7 @@ void gameInit() {
 
   gameExeScriptIdsToFileIds = (int *)sigScan("game", "useOfScriptIdsToFileIds");
   gameExeAudioPlayers = *(CPlayer **)sigScan("game", "useOfAudioPlayers");
+  gameExeMpkObjects = (mpkObject *)sigScan("game", "useOfMpkObjects");
 
   binkModInit();
 }
@@ -297,31 +291,44 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
   return retval;
 }
 
-int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, void *mpkObject,
+int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, mpkObject *mpk,
                                 int fileId, int unk3) {
-  uint8_t *mpkFilename = (uint8_t *)mpkObject + 1;
+  char *mpkFilename = (char *)&mpk->filename;
   std::stringstream logstr;
-  logstr << "mpkFopenById(" << mpkFilename << ".mpk, 0x" << std::hex << fileId
+  logstr << "mpkFopenById(" << mpkFilename << ", 0x" << std::hex << fileId
          << ")" << std::dec;
 #ifdef _DEBUG
   LanguageBarrierLog(logstr.str());
 #endif
 
   if (config["patch"].count("fileRedirection") == 1 &&
-      config["patch"]["fileRedirection"].count((char *)mpkFilename) > 0) {
+      config["patch"]["fileRedirection"].count(mpkFilename) > 0) {
     std::string key = std::to_string(fileId);
-    if (config["patch"]["fileRedirection"][(char *)mpkFilename].count(key) ==
-        1) {
-      int newFileId =
-          config["patch"]["fileRedirection"][(char *)mpkFilename][key]
-              .get<int>();
-      logstr << " redirected to c0data.mpk, 0x" << std::hex << newFileId;
-      LanguageBarrierLog(logstr.str());
-      return gameExeMpkFopenByIdReal(pThis, c0dataMpk, newFileId, unk3);
+    if (config["patch"]["fileRedirection"][mpkFilename].count(key) == 1) {
+      auto red = config["patch"]["fileRedirection"][mpkFilename][key];
+      if (red.type() == json::value_t::number_integer ||
+          red.type() == json::value_t::number_unsigned) {
+        int newFileId = red.get<int>();
+        logstr << " redirected to c0data.mpk, 0x" << std::hex << newFileId;
+#ifdef _DEBUG
+        LanguageBarrierLog(logstr.str());
+#endif
+        return gameExeMpkFopenByIdReal(pThis, c0dataMpk, newFileId, unk3);
+      } else if (red.type() == json::value_t::array) {
+        int archiveId = red[0].get<int>();
+        int newFileId = red[1].get<int>();
+        logstr << " redirected to " << gameExeMpkObjects[archiveId].filename
+               << ", 0x" << std::hex << newFileId;
+#ifdef _DEBUG
+        LanguageBarrierLog(logstr.str());
+#endif
+        return gameExeMpkFopenByIdReal(pThis, &gameExeMpkObjects[archiveId],
+                                       newFileId, unk3);
+      }
     }
   }
 
-  return gameExeMpkFopenByIdReal(pThis, mpkObject, fileId, unk3);
+  return gameExeMpkFopenByIdReal(pThis, mpk, fileId, unk3);
 }
 
 const char *__cdecl getStringFromScriptHook(int scriptId, int stringId) {
@@ -424,7 +431,8 @@ int __fastcall readOggMetadataHook(CPlayer *pThis, void *EDX) {
         // there appear to be *loop end* fields in CPlayer, but the looplength
         // comment is simply ignored by default, so we're not touching them
         // either
-		// int loopLength = config["patch"]["loopMetadata"][archiveFn][fileId]["loopLength"].get<int>();
+        // int loopLength =
+        // config["patch"]["loopMetadata"][archiveFn][fileId]["loopLength"].get<int>();
         pThis->loopStart1 = loopStart;
         pThis->loopStart2 = loopStart;
       }
@@ -444,7 +452,7 @@ void gameLoadTexture(uint16_t textureId, void *buffer, size_t sz) {
   }
 }
 // returns an archive object
-void *gameMountMpk(char *mountpoint, char *directory, char *filename) {
+mpkObject *gameMountMpk(char *mountpoint, char *directory, char *filename) {
   void *retval = calloc(1, 0x3a8);
   gameExeMpkConstructor(retval);
   __asm {
@@ -457,7 +465,7 @@ void *gameMountMpk(char *mountpoint, char *directory, char *filename) {
     call gameExeMpkMount
     pop ecx
   }
-  return retval;
+  return (mpkObject *)retval;
 }
 void gameSetBgm(uint32_t fileId, bool shouldLoop) {
   // There are probably nicer ways of doing this, but this is the easiest one
