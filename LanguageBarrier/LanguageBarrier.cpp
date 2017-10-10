@@ -91,6 +91,15 @@ void loadJsonConstants() {
   NEEDS_CLEARLIST_TEXT_POSITION_ADJUST =
       config["gamedef"]["needsClearlistTextPositionAdjust"].get<bool>();
   HAS_SPLIT_FONT = config["gamedef"]["hasSplitFont"].get<bool>();
+  if (config["patch"].count("tipReimplementation") == 1) {
+    TIP_REIMPL = config["patch"]["tipReimplementation"].get<bool>();
+  }
+  if (TIP_REIMPL) {
+    TIP_REIMPL_GLYPH_SIZE =
+        config["patch"]["tipReimplementationGlyphSize"].get<int>();
+    TIP_REIMPL_LINE_LENGTH =
+        config["patch"]["tipReimplementationLineLength"].get<int>();
+  }
 }
 void LanguageBarrierInit() {
   if (isInitialised) {

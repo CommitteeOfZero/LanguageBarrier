@@ -127,8 +127,8 @@ typedef unsigned int(__cdecl *Sg0DrawGlyph2Proc)(
     int textureId, int a2, float glyphInTextureStartX,
     float glyphInTextureStartY, float glyphInTextureWidth,
     float glyphInTextureHeight, float a7, float a8, float a9, float a10,
-    float a11, float a12, float a13, float a14, signed int inColor,
-    signed int opacity);
+    float a11, float a12, signed int inColor, signed int opacity, int *a15,
+    int *a16);
 static Sg0DrawGlyph2Proc gameExeSg0DrawGlyph2 = NULL;
 static Sg0DrawGlyph2Proc gameExeSg0DrawGlyph2Real = NULL;
 
@@ -201,6 +201,19 @@ static GetSc3StringLineCountProc gameExeGetSc3StringLineCount =
     NULL;  // = (GetSc3StringLineCountProc)0x442790;
 static GetSc3StringLineCountProc gameExeGetSc3StringLineCountReal = NULL;
 
+typedef int(__cdecl *SetTipContentProc)(char *sc3string);
+static SetTipContentProc gameExeSetTipContent =
+    NULL;  // = (SetTipContentProc)0x44FB20;
+static SetTipContentProc gameExeSetTipContentReal = NULL;
+
+typedef void(__cdecl *DrawTipContentProc)(int textureId, int maskId, int startX,
+                                          int startY, int maskStartY,
+                                          int maskHeight, int a7, int color,
+                                          int shadowColor, int opacity);
+static DrawTipContentProc gameExeDrawTipContent =
+    NULL;  // = (DrawTipContentProc)0x44FB70;
+static DrawTipContentProc gameExeDrawTipContentReal = NULL;
+
 static uintptr_t gameExeDialogueLayoutWidthLookup1 = NULL;
 static uintptr_t gameExeDialogueLayoutWidthLookup1Return = NULL;
 static uintptr_t gameExeDialogueLayoutWidthLookup2 = NULL;
@@ -231,6 +244,8 @@ static uint8_t widths[lb::TOTAL_NUM_FONT_CELLS];
 static float SPLIT_FONT_OUTLINE_A_HEIGHT;
 
 static std::string *fontBuffers[3] = {0};
+
+static char *tipContent;
 
 // MSVC doesn't like having these inside namespaces
 __declspec(naked) void dialogueLayoutWidthLookup1Hook() {
@@ -322,8 +337,13 @@ unsigned int __cdecl sg0DrawGlyph2Hook(int textureId, int a2,
                                        float glyphInTextureWidth,
                                        float glyphInTextureHeight, float a7,
                                        float a8, float a9, float a10, float a11,
-                                       float a12, float a13, float a14,
-                                       signed int inColor, signed int opacity);
+                                       float a12, signed int inColor,
+                                       signed int opacity, int *a15, int *a16);
+int __cdecl setTipContentHook(char *sc3string);
+void __cdecl drawTipContentHook(int textureId, int maskId, int startX,
+                                int startY, int maskStartY, int maskHeight,
+                                int a7, int color, int shadowColor,
+                                int opacity);
 // There are a bunch more functions like these but I haven't seen them get hit
 // during debugging and the original code *mostly* works okay if it recognises
 // western text as variable-width
@@ -501,6 +521,14 @@ void gameTextInit() {
                          (LPVOID)getSc3StringLineCountHook,
                          (LPVOID *)&gameExeGetSc3StringLineCountReal);
   }
+  if (TIP_REIMPL) {
+    scanCreateEnableHook(
+        "game", "setTipContent", (uintptr_t *)&gameExeSetTipContent,
+        (LPVOID)setTipContentHook, (LPVOID *)&gameExeSetTipContentReal);
+    scanCreateEnableHook(
+        "game", "drawTipContent", (uintptr_t *)&gameExeDrawTipContent,
+        (LPVOID)drawTipContentHook, (LPVOID *)&gameExeDrawTipContentReal);
+  }
 
   // no point using the expression parser for these since the code is
   // build-specific anyway
@@ -545,6 +573,7 @@ int __cdecl dialogueLayoutRelatedHook(int unk0, int *unk1, int *unk2, int unk3,
 }
 
 #define DEF_DRAW_DIALOGUE_HOOK(funcName, pageType)                             \
+  \
 void __cdecl funcName(int fontNumber, int pageNumber, uint32_t opacity,        \
                       int xOffset, int yOffset) {                              \
     pageType *page = &gameExeDialoguePages_##pageType[pageNumber];             \
@@ -590,6 +619,7 @@ void __cdecl funcName(int fontNumber, int pageNumber, uint32_t opacity,        \
             page->charColor[i], _opacity);                                     \
       }                                                                        \
     }                                                                          \
+  \
 }
 DEF_DRAW_DIALOGUE_HOOK(drawDialogueHook, DialoguePage_t);
 DEF_DRAW_DIALOGUE_HOOK(ccDrawDialogueHook, CCDialoguePage_t);
@@ -1036,8 +1066,8 @@ unsigned int sg0DrawGlyph2Hook(int textureId, int a2,
                                float glyphInTextureWidth,
                                float glyphInTextureHeight, float a7, float a8,
                                float a9, float a10, float a11, float a12,
-                               float a13, float a14, signed int inColor,
-                               signed int opacity) {
+                               signed int inColor, signed int opacity, int *a15,
+                               int *a16) {
   if (!HAS_SPLIT_FONT) {
     if (glyphInTextureStartY > 4080.0) {
       glyphInTextureStartY += 4080.0;
@@ -1059,6 +1089,51 @@ unsigned int sg0DrawGlyph2Hook(int textureId, int a2,
   return gameExeSg0DrawGlyph2Real(textureId, a2, glyphInTextureStartX,
                                   glyphInTextureStartY, glyphInTextureWidth,
                                   glyphInTextureHeight, a7, a8, a9, a10, a11,
-                                  a12, a13, a14, inColor, opacity);
+                                  a12, inColor, opacity, a15, a16);
+}
+int setTipContentHook(char *sc3string) {
+  tipContent = sc3string;
+
+  ProcessedSc3String_t str;
+
+  std::list<StringWord_t> words;
+  semiTokeniseSc3String(tipContent, words, TIP_REIMPL_GLYPH_SIZE,
+                        TIP_REIMPL_LINE_LENGTH);
+  processSc3TokenList(0, 0, TIP_REIMPL_LINE_LENGTH, words, 255, 0,
+                      TIP_REIMPL_GLYPH_SIZE, &str, false, 1, -1, NOT_A_LINK, 0);
+
+  return str.displayEndY[str.length - 1];  // scroll height
+}
+void drawTipContentHook(int textureId, int maskId, int startX, int startY,
+                        int maskStartY, int maskHeight, int a7, int color,
+                        int shadowColor, int opacity) {
+  ProcessedSc3String_t str;
+
+  int dummy1;
+  int dummy2;
+
+  std::list<StringWord_t> words;
+  semiTokeniseSc3String(tipContent, words, TIP_REIMPL_GLYPH_SIZE,
+                        TIP_REIMPL_LINE_LENGTH);
+  processSc3TokenList(startX, startY, TIP_REIMPL_LINE_LENGTH, words, 255, color,
+                      TIP_REIMPL_GLYPH_SIZE, &str, false, COORDS_MULTIPLIER, -1,
+                      NOT_A_LINK, color);
+
+  for (int i = 0; i < str.length; i++) {
+    // TODO: shadow
+    if (str.displayStartY[i] / COORDS_MULTIPLIER > maskStartY &&
+        str.displayEndY[i] / COORDS_MULTIPLIER <
+            (maskStartY +
+             maskHeight))  // && str.displayEndY[i] <= maskStartY + maskHeight
+    {
+      gameExeSg0DrawGlyph2(
+          textureId, maskId, str.textureStartX[i], str.textureStartY[i],
+          str.textureWidth[i], str.textureHeight[i], str.displayStartX[i],
+          str.displayStartY[i], str.displayStartX[i],
+          str.displayStartY[i] + a7 * COORDS_MULTIPLIER, str.displayEndX[i],
+          str.displayEndY[i] + a7 * COORDS_MULTIPLIER, str.color[i], opacity,
+          &dummy1, &dummy2);
+    }
+  }
 }
 }  // namespace lb
