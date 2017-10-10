@@ -254,7 +254,8 @@ void gameInit() {
 
   gameExeScriptIdsToFileIds = (int *)sigScan("game", "useOfScriptIdsToFileIds");
   gameExeAudioPlayers = *(CPlayer **)sigScan("game", "useOfAudioPlayers");
-  gameExeMpkObjects = (mpkObject *)sigScan("game", "useOfMpkObjects");
+  if (config["gamedef"]["signatures"]["game"].count("useOfMpkObjects") == 1)
+    gameExeMpkObjects = (mpkObject *)sigScan("game", "useOfMpkObjects");
 
   binkModInit();
 }
@@ -300,7 +301,6 @@ int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, mpkObject *mpk,
 #ifdef _DEBUG
   LanguageBarrierLog(logstr.str());
 #endif
-
   if (config["patch"].count("fileRedirection") == 1 &&
       config["patch"]["fileRedirection"].count(mpkFilename) > 0) {
     std::string key = std::to_string(fileId);
