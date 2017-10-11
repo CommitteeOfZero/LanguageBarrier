@@ -1120,19 +1120,32 @@ void drawTipContentHook(int textureId, int maskId, int startX, int startY,
                       NOT_A_LINK, color);
 
   for (int i = 0; i < str.length; i++) {
-    // TODO: shadow
     if (str.displayStartY[i] / COORDS_MULTIPLIER > maskStartY &&
         str.displayEndY[i] / COORDS_MULTIPLIER <
             (maskStartY +
-             maskHeight))  // && str.displayEndY[i] <= maskStartY + maskHeight
+             maskHeight))
     {
+      gameExeSg0DrawGlyph2(
+          textureId, maskId, str.textureStartX[i], str.textureStartY[i],
+          str.textureWidth[i], str.textureHeight[i],
+          ((float)str.displayStartX[i] + (1.0f * COORDS_MULTIPLIER)),
+          ((float)str.displayStartY[i] + (1.0f * COORDS_MULTIPLIER)),
+          ((float)str.displayStartX[i] + (1.0f * COORDS_MULTIPLIER)),
+          ((float)str.displayStartY[i] +
+           ((1.0f + (float)a7) * COORDS_MULTIPLIER)),
+          ((float)str.displayEndX[i] + (1.0f * COORDS_MULTIPLIER)),
+          ((float)str.displayEndY[i] +
+           ((1.0f + (float)a7) * COORDS_MULTIPLIER)),
+          shadowColor, opacity, &dummy1, &dummy2);
+
       gameExeSg0DrawGlyph2(
           textureId, maskId, str.textureStartX[i], str.textureStartY[i],
           str.textureWidth[i], str.textureHeight[i], str.displayStartX[i],
           str.displayStartY[i], str.displayStartX[i],
-          str.displayStartY[i] + a7 * COORDS_MULTIPLIER, str.displayEndX[i],
-          str.displayEndY[i] + a7 * COORDS_MULTIPLIER, str.color[i], opacity,
-          &dummy1, &dummy2);
+          ((float)str.displayStartY[i] + ((float)a7 * COORDS_MULTIPLIER)),
+          str.displayEndX[i],
+          ((float)str.displayEndY[i] + ((float)a7 * COORDS_MULTIPLIER)),
+          str.color[i], opacity, &dummy1, &dummy2);
     }
   }
 }
