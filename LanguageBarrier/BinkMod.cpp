@@ -114,9 +114,11 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
   BinkModState_t* state = (BinkModState_t*)calloc(1, sizeof(BinkModState_t));
   stateMap.emplace(bnk, state);
 
-  const char* tmp = name;
+  char* dup = _strdup(name);
+  char* tmp = dup;
   if (strrchr(tmp, '\\')) tmp = strrchr(tmp, '\\') + 1;
   if (strrchr(tmp, '/')) tmp = strrchr(tmp, '/') + 1;
+  _strlwr(tmp); // case isn't always equivalent to filename on disk
 
   if (config["patch"]["fmv"].count("audioRedirection") == 1 &&
       config["patch"]["fmv"]["audioRedirection"].count(tmp) == 1) {
@@ -165,6 +167,7 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
     in.close();
   }
 
+  free(dup);
   return bnk;
 }
 
