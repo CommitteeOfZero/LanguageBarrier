@@ -138,6 +138,15 @@ typedef int(__cdecl *DrawRectangleProc)(float X, float Y, float width,
 static DrawRectangleProc gameExeDrawRectangle =
     NULL;  // = (DrawRectangleProc)0x42F890;
 
+typedef int(__cdecl *DrawSpriteProc)(int textureId, float spriteX,
+                                     float spriteY, float spriteWidth,
+                                     float spriteHeight, float displayX,
+                                     float displayY, int color, int opacity,
+                                     int shaderId);
+static DrawSpriteProc gameExeDrawSprite =
+    NULL;  // = (DrawSpriteProc)0x431280; (CHAOS;CHILD)
+static DrawSpriteProc gameExeDrawSpriteReal = NULL;
+
 typedef int(__cdecl *DrawPhoneTextProc)(int textureId, int xOffset, int yOffset,
                                         int lineLength, char *sc3string,
                                         int lineSkipCount, int lineDisplayCount,
@@ -239,6 +248,12 @@ static uint8_t *gameExeGlyphWidthsFont1 = NULL;       // = (uint8_t *)0x52C7F0;
 static uint8_t *gameExeGlyphWidthsFont2 = NULL;       // = (uint8_t *)0x52E058;
 static int *gameExeColors = NULL;                     // = (int *)0x52E1E8;
 static int8_t *gameExeBacklogHighlightHeight = NULL;  // = (int8_t *)0x435DD4;
+
+static int *gameExeCcBacklogCurLine =
+    NULL;  // = (int*)0x017F9EF8; (CHAOS;CHILD)
+static int *gameExeCcBacklogLineHeights =
+    NULL;  // = (int*)0x017FA560; (CHAOS;CHILD)
+static void *gameExeCcBacklogHighlightDrawRet = NULL;
 
 static uint8_t widths[lb::TOTAL_NUM_FONT_CELLS];
 static float SPLIT_FONT_OUTLINE_A_HEIGHT;
@@ -344,6 +359,10 @@ void __cdecl drawTipContentHook(int textureId, int maskId, int startX,
                                 int startY, int maskStartY, int maskHeight,
                                 int a7, int color, int shadowColor,
                                 int opacity);
+int __cdecl drawSpriteHook(int textureId, float spriteX, float spriteY,
+                           float spriteWidth, float spriteHeight,
+                           float displayX, float displayY, int color,
+                           int opacity, int shaderId);
 // There are a bunch more functions like these but I haven't seen them get hit
 // during debugging and the original code *mostly* works okay if it recognises
 // western text as variable-width
@@ -528,6 +547,16 @@ void gameTextInit() {
     scanCreateEnableHook(
         "game", "drawTipContent", (uintptr_t *)&gameExeDrawTipContent,
         (LPVOID)drawTipContentHook, (LPVOID *)&gameExeDrawTipContentReal);
+  }
+  if (CC_BACKLOG_HIGHLIGHT) {
+    scanCreateEnableHook("game", "drawSprite", (uintptr_t *)&gameExeDrawSprite,
+                         (LPVOID)drawSpriteHook,
+                         (LPVOID *)&gameExeDrawSpriteReal);
+    gameExeCcBacklogCurLine = (int *)sigScan("game", "useOfCcBacklogCurLine");
+    gameExeCcBacklogLineHeights =
+        (int *)sigScan("game", "useOfCcBacklogLineHeights");
+    gameExeCcBacklogHighlightDrawRet =
+        (void *)sigScan("game", "ccBacklogHighlightDrawRet");
   }
 
   // no point using the expression parser for these since the code is
@@ -1121,10 +1150,7 @@ void drawTipContentHook(int textureId, int maskId, int startX, int startY,
 
   for (int i = 0; i < str.length; i++) {
     if (str.displayStartY[i] / COORDS_MULTIPLIER > maskStartY &&
-        str.displayEndY[i] / COORDS_MULTIPLIER <
-            (maskStartY +
-             maskHeight))
-    {
+        str.displayEndY[i] / COORDS_MULTIPLIER < (maskStartY + maskHeight)) {
       gameExeSg0DrawGlyph2(
           textureId, maskId, str.textureStartX[i], str.textureStartY[i],
           str.textureWidth[i], str.textureHeight[i],
@@ -1148,5 +1174,22 @@ void drawTipContentHook(int textureId, int maskId, int startX, int startY,
           str.color[i], opacity, &dummy1, &dummy2);
     }
   }
+}
+int drawSpriteHook(int textureId, float spriteX, float spriteY,
+                   float spriteWidth, float spriteHeight, float displayX,
+                   float displayY, int color, int opacity, int shaderId) {
+  if (CC_BACKLOG_HIGHLIGHT &&
+      _ReturnAddress() == gameExeCcBacklogHighlightDrawRet) {
+    spriteHeight =
+        min((float)(gameExeCcBacklogLineHeights[*gameExeCcBacklogCurLine] +
+                    CC_BACKLOG_HIGHLIGHT_HEIGHT_SHIFT) *
+                COORDS_MULTIPLIER,
+            CC_BACKLOG_HIGHLIGHT_SPRITE_HEIGHT);
+    spriteY = CC_BACKLOG_HIGHLIGHT_SPRITE_Y;
+    displayY += CC_BACKLOG_HIGHLIGHT_YOFFSET_SHIFT;
+  }
+  return gameExeDrawSpriteReal(textureId, spriteX, spriteY, spriteWidth,
+                               spriteHeight, displayX, displayY, color, opacity,
+                               shaderId);
 }
 }  // namespace lb

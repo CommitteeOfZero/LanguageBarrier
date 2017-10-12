@@ -100,6 +100,19 @@ void loadJsonConstants() {
     TIP_REIMPL_LINE_LENGTH =
         config["patch"]["tipReimplementationLineLength"].get<int>();
   }
+  if (config["patch"].count("ccBacklogHighlight") == 1) {
+    CC_BACKLOG_HIGHLIGHT = config["patch"]["ccBacklogHighlight"].get<bool>();
+  }
+  if (CC_BACKLOG_HIGHLIGHT) {
+    CC_BACKLOG_HIGHLIGHT_HEIGHT_SHIFT =
+        config["patch"]["ccBacklogHighlightHeightShift"].get<float>();
+    CC_BACKLOG_HIGHLIGHT_SPRITE_HEIGHT =
+        config["patch"]["ccBacklogHighlightSpriteHeight"].get<float>();
+    CC_BACKLOG_HIGHLIGHT_SPRITE_Y =
+        config["patch"]["ccBacklogHighlightSpriteY"].get<float>();
+    CC_BACKLOG_HIGHLIGHT_YOFFSET_SHIFT =
+        config["patch"]["ccBacklogHighlightYOffsetShift"].get<float>();
+  }
 }
 void LanguageBarrierInit() {
   if (isInitialised) {
