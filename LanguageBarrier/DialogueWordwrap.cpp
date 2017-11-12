@@ -3,6 +3,7 @@
 #include <set>
 #include <cstdint>
 
+// Linebreaks are allowed *after* type1 punctuation
 // space (63) space (0) 、 。 ． ， ？ ！ 〜 ” ー ） 〕 ］ ｝ 〉 》 」 』 】 ☆ ★ ♪ 々 ぁ ぃ ぅ ぇ ぉ っ
 // ゃ ゅ ょ ァ ィ ゥ ェ ォ ッ ャ ュ ョ –
 static std::set<uint16_t> type1_punctuation = {
@@ -12,10 +13,11 @@ static std::set<uint16_t> type1_punctuation = {
     0x00EB, 0x00EC, 0x00ED, 0x00EE, 0x00EF, 0x00F0, 0x00F2, 0x00F3, 0x00F4,
     0x00F5, 0x00F6, 0x00F7, 0x00F8, 0x00F9, 0x00FA, 0x0113};
 
-// “ （ 〔 ［ ｛ 〈 《 「 ⋯
+// Linebreaks are allowed *before* type2 punctuation
+// “ （ 〔 ［ ｛ 〈 《 「
 static std::set<uint16_t> type2_punctuation = {0x00CA, 0x00CC, 0x00CE, 0x00D0,
                                                0x00D2, 0x00D4, 0x00D6, 0x00D8,
-                                               0x00DA, 0x00DC, 0x00E3};
+                                               0x00DA, 0x00DC};
 
 enum mask_bytes {
   other = 0x00,
