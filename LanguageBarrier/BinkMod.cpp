@@ -1,12 +1,12 @@
-#include "LanguageBarrier.h"
-#include <Simd/SimdLib.h>
-#include <fstream>
-#include <unordered_map>
 #include "BinkMod.h"
-#include "Config.h"
-#include "Game.h"
+#include <Simd/SimdLib.h>
 #include <csri/csri.h>
 #include <xmmintrin.h>
+#include <fstream>
+#include <unordered_map>
+#include "Config.h"
+#include "Game.h"
+#include "LanguageBarrier.h"
 
 // partial
 typedef struct BINK {
@@ -109,16 +109,37 @@ bool binkModInit() {
 }
 
 BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
-  BINK* bnk = BinkOpen(name, flags);
-
-  BinkModState_t* state = (BinkModState_t*)calloc(1, sizeof(BinkModState_t));
-  stateMap.emplace(bnk, state);
-
   char* dup = _strdup(name);
   char* tmp = dup;
   if (strrchr(tmp, '\\')) tmp = strrchr(tmp, '\\') + 1;
   if (strrchr(tmp, '/')) tmp = strrchr(tmp, '/') + 1;
-  _strlwr(tmp); // case isn't always equivalent to filename on disk
+  _strlwr(tmp);  // case isn't always equivalent to filename on disk
+
+  BINK* bnk;
+
+  if (config["patch"]["fmv"].count("videoRedirection") == 1 &&
+      config["patch"]["fmv"]["videoRedirection"].count(tmp) == 1) {
+    std::string videoFileName =
+        config["patch"]["fmv"]["videoRedirection"][tmp].get<std::string>();
+    std::stringstream ssVideoPath;
+    ssVideoPath << "languagebarrier\\videos\\";
+    if (strstr(name, "1280x720")) {
+      ssVideoPath << "720p\\";
+    } else {
+      ssVideoPath << "1080p\\";
+    }
+    ssVideoPath << videoFileName;
+    std::string videoPath = ssVideoPath.str();
+    std::stringstream logstr;
+    logstr << "Redirecting " << tmp << " to " << videoPath;
+    LanguageBarrierLog(logstr.str());
+    bnk = BinkOpen(&videoPath[0], flags);
+  } else {
+    bnk = BinkOpen(name, flags);
+  }
+
+  BinkModState_t* state = (BinkModState_t*)calloc(1, sizeof(BinkModState_t));
+  stateMap.emplace(bnk, state);
 
   if (config["patch"]["fmv"].count("audioRedirection") == 1 &&
       config["patch"]["fmv"]["audioRedirection"].count(tmp) == 1) {
@@ -208,10 +229,11 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
 
     switch (state->bgmState) {
       case 0:
-		gameSetBgm(state->bgmId, false);
+        gameSetBgm(state->bgmId, false);
         gameSetBgmShouldPlay(true);
-		// the game sets this back when a track gets enqueued and is ready to play
-		gameSetBgmPaused(true);
+        // the game sets this back when a track gets enqueued and is ready to
+        // play
+        gameSetBgmPaused(true);
         state->bgmState = 1;
         break;
       case 1:
@@ -312,4 +334,4 @@ int __fastcall mgsBinkSetPausedHook(MgsBink_t* pThis, void* EDX, char paused) {
   }
   return gameExeMgsBinkSetPausedReal(pThis, paused);
 }
-}
+}  // namespace lb
