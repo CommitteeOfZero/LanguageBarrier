@@ -9,6 +9,7 @@
 #include "DialogueWordwrap.h"
 #include "GameText.h"
 #include "LanguageBarrier.h"
+#include "MemoryManagement.h"
 #include "MinHook.h"
 #include "SigScan.h"
 
@@ -207,6 +208,8 @@ void gameInit() {
                             (LPVOID)clibFopenHook,
                             (LPVOID *)&gameExeClibFopenReal))
     return;
+
+  memoryManagementInit();
 
   gameExePMgsD3D9State =
       *((MgsD3D9State **)sigScan("game", "useOfMgsD3D9State"));
