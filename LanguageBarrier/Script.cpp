@@ -53,7 +53,7 @@ void overrideScriptInst(const std::string &group, uint8_t op,
   } else if (group == "graph") {
     write_perms(&InstTableGraph[op], overrideProc);
   } else if (group == "user1") {
-    write_perms(&InstTableGraph[op], overrideProc);
+    write_perms(&InstTableUser1[op], overrideProc);
   } else {
     LanguageBarrierLog("Invalid group!");
   }
