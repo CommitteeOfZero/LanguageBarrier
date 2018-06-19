@@ -14,14 +14,21 @@
 #include "targetver.h"
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <wchar.h>
 #include <cstdint>
 #include <cstdlib>
-#include <wchar.h>
-#include <string>
 #include <sstream>
+#include <string>
 #include "MinHook.h"
 
 namespace lb {
+template <typename T>
+void write_perms(T *address, T val) {
+  DWORD oldProtect;
+  VirtualProtect(address, sizeof(val), PAGE_READWRITE, &oldProtect);
+  *address = val;
+  VirtualProtect(address, sizeof(val), oldProtect, &oldProtect);
+}
 void *memset_perms(void *dst, int val, size_t size);
 void LanguageBarrierInit();
 void LanguageBarrierLog(const std::string &text);
@@ -30,6 +37,6 @@ bool scanCreateEnableHook(char *category, char *name, uintptr_t *ppTarget,
 bool createEnableApiHook(LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour,
                          LPVOID *ppOriginal);
 void slurpFile(const std::string &fileName, std::string **ppBuffer);
-}
+}  // namespace lb
 
 #endif  // !__LANGUAGEBARRIER_H__

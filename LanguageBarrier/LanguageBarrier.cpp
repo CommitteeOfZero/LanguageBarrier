@@ -6,6 +6,7 @@
 #include "Game.h"
 #include "GameText.h"
 #include "MinHook.h"
+#include "Script.h"
 #include "SigScan.h"
 
 static bool isInitialised = false;
@@ -112,6 +113,18 @@ void loadJsonConstants() {
         config["patch"]["ccBacklogHighlightSpriteY"].get<float>();
     CC_BACKLOG_HIGHLIGHT_YOFFSET_SHIFT =
         config["patch"]["ccBacklogHighlightYOffsetShift"].get<float>();
+  }
+
+  // Script.h
+  if (config["patch"].count("customInstGetDicEnabled") == 1) {
+    CUSTOM_INST_GETDIC_ENABLED =
+        config["patch"]["customInstGetDicEnabled"].get<bool>();
+  }
+  if (CUSTOM_INST_GETDIC_ENABLED) {
+    CUSTOM_INST_GETDIC_GROUP =
+        config["patch"]["customInstGetDicGroup"].get<std::string>();
+    CUSTOM_INST_GETDIC_OP =
+        config["patch"]["customInstGetDicOp"].get<uint8_t>();
   }
 }
 void LanguageBarrierInit() {

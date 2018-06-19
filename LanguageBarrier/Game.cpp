@@ -1,3 +1,4 @@
+#define GAME_H_IMPORT
 #include "Game.h"
 #include <d3d9.h>
 #include <fstream>
@@ -11,6 +12,7 @@
 #include "LanguageBarrier.h"
 #include "MemoryManagement.h"
 #include "MinHook.h"
+#include "Script.h"
 #include "SigScan.h"
 
 typedef int(__cdecl *EarlyInitProc)(int unk0, int unk1);
@@ -195,6 +197,10 @@ void gameInit() {
   gameExePShouldPlayBgm = sigScan("game", "useOfPShouldPlayBgm");
   gameExeMpkConstructor = (MpkConstructorProc)sigScan("game", "mpkConstructor");
 
+  gameExeGetFlag = (GetFlagProc)sigScan("game", "getFlag");
+  gameExeSetFlag = (SetFlagProc)sigScan("game", "setFlag");
+  gameExeChkViewDic = (ChkViewDicProc)sigScan("game", "chkViewDic");
+
   // TODO: fault tolerance - we don't need to call it quits entirely just
   // because one *feature* can't work
   if (!scanCreateEnableHook("game", "earlyInit", (uintptr_t *)&gameExeEarlyInit,
@@ -210,6 +216,7 @@ void gameInit() {
     return;
 
   memoryManagementInit();
+  scriptInit();
 
   gameExePMgsD3D9State =
       *((MgsD3D9State **)sigScan("game", "useOfMgsD3D9State"));

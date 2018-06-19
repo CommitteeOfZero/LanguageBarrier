@@ -7,13 +7,7 @@
 #include "Game.h"
 #include "LanguageBarrier.h"
 #include "SigScan.h"
-
-typedef struct __declspec(align(4)) {
-  char gap0[316];
-  int somePageNumber;
-  char gap140[12];
-  char *pString;
-} Sc3_t;
+#include "Script.h"
 
 // this is my own, not from the game
 typedef struct {
@@ -173,9 +167,6 @@ static GetSc3StringDisplayWidthProc gameExeGetSc3StringDisplayWidthFont2 =
     NULL;  // = (GetSc3StringDisplayWidthProc)0x4461F0;
 static GetSc3StringDisplayWidthProc gameExeGetSc3StringDisplayWidthFont2Real =
     NULL;
-
-typedef int(__cdecl *Sc3EvalProc)(Sc3_t *sc3, int *pOutResult);
-static Sc3EvalProc gameExeSc3Eval = NULL;  // = (Sc3EvalProc)0x4181D0;
 
 typedef int(__cdecl *GetLinksFromSc3StringProc)(int xOffset, int yOffset,
                                                 int lineLength, char *sc3string,
@@ -419,7 +410,6 @@ void gameTextInit() {
     gameExeDrawGlyph = (DrawGlyphProc)sigScan("game", "drawGlyph");
   }
   gameExeDrawRectangle = (DrawRectangleProc)sigScan("game", "drawRectangle");
-  gameExeSc3Eval = (Sc3EvalProc)sigScan("game", "sc3Eval");
 
   if (HAS_BACKLOG_UNDERLINE) {
     gameExeBacklogHighlightHeight =
@@ -669,7 +659,7 @@ void semiTokeniseSc3String(char *sc3string, std::list<StringWord_t> &words,
     lineLength -= 2 * SGHD_PHONE_X_PADDING;
   }
 
-  Sc3_t sc3;
+  ScriptThreadState sc3;
   int sc3evalResult;
   StringWord_t word = {sc3string, NULL, 0, false, false};
   char c;
@@ -687,9 +677,9 @@ void semiTokeniseSc3String(char *sc3string, std::list<StringWord_t> &words,
         word = {++sc3string, NULL, 0, false, false};
         break;
       case 4:
-        sc3.pString = sc3string + 1;
+        sc3.pc = sc3string + 1;
         gameExeSc3Eval(&sc3, &sc3evalResult);
-        sc3string = sc3.pString;
+        sc3string = (char*)sc3.pc;
         break;
       case 9:
       case 0xB:
@@ -725,7 +715,7 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
                          ProcessedSc3String_t *result, bool measureOnly,
                          float multiplier, int lastLinkNumber,
                          int curLinkNumber, int currentColor) {
-  Sc3_t sc3;
+  ScriptThreadState sc3;
   int sc3evalResult;
 
   // some padding, to make things look nicer.
@@ -779,9 +769,9 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
           goto afterWord;
           break;
         case 4:
-          sc3.pString = sc3string + 1;
+          sc3.pc = sc3string + 1;
           gameExeSc3Eval(&sc3, &sc3evalResult);
-          sc3string = sc3.pString;
+          sc3string = (char*)sc3.pc;
           if (color)
             currentColor = gameExeColors[2 * sc3evalResult];
           else
@@ -922,16 +912,16 @@ int __cdecl getSc3StringDisplayWidthHook(char *sc3string,
                                          unsigned int maxCharacters,
                                          int baseGlyphSize) {
   if (!maxCharacters) maxCharacters = DEFAULT_MAX_CHARACTERS;
-  Sc3_t sc3;
+  ScriptThreadState sc3;
   int sc3evalResult;
   int result = 0;
   int i = 0;
   signed char c;
   while (i <= maxCharacters && (c = *sc3string) != -1) {
     if (c == 4) {
-      sc3.pString = sc3string + 1;
+      sc3.pc = sc3string + 1;
       gameExeSc3Eval(&sc3, &sc3evalResult);
-      sc3string = sc3.pString;
+      sc3string = (char*)sc3.pc;
     } else if (c < 0) {
       int glyphId = (uint8_t)sc3string[1] + ((c & 0x7f) << 8);
       result += (baseGlyphSize * widths[glyphId]) / FONT_CELL_WIDTH;

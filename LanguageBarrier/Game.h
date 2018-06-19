@@ -4,6 +4,10 @@
 #include <cstdint>
 #include "LanguageBarrier.h"
 
+#ifndef GAME_H_IMPORT
+#define GAME_H_IMPORT extern
+#endif
+
 #pragma pack(push, 1)
 struct mpkObject {
   char field_0;
@@ -14,12 +18,20 @@ struct mpkObject {
 };
 #pragma pack(pop)
 
+typedef BOOL(__cdecl* GetFlagProc)(int flagId);
+typedef void(__cdecl* SetFlagProc)(int flagId, BOOL value);
+typedef BOOL(__cdecl* ChkViewDicProc)(int tipId, int unknown);
+
 namespace lb {
 // DEFAULT VALUES!
 LB_GLOBAL uint32_t BGM_CLEAR;
 LB_GLOBAL uint8_t MPK_ID_SCRIPT_MPK;
 LB_GLOBAL uint8_t MPK_ID_BGM_MPK;
 LB_GLOBAL uint8_t AUDIO_PLAYER_ID_BGM1;
+
+GAME_H_IMPORT GetFlagProc gameExeGetFlag;
+GAME_H_IMPORT SetFlagProc gameExeSetFlag;
+GAME_H_IMPORT ChkViewDicProc gameExeChkViewDic;
 
 void gameInit();
 void gameLoadTexture(uint16_t textureId, void *buffer, size_t sz);
