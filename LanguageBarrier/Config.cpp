@@ -19,6 +19,23 @@ void configInit() {
 
   config["patch"] = patchdef["base"];
 
+  std::vector<json> includes;
+
+  if (config["patch"].count("include") == 1) {
+    for (auto file : config["patch"]["include"]) {
+      std::stringstream ss;
+      ss << "languagebarrier\\" << file.get<std::string>() << ".json";
+      std::ifstream i(ss.str());
+      json j;
+      i >> j;
+      includes.push_back(j);
+    }
+  }
+
+  for (const auto& include : includes) {
+    config["patch"] = json_merge(config["patch"], include);
+  }
+
   for (json::iterator it = patchdef["settings"].begin();
        it != patchdef["settings"].end(); it++) {
     const json& o = it.value();
@@ -34,23 +51,6 @@ void configInit() {
           config["patch"] = json_merge(config["patch"], o["choices"][choice]);
         }
       }
-    }
-
-    std::vector<json> includes;
-
-    if (config["patch"].count("include") == 1) {
-      for (auto file : config["patch"]["include"]) {
-        std::stringstream ss;
-        ss << "languagebarrier\\" << file.get<std::string>() << ".json";
-        std::ifstream i(ss.str());
-        json j;
-        i >> j;
-        includes.push_back(j);
-      }
-    }
-
-    for (const auto& include : includes) {
-      config["patch"] = json_merge(config["patch"], include);
     }
   }
 }
