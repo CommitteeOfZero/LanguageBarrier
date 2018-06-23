@@ -93,9 +93,9 @@ void configLoadFiles() {
 
     try {
       std::ifstream i2(path.str());
-      i2.exceptions(i2.exceptions() | std::ifstream::failbit);
+      i2.exceptions(i2.exceptions() | std::ifstream::badbit);
       json j;
-      j << i2;
+      i2 >> j;
       rawConfig = json_merge(defaultconfig, j);
     } catch (...) {
       rawConfig = defaultconfig;
