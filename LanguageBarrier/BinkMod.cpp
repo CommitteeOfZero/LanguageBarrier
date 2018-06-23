@@ -7,6 +7,7 @@
 #include "Config.h"
 #include "Game.h"
 #include "LanguageBarrier.h"
+#include "SigScan.h"
 
 // partial
 typedef struct BINK {
@@ -67,6 +68,10 @@ static std::unordered_map<BINK*, BinkModState_t*> stateMap;
 
 static __m128i MaskFF000000 = _mm_set1_epi32(0xFF000000);
 
+// video insertion
+
+static char** videoNameTable;
+
 namespace lb {
 BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags);
 void __stdcall BinkCloseHook(BINK* bnk);
@@ -103,6 +108,41 @@ bool binkModInit() {
       std::string path = ss.str();
       AddFontResourceExA(path.c_str(), FR_PRIVATE, NULL);
     }
+  }
+
+  if (config["gamedef"].count("videoTableOrigCount") == 1 &&
+      config["patch"]["fmv"].count("additionalVideos") == 1) {
+    char*** videoTableUse = (char***)sigScan("game", "useOfVideoTable");
+    if (videoTableUse == NULL) {
+      LanguageBarrierLog(
+          "Additional videos configured but video table not found!");
+      return false;
+    }
+
+    int videoTableOrigCount =
+        config["gamedef"]["videoTableOrigCount"].get<int>();
+    int additionalCount = config["patch"]["fmv"]["additionalVideos"].size();
+
+    videoNameTable =
+        (char**)calloc(videoTableOrigCount + additionalCount, sizeof(char*));
+    memcpy(videoNameTable, *videoTableUse, videoTableOrigCount * sizeof(char*));
+
+    // we rely on "video redirection" later to handle 720p/1080p versions
+
+    if (config["patch"]["fmv"].count("videoRedirection") == 0) {
+      config["patch"]["fmv"] = json::object();
+    }
+
+    for (int i = 0; i < additionalCount; i++) {
+      std::string videoName =
+          config["patch"]["fmv"]["additionalVideos"][i].get<std::string>();
+      std::string videoInName = videoName + ".bk2";
+      videoNameTable[videoTableOrigCount + i] = strdup(videoInName.c_str());
+      config["patch"]["fmv"]["videoRedirection"][videoInName] =
+          videoName + ".bik";
+    }
+
+    write_perms(videoTableUse, videoNameTable);
   }
 
   return true;
