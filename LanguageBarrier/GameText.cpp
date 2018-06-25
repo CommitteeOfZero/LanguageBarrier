@@ -6,8 +6,8 @@
 #include "Config.h"
 #include "Game.h"
 #include "LanguageBarrier.h"
-#include "SigScan.h"
 #include "Script.h"
+#include "SigScan.h"
 
 // this is my own, not from the game
 typedef struct {
@@ -235,6 +235,9 @@ static uintptr_t gameExeClearlistDrawRet11 = NULL;
 static uintptr_t gameExeClearlistDrawRet12 = NULL;
 static uintptr_t gameExeClearlistDrawRet13 = NULL;
 
+static uintptr_t gameExeCcBacklogNamePosCode = NULL;       // = 0x00454FE9
+static uintptr_t gameExeCcBacklogNamePosAdjustRet = NULL;  // = 0x00454FEF
+
 static uint8_t *gameExeGlyphWidthsFont1 = NULL;       // = (uint8_t *)0x52C7F0;
 static uint8_t *gameExeGlyphWidthsFont2 = NULL;       // = (uint8_t *)0x52E058;
 static int *gameExeColors = NULL;                     // = (int *)0x52E1E8;
@@ -277,6 +280,19 @@ __declspec(naked) void dialogueLayoutWidthLookup3Hook() {
   __asm {
     movzx ecx, widths[edx]
     jmp gameExeDialogueLayoutWidthLookup3Return
+  }
+}
+
+__declspec(naked) void ccBacklogNamePosAdjustHook() {
+  __asm {
+    // copied code
+    mov [edi+4],eax
+    mov edi, [ebp+0x14]
+
+    // ecx is y pos
+    add ecx, [lb::DIALOGUE_REDESIGN_YOFFSET_SHIFT]
+
+    jmp gameExeCcBacklogNamePosAdjustRet
   }
 }
 
@@ -496,6 +512,13 @@ void gameTextInit() {
     gameExeClearlistDrawRet12 = sigScan("game", "clearlistDrawRet12");
     gameExeClearlistDrawRet13 = sigScan("game", "clearlistDrawRet13");
   }
+  if (NEEDS_CC_BACKLOG_NAME_POS_ADJUST) {
+    gameExeCcBacklogNamePosAdjustRet =
+        sigScan("game", "ccBacklogNamePosAdjustRet");
+    scanCreateEnableHook("game", "ccBacklogNamePosCode",
+                         (uintptr_t *)&gameExeCcBacklogNamePosCode,
+                         (LPVOID)ccBacklogNamePosAdjustHook, NULL);
+  }
   // The following both have the same pattern and 'occurrence: 0' in the
   // signatures.json.
   // That's because after you hook one, the first match goes away.
@@ -679,7 +702,7 @@ void semiTokeniseSc3String(char *sc3string, std::list<StringWord_t> &words,
       case 4:
         sc3.pc = sc3string + 1;
         gameExeSc3Eval(&sc3, &sc3evalResult);
-        sc3string = (char*)sc3.pc;
+        sc3string = (char *)sc3.pc;
         break;
       case 9:
       case 0xB:
@@ -771,7 +794,7 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
         case 4:
           sc3.pc = sc3string + 1;
           gameExeSc3Eval(&sc3, &sc3evalResult);
-          sc3string = (char*)sc3.pc;
+          sc3string = (char *)sc3.pc;
           if (color)
             currentColor = gameExeColors[2 * sc3evalResult];
           else
@@ -921,7 +944,7 @@ int __cdecl getSc3StringDisplayWidthHook(char *sc3string,
     if (c == 4) {
       sc3.pc = sc3string + 1;
       gameExeSc3Eval(&sc3, &sc3evalResult);
-      sc3string = (char*)sc3.pc;
+      sc3string = (char *)sc3.pc;
     } else if (c < 0) {
       int glyphId = (uint8_t)sc3string[1] + ((c & 0x7f) << 8);
       result += (baseGlyphSize * widths[glyphId]) / FONT_CELL_WIDTH;

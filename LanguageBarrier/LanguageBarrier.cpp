@@ -91,6 +91,10 @@ void loadJsonConstants() {
       config["gamedef"]["glyphIdHalfwidthSpace"].get<uint16_t>();
   NEEDS_CLEARLIST_TEXT_POSITION_ADJUST =
       config["gamedef"]["needsClearlistTextPositionAdjust"].get<bool>();
+  if (config["gamedef"].count("needsCcBacklogNamePosAdjust") == 1) {
+    NEEDS_CC_BACKLOG_NAME_POS_ADJUST =
+        config["gamedef"]["needsCcBacklogNamePosAdjust"].get<bool>();
+  }
   HAS_SPLIT_FONT = config["gamedef"]["hasSplitFont"].get<bool>();
   if (config["patch"].count("tipReimplementation") == 1) {
     TIP_REIMPL = config["patch"]["tipReimplementation"].get<bool>();
