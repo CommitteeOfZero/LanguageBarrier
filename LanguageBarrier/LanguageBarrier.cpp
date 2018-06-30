@@ -142,7 +142,7 @@ void LanguageBarrierInit() {
 
   std::remove("languagebarrier\\log.txt");
   // TODO: proper versioning
-  LanguageBarrierLog("LanguageBarrier v1.10");
+  LanguageBarrierLog("LanguageBarrier v1.20");
   {
     std::stringstream logstr;
     logstr << "Game: " << configGetGameName();
