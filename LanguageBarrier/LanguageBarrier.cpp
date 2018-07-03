@@ -138,10 +138,7 @@ void LanguageBarrierInit() {
   if (wcslen(exeName) >= wcslen(L"Launcher") &&
     _wcsnicmp(exeName, L"Launcher", wcslen(L"Launcher")) == 0) return;
 
-  if (isInitialised) {
-    LanguageBarrierLog("LanguageBarrierInit() called twice...");
-    return;
-  }
+  if (isInitialised) return;
   isInitialised = true;
 
   configInit();

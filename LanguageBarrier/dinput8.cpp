@@ -3,6 +3,12 @@
 #include <dinput.h>
 #include "game.h"
 
+
+BOOL WINAPI DllMain(HINSTANCE hInst, DWORD reason, LPVOID reserved) {
+  if (reason == DLL_PROCESS_ATTACH) lb::LanguageBarrierInit();
+  return TRUE;
+}
+
 namespace lb {
 typedef HRESULT(__stdcall* DirectInput8CreateProc)(HINSTANCE hinst,
                                                    DWORD dwVersion,
@@ -12,10 +18,6 @@ typedef HRESULT(__stdcall* DirectInput8CreateProc)(HINSTANCE hinst,
 
 DirectInput8CreateProc realDirectInput8Create = NULL;
 HINSTANCE hRealDinput8 = NULL;
-
-BOOL WINAPI DllMain(HINSTANCE hInst, DWORD reason, LPVOID reserved) {
-  return true;
-}
 
 #pragma comment(linker, "/EXPORT:DirectInput8Create=_DirectInput8CreateHook@20")
 
@@ -34,8 +36,6 @@ extern "C" HRESULT __stdcall DirectInput8CreateHook(HINSTANCE hinst,
         hRealDinput8, "DirectInput8Create");
     if (!realDirectInput8Create) return DIERR_OUTOFMEMORY;
   }
-
-  LanguageBarrierInit();
 
   return realDirectInput8Create(hinst, dwVersion, riidltf, ppvOut, punkOuter);
 }
