@@ -13,6 +13,7 @@
 #include "MemoryManagement.h"
 #include "MinHook.h"
 #include "Script.h"
+#include "Shlobj.h"
 #include "SigScan.h"
 
 typedef int(__cdecl *EarlyInitProc)(int unk0, int unk1);
@@ -44,6 +45,9 @@ static SetSamplerStateWrapperProc gameExeSetSamplerStateWrapperReal = NULL;
 typedef FILE *(__cdecl *FopenProc)(const char *filename, const char *mode);
 static FopenProc gameExeClibFopen = NULL;
 static FopenProc gameExeClibFopenReal = NULL;
+
+typedef BOOL(__cdecl *OpenMyGamesProc)(char *outPath);
+static OpenMyGamesProc gameExeOpenMyGames = NULL;  // = 0x48EE50 (C;C)
 
 static mpkObject *gameExeMpkObjects = NULL;
 typedef int(__thiscall *MpkFopenByIdProc)(void *pThis, mpkObject *mpk,
@@ -177,6 +181,7 @@ int __fastcall closeAllSystemsHook(void *pThis, void *EDX);
 FILE *__cdecl clibFopenHook(const char *filename, const char *mode);
 void __cdecl setSamplerStateWrapperHook(int sampler, int flags);
 int __fastcall readOggMetadataHook(CPlayer *pThis, void *EDX);
+BOOL __cdecl openMyGamesHook(char *outPath);
 
 void gameInit() {
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
@@ -200,6 +205,9 @@ void gameInit() {
   gameExeGetFlag = (GetFlagProc)sigScan("game", "getFlag");
   gameExeSetFlag = (SetFlagProc)sigScan("game", "setFlag");
   gameExeChkViewDic = (ChkViewDicProc)sigScan("game", "chkViewDic");
+
+  scanCreateEnableHook("game", "openMyGames", (uintptr_t *)&gameExeOpenMyGames,
+                       (LPVOID)openMyGamesHook, NULL);
 
   // TODO: fault tolerance - we don't need to call it quits entirely just
   // because one *feature* can't work
@@ -449,6 +457,44 @@ int __fastcall readOggMetadataHook(CPlayer *pThis, void *EDX) {
     }
   }
   return ret;
+}
+
+BOOL __cdecl openMyGamesHook(char *outPath) {
+  // The game knows only ANSI fopen(). Unfortunately, this prevents it from
+  // finding save data for users with out-of-locale usernames. So, let's first
+  // try to convert from Unicode...
+
+  const wchar_t MyGames[] = L"\\My Games\\";
+
+  PWSTR myDocumentsPath;
+  SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &myDocumentsPath);
+
+  wchar_t *myGamesPath = (wchar_t *)calloc(
+      wcslen(myDocumentsPath) + wcslen(MyGames) + 1, sizeof(wchar_t));
+  wcscpy(myGamesPath, myDocumentsPath);
+  wcscat(myGamesPath, MyGames);
+  BOOL result = CreateDirectoryW(myGamesPath, 0);
+
+  BOOL failedToConvert;
+  WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, myGamesPath, -1, outPath,
+                      MAX_PATH, NULL, &failedToConvert);
+  if (failedToConvert) {
+    // ...or if that fails, use 8.3 (MSDOS/FAT) short paths, which always fit in
+    // ANSI.
+    LanguageBarrierLog(
+        "Couldn't cleanly convert My Games path to 8-bit, falling back to 8.3 "
+        "paths");
+    wchar_t wideShortPath[MAX_PATH];
+    // Short paths (DOS 8.3 naming convention) can always be converted to ANSI
+    // properly
+    GetShortPathNameW(myGamesPath, wideShortPath, MAX_PATH);
+    WideCharToMultiByte(AreFileApisANSI() ? CP_ACP : CP_OEMCP, NULL,
+                        wideShortPath, -1, outPath, MAX_PATH, NULL, NULL);
+  }
+
+  free(myGamesPath);
+  CoTaskMemFree(myDocumentsPath);
+  return result;
 }
 
 // TODO: I probably shouldn't be writing these in assembly given it looks like
