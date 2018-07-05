@@ -135,8 +135,9 @@ uintptr_t sigScanRaw(char* category, char* sigName, bool isData = false) {
 
   logstr << sPattern << std::endl;
 
-  HMODULE exeModule = GetModuleHandle(NULL);
-  IMAGE_NT_HEADERS* pNtHdr = ImageNtHeader(exeModule);
+  HMODULE hModule = GetModuleHandleA(category);
+  if (!hModule) hModule = GetModuleHandle(NULL);
+  IMAGE_NT_HEADERS* pNtHdr = ImageNtHeader(hModule);
   IMAGE_SECTION_HEADER* pSectionHdr =
       (IMAGE_SECTION_HEADER*)((uint8_t*)&(pNtHdr->OptionalHeader) +
                               pNtHdr->FileHeader.SizeOfOptionalHeader);
@@ -145,7 +146,7 @@ uintptr_t sigScanRaw(char* category, char* sigName, bool isData = false) {
     if (isData == !!(pSectionHdr->Characteristics & IMAGE_SCN_MEM_EXECUTE))
       continue;
 
-    uintptr_t baseAddress = (uintptr_t)exeModule + pSectionHdr->VirtualAddress;
+    uintptr_t baseAddress = (uintptr_t)hModule + pSectionHdr->VirtualAddress;
     std::vector<unsigned char> rawData(
         (unsigned char*)baseAddress,
         (unsigned char*)baseAddress + pSectionHdr->Misc.VirtualSize);
