@@ -54,6 +54,9 @@
     <ClInclude Include="Script.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="contrib\include\stb_vorbis.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LanguageBarrier.cpp">
@@ -90,6 +93,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Script.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="contrib\stb_vorbis.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
