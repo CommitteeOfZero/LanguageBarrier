@@ -15,6 +15,7 @@
 #include "Script.h"
 #include "Shlobj.h"
 #include "SigScan.h"
+#include "ErrorHandling.h"
 
 typedef int(__cdecl *EarlyInitProc)(int unk0, int unk1);
 static EarlyInitProc gameExeEarlyInit = NULL;
@@ -48,6 +49,13 @@ static FopenProc gameExeClibFopenReal = NULL;
 
 typedef BOOL(__cdecl *OpenMyGamesProc)(char *outPath);
 static OpenMyGamesProc gameExeOpenMyGames = NULL;  // = 0x48EE50 (C;C)
+
+typedef void(__stdcall* OutputDebugStringAProc)(LPCSTR lpOutputString);
+static OutputDebugStringAProc OutputDebugStringAReal = NULL;
+
+typedef int (WINAPI* WinMainProc)(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nCmdShow);
+static WinMainProc gameExeWinMain = NULL; // = (WinMainProc)0x432440; (C;C)
+static WinMainProc gameExeWinMainReal = NULL;
 
 static mpkObject *gameExeMpkObjects = NULL;
 typedef int(__thiscall *MpkFopenByIdProc)(void *pThis, mpkObject *mpk,
@@ -182,6 +190,9 @@ FILE *__cdecl clibFopenHook(const char *filename, const char *mode);
 void __cdecl setSamplerStateWrapperHook(int sampler, int flags);
 int __fastcall readOggMetadataHook(CPlayer *pThis, void *EDX);
 BOOL __cdecl openMyGamesHook(char *outPath);
+void __stdcall OutputDebugStringAHook(LPCSTR lpOutputString);
+int WINAPI WinMainHook(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+  PSTR lpCmdLine, INT nCmdShow);
 
 void gameInit() {
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
@@ -209,11 +220,16 @@ void gameInit() {
   scanCreateEnableHook("game", "openMyGames", (uintptr_t *)&gameExeOpenMyGames,
                        (LPVOID)openMyGamesHook, NULL);
 
+  if (!createEnableApiHook(L"kernel32", "OutputDebugStringA", (LPVOID)&OutputDebugStringAHook, (LPVOID*)&OutputDebugStringAReal)) {
+    LanguageBarrierLog("Couldn't hook OutputDebugStringA, not logging game debug output");
+  }
+
   // TODO: fault tolerance - we don't need to call it quits entirely just
   // because one *feature* can't work
   if (!scanCreateEnableHook("game", "earlyInit", (uintptr_t *)&gameExeEarlyInit,
                             (LPVOID)&earlyInitHook,
                             (LPVOID *)&gameExeEarlyInitReal) ||
+      !scanCreateEnableHook("game", "WinMain", (uintptr_t *)&gameExeWinMain, (LPVOID)&WinMainHook, (LPVOID *)&gameExeWinMainReal) ||
       !scanCreateEnableHook("game", "getStringFromScript",
                             (uintptr_t *)&gameExeGetStringFromScript,
                             (LPVOID)getStringFromScriptHook,
@@ -464,19 +480,11 @@ BOOL __cdecl openMyGamesHook(char *outPath) {
   // finding save data for users with out-of-locale usernames. So, let's first
   // try to convert from Unicode...
 
-  const wchar_t MyGames[] = L"\\My Games\\";
-
-  PWSTR myDocumentsPath;
-  SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &myDocumentsPath);
-
-  wchar_t *myGamesPath = (wchar_t *)calloc(
-      wcslen(myDocumentsPath) + wcslen(MyGames) + 1, sizeof(wchar_t));
-  wcscpy(myGamesPath, myDocumentsPath);
-  wcscat(myGamesPath, MyGames);
-  BOOL result = CreateDirectoryW(myGamesPath, 0);
+  const std::wstring myGamesPath = configGetMyGamesDir() + L"\\";
+  BOOL result = CreateDirectoryW(myGamesPath.c_str(), 0);
 
   BOOL failedToConvert;
-  WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, myGamesPath, -1, outPath,
+  WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, myGamesPath.c_str(), -1, outPath,
                       MAX_PATH, NULL, &failedToConvert);
   if (failedToConvert) {
     // ...or if that fails, use 8.3 (MSDOS/FAT) short paths, which always fit in
@@ -487,14 +495,24 @@ BOOL __cdecl openMyGamesHook(char *outPath) {
     wchar_t wideShortPath[MAX_PATH];
     // Short paths (DOS 8.3 naming convention) can always be converted to ANSI
     // properly
-    GetShortPathNameW(myGamesPath, wideShortPath, MAX_PATH);
+    GetShortPathNameW(myGamesPath.c_str(), wideShortPath, MAX_PATH);
     WideCharToMultiByte(AreFileApisANSI() ? CP_ACP : CP_OEMCP, NULL,
                         wideShortPath, -1, outPath, MAX_PATH, NULL, NULL);
   }
 
-  free(myGamesPath);
-  CoTaskMemFree(myDocumentsPath);
   return result;
+}
+
+void __stdcall OutputDebugStringAHook(LPCSTR lpOutputString) {
+  LanguageBarrierLog("[OutputDebugString] " + std::string(lpOutputString));
+}
+
+int WINAPI WinMainHook(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+  PSTR lpCmdLine, INT nCmdShow) {
+  // This is for things that should run as early as possible, but can't run in DllMain()
+  // Crash reporter fails to catch some things if we try to install it earlier - unfortunately this does lose us crashes in LanguageBarrier init...
+  errorHandlingInit();
+  return gameExeWinMainReal(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
 }
 
 // TODO: I probably shouldn't be writing these in assembly given it looks like
