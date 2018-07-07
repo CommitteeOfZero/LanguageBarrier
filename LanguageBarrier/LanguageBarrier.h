@@ -30,6 +30,7 @@ void write_perms(T *address, T val) {
   VirtualProtect(address, sizeof(val), oldProtect, &oldProtect);
 }
 void *memset_perms(void *dst, int val, size_t size);
+size_t alignCeil(size_t val, size_t align);
 void LanguageBarrierInit();
 void LanguageBarrierLog(const std::string &text);
 bool scanCreateEnableHook(char *category, char *name, uintptr_t *ppTarget,

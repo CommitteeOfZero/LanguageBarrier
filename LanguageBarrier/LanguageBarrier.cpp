@@ -19,6 +19,9 @@ void *memset_perms(void *dst, int val, size_t size) {
   VirtualProtect(dst, size, oldProtect, &oldProtect);
   return retval;
 }
+size_t alignCeil(size_t val, size_t align) {
+  return (val % align == 0) ? val : val + align - (val % align);
+}
 void loadJsonConstants() {
   LanguageBarrierLog("loading constants from gamedef.json/patchdef.json...");
 
@@ -136,7 +139,8 @@ void LanguageBarrierInit() {
   GetModuleFileNameW(NULL, path, MAX_PATH);
   _wsplitpath_s(path, NULL, 0, NULL, 0, exeName, _MAX_FNAME, NULL, 0);
   if (wcslen(exeName) >= wcslen(L"Launcher") &&
-    _wcsnicmp(exeName, L"Launcher", wcslen(L"Launcher")) == 0) return;
+      _wcsnicmp(exeName, L"Launcher", wcslen(L"Launcher")) == 0)
+    return;
 
   if (isInitialised) return;
   isInitialised = true;
