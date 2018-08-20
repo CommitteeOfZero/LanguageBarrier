@@ -43,6 +43,7 @@ void errorHandlingInit() {
   info.pszAppName = appName.c_str();
   info.pszAppVersion = appVersion.c_str();
   info.pszUrl = url.c_str();
+  info.pszCustomSenderIcon = L"languagebarrier\\crash.ico,0";
   info.uPriorities[CR_HTTP] = 1;
   info.uPriorities[CR_SMTP] = CR_NEGATIVE_PRIORITY;
   info.uPriorities[CR_SMAPI] = CR_NEGATIVE_PRIORITY;
