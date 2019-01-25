@@ -3,6 +3,7 @@
 #include <dinput.h>
 #include "game.h"
 
+
 BOOL WINAPI DllMain(HINSTANCE hInst, DWORD reason, LPVOID reserved) {
   if (reason == DLL_PROCESS_ATTACH) lb::LanguageBarrierInit();
   return TRUE;

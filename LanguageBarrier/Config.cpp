@@ -60,38 +60,6 @@ const std::string configGetGameName() {
 const std::string configGetPatchName() {
   return patchdef["patchName"].get<std::string>();
 }
-const std::string configGetPatchVersion() {
-  return patchdef["patchVersion"].get<std::string>();
-}
-const std::wstring configGetAppDataDir() {
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  std::wstring appdatadir =
-    converter.from_bytes(patchdef["appdatadir"].get<std::string>());
-  wchar_t* appdata;
-  SHGetKnownFolderPath(FOLDERID_LocalAppData, NULL, NULL, &appdata);
-  // apparently it doesn't like writing to the output directly
-  std::wstringstream path;
-  path << appdata;
-  CoTaskMemFree(appdata);
-  path << L"\\" << appdatadir;
-  return path.str();
-}
-const std::wstring configGetMyGamesDir() {
-  PWSTR myDocumentsPath;
-  SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &myDocumentsPath);
-
-  std::wstring result = std::wstring(myDocumentsPath) + L"\\My Games";
-  CoTaskMemFree(myDocumentsPath);
-  return result;
-}
-const std::wstring configGetGameSaveDir() {
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  return configGetMyGamesDir() + L"\\" + converter.from_bytes(config["gamedef"]["saveDir"].get<std::string>());
-}
-const std::wstring configGetCrashReportUrl() {
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  return converter.from_bytes(patchdef["crashReportUrl"].get<std::string>());
-}
 void configLoadFiles() {
   {
     std::ifstream i("languagebarrier\\gamedef.json");
@@ -110,13 +78,21 @@ void configLoadFiles() {
     json defaultconfig;
     i >> defaultconfig;
 
-    
-    std::wstring path = configGetAppDataDir();
-    SHCreateDirectoryEx(NULL, path.c_str(), NULL);
-    path += L"\\config.json";
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    std::wstring appdatadir =
+        converter.from_bytes(patchdef["appdatadir"].get<std::string>());
+    wchar_t* appdata;
+    SHGetKnownFolderPath(FOLDERID_LocalAppData, NULL, NULL, &appdata);
+    // apparently it doesn't like writing to the output directly
+    std::wstringstream path;
+    path << appdata;
+    CoTaskMemFree(appdata);
+    path << L"\\" << appdatadir;
+    SHCreateDirectoryEx(NULL, path.str().c_str(), NULL);
+    path << L"\\config.json";
 
     try {
-      std::ifstream i2(path);
+      std::ifstream i2(path.str());
       i2.exceptions(i2.exceptions() | std::ifstream::badbit);
       json j;
       i2 >> j;
@@ -125,7 +101,7 @@ void configLoadFiles() {
       rawConfig = defaultconfig;
     }
 
-    std::ofstream o(path);
+    std::ofstream o(path.str());
     rawConfig >> o;
   }
 }
