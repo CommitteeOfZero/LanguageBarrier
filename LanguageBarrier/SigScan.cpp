@@ -120,7 +120,7 @@ uintptr_t FindPattern(vector<unsigned char> data, const char* pszPattern,
 
   return NULL;
 }
-}
+}  // namespace
 
 namespace lb {
 uintptr_t sigScanRaw(char* category, char* sigName, bool isData = false) {
@@ -155,13 +155,17 @@ uintptr_t sigScanRaw(char* category, char* sigName, bool isData = false) {
 
     if (retval != NULL) {
       logstr << " found at 0x" << std::hex << retval;
-      LanguageBarrierLog(logstr.str());
+      if (lb::IsInitialised) {
+        LanguageBarrierLog(logstr.str());
+      }
       return retval;
     }
     pSectionHdr++;
   }
   logstr << " not found!";
-  LanguageBarrierLog(logstr.str());
+  if (lb::IsInitialised) {
+    LanguageBarrierLog(logstr.str());
+  }
   return NULL;
 }
 
@@ -177,4 +181,4 @@ uintptr_t sigScan(char* category, char* sigName, bool isData = false) {
     return NULL;
   }
 }
-}
+}  // namespace lb

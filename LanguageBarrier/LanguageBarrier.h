@@ -38,6 +38,9 @@ bool scanCreateEnableHook(char *category, char *name, uintptr_t *ppTarget,
 bool createEnableApiHook(LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour,
                          LPVOID *ppOriginal);
 void slurpFile(const std::string &fileName, std::string **ppBuffer);
+
+extern bool IsConfigured;
+extern bool IsInitialised;
 }  // namespace lb
 
 #endif  // !__LANGUAGEBARRIER_H__

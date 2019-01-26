@@ -9,9 +9,11 @@
 #include "Script.h"
 #include "SigScan.h"
 
-static bool isInitialised = false;
-
 namespace lb {
+
+bool IsConfigured = false;
+bool IsInitialised = false;
+
 void *memset_perms(void *dst, int val, size_t size) {
   DWORD oldProtect;
   VirtualProtect(dst, size, PAGE_READWRITE, &oldProtect);
@@ -142,36 +144,46 @@ void LanguageBarrierInit() {
       _wcsnicmp(exeName, L"Launcher", wcslen(L"Launcher")) == 0)
     return;
 
-  if (isInitialised) return;
-  isInitialised = true;
+  if (!IsConfigured) {
+    IsConfigured = true;
 
-  configInit();
+    configInit();
 
-  std::remove("languagebarrier\\log.txt");
-  // TODO: proper versioning
-  LanguageBarrierLog("LanguageBarrier v1.20");
-  {
-    std::stringstream logstr;
-    logstr << "Game: " << configGetGameName();
-    LanguageBarrierLog(logstr.str());
+    std::remove("languagebarrier\\log.txt");
+    // TODO: proper versioning
+    LanguageBarrierLog("LanguageBarrier v1.20");
+    {
+      std::stringstream logstr;
+      logstr << "Game: " << configGetGameName();
+      LanguageBarrierLog(logstr.str());
+    }
+    {
+      std::stringstream logstr;
+      logstr << "Patch: " << configGetPatchName();
+      LanguageBarrierLog(logstr.str());
+    }
+    LanguageBarrierLog("**** Start apprication ****");
+
+    MH_STATUS mhStatus = MH_Initialize();
+    if (mhStatus != MH_OK) {
+      std::stringstream logstr;
+      logstr << "MinHook failed to initialize!" << MH_StatusToString(mhStatus);
+      LanguageBarrierLog(logstr.str());
+      return;
+    }
+
+    loadJsonConstants();
   }
-  {
-    std::stringstream logstr;
-    logstr << "Patch: " << configGetPatchName();
-    LanguageBarrierLog(logstr.str());
-  }
-  LanguageBarrierLog("**** Start apprication ****");
 
-  MH_STATUS mhStatus = MH_Initialize();
-  if (mhStatus != MH_OK) {
-    std::stringstream logstr;
-    logstr << "MinHook failed to initialize!" << MH_StatusToString(mhStatus);
-    LanguageBarrierLog(logstr.str());
-    return;
-  }
+  if (!IsInitialised) {
+    if (sigScan("game", "canary") != NULL) {
+      // we're past DRM unpacking
 
-  loadJsonConstants();
-  gameInit();
+      IsInitialised = true;
+
+      gameInit();
+    }
+  }
 }
 // TODO: make this better
 void LanguageBarrierLog(const std::string &text) {

@@ -3,9 +3,8 @@
 #include <dinput.h>
 #include "game.h"
 
-
 BOOL WINAPI DllMain(HINSTANCE hInst, DWORD reason, LPVOID reserved) {
-  if (reason == DLL_PROCESS_ATTACH) lb::LanguageBarrierInit();
+  if (!lb::IsInitialised) lb::LanguageBarrierInit();
   return TRUE;
 }
 
@@ -39,4 +38,4 @@ extern "C" HRESULT __stdcall DirectInput8CreateHook(HINSTANCE hinst,
 
   return realDirectInput8Create(hinst, dwVersion, riidltf, ppvOut, punkOuter);
 }
-}
+}  // namespace lb
