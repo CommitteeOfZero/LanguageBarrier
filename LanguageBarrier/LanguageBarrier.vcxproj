@@ -134,6 +134,7 @@ endlocal</Command>
   <ItemGroup>
     <ClCompile Include="BinkMod.cpp" />
     <ClCompile Include="Config.cpp" />
+    <ClCompile Include="contrib\speexdsp\resample.c" />
     <ClCompile Include="contrib\stb_vorbis.c" />
     <ClCompile Include="DialogueWordwrap.cpp" />
     <ClCompile Include="dinput8.cpp">

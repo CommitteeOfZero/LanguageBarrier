@@ -9,6 +9,11 @@
 #include "LanguageBarrier.h"
 #include "SigScan.h"
 
+#define FLOATING_POINT
+#define OUTSIDE_SPEEX
+#define RANDOM_PREFIX lb_speexdsp_
+#include "contrib/speexdsp/speex_resampler.h"
+
 // partial
 typedef struct BINK {
   uint32_t Width;         // Width (1 based, 640 for example)
@@ -21,6 +26,17 @@ typedef struct BINK {
   uint32_t FrameRateDiv;  // Frame Rate Divisor (frame rate=numerator/divisor)
 } BINK;
 
+typedef struct BINKTRACK {
+  uint32_t Frequency;
+  uint32_t Bits;
+  uint32_t Channels;
+  uint32_t MaxSize;
+
+  BINK* bink;
+  uint32_t sndcomp;
+  int32_t trackindex;
+} BINKTRACK;
+
 typedef BINK*(__stdcall* BINKOPEN)(const char* name, uint32_t flags);
 typedef void(__stdcall* BINKCLOSE)(BINK* bnk);
 typedef int32_t(__stdcall* BINKCOPYTOBUFFER)(BINK* bnk, void* dest,
@@ -28,9 +44,14 @@ typedef int32_t(__stdcall* BINKCOPYTOBUFFER)(BINK* bnk, void* dest,
                                              uint32_t destheight,
                                              uint32_t destx, uint32_t desty,
                                              uint32_t flags);
+typedef BINKTRACK*(__stdcall* BINKOPENTRACK)(BINK* bnk, uint32_t trackindex);
+typedef void(__stdcall* BINKCLOSETRACK)(BINKTRACK* bnkt);
+
 static BINKOPEN BinkOpen = NULL;
 static BINKCLOSE BinkClose = NULL;
 static BINKCOPYTOBUFFER BinkCopyToBuffer = NULL;
+static BINKOPENTRACK BinkOpenTrack = NULL;
+static BINKCLOSETRACK BinkCloseTrack = NULL;
 
 typedef struct {
   char isOpen;
@@ -65,10 +86,16 @@ static int rb_read_index;
 static int rb_write_index;
 static size_t rb_available_shorts;
 
-static short decoded_buffer[RINGBUFFER_CAPACITY];
-static short resampled_buffer[RINGBUFFER_CAPACITY];
+// cba doing the sample rate calculations
+static const int DECODED_BUFFER_CAPACITY = RINGBUFFER_CAPACITY / 2;
+static const int RESAMPLED_BUFFER_CAPACITY = RINGBUFFER_CAPACITY;
+static short decoded_buffer[DECODED_BUFFER_CAPACITY];
+static short resampled_buffer[RESAMPLED_BUFFER_CAPACITY];
 static size_t resampled_available_samples;
 static size_t resampled_consumed_samples;
+
+static uint32_t bink_sample_rate;
+static uint32_t our_sample_rate;
 
 // global because we don't have an easy way of getting to the bink handle in
 // decompAudioInner, and so we don't add a map lookup to the hot path careful
@@ -76,40 +103,54 @@ static size_t resampled_consumed_samples;
 static stb_vorbis* pVorbis = NULL;
 static std::string* pVorbisFile = NULL;
 
+static SpeexResamplerState* resampler = NULL;
+
 void clear_processing_buffers() {
-    memset(resampled_buffer, 0, sizeof(short) * RINGBUFFER_CAPACITY);
-    resampled_consumed_samples = 0;
-    resampled_available_samples = 0;
+  memset(resampled_buffer, 0, sizeof(short) * RESAMPLED_BUFFER_CAPACITY);
+  resampled_consumed_samples = 0;
+  resampled_available_samples = 0;
 }
 void fill_resampled_buffer() {
-    clear_processing_buffers();
-    resampled_available_samples = stb_vorbis_get_samples_short_interleaved(pVorbis, CHANNEL_COUNT, resampled_buffer, RINGBUFFER_CAPACITY);
+  clear_processing_buffers();
+  size_t decoded_available_samples = stb_vorbis_get_samples_short_interleaved(
+      pVorbis, CHANNEL_COUNT, decoded_buffer, DECODED_BUFFER_CAPACITY);
+  size_t in_len = decoded_available_samples;
+  size_t out_len = RESAMPLED_BUFFER_CAPACITY;
+  speex_resampler_process_interleaved_int(resampler, decoded_buffer, &in_len,
+                                          resampled_buffer, &out_len);
+  resampled_available_samples = out_len;
 }
 size_t get_resampled(short* dest, size_t num_samples) {
-    size_t total_fetched = 0;
+  size_t total_fetched = 0;
 
-    while (num_samples > 0) {
-        if (resampled_available_samples == 0) {
-            fill_resampled_buffer();
-            if (resampled_available_samples == 0) {
-                return total_fetched;
-            }
-        }
-
-        size_t to_fetch = min(num_samples, resampled_available_samples);
-        memcpy(dest + CHANNEL_COUNT * total_fetched, resampled_buffer + CHANNEL_COUNT * resampled_consumed_samples, CHANNEL_COUNT * sizeof(short) * to_fetch);
-        total_fetched += to_fetch;
-        resampled_consumed_samples += to_fetch;
-        resampled_available_samples -= to_fetch;
-        num_samples -= to_fetch;
+  while (num_samples > 0) {
+    if (resampled_available_samples == 0) {
+      fill_resampled_buffer();
+      if (resampled_available_samples == 0) {
+        return total_fetched;
+      }
     }
-    return total_fetched;
+
+    size_t to_fetch = min(num_samples, resampled_available_samples);
+    memcpy(dest + CHANNEL_COUNT * total_fetched,
+           resampled_buffer + CHANNEL_COUNT * resampled_consumed_samples,
+           CHANNEL_COUNT * sizeof(short) * to_fetch);
+    total_fetched += to_fetch;
+    resampled_consumed_samples += to_fetch;
+    resampled_available_samples -= to_fetch;
+    num_samples -= to_fetch;
+  }
+  return total_fetched;
 }
 
 // Just how drunk was I when I first wrote this?
 
 void rb_init() {
-    clear_processing_buffers();
+  resampler =
+      speex_resampler_init(CHANNEL_COUNT, our_sample_rate, bink_sample_rate,
+                           SPEEX_RESAMPLER_QUALITY_DESKTOP, NULL);
+
+  clear_processing_buffers();
   rb_read_index = rb_write_index = rb_available_shorts = 0;
   memset(ringbuffer, 0, RINGBUFFER_CAPACITY * sizeof(short));
 }
@@ -120,7 +161,9 @@ size_t rb_read(short* dest, size_t shorts) {
     size_t fetch_first = min(fetch_total, RINGBUFFER_CAPACITY - rb_write_index);
     size_t actual_fetched_first = 0;
     if (fetch_first > 0) {
-      actual_fetched_first = get_resampled(ringbuffer + rb_write_index, fetch_first / CHANNEL_COUNT) * CHANNEL_COUNT;
+      actual_fetched_first = get_resampled(ringbuffer + rb_write_index,
+                                           fetch_first / CHANNEL_COUNT) *
+                             CHANNEL_COUNT;
       rb_write_index += actual_fetched_first;
     }
     rb_available_shorts += actual_fetched_first;
@@ -135,7 +178,8 @@ size_t rb_read(short* dest, size_t shorts) {
       // note: in this case rb_write_index is at capacity, start from the
       // beginning
       actual_fetched_second =
-          get_resampled(ringbuffer, fetch_second / CHANNEL_COUNT) * CHANNEL_COUNT;
+          get_resampled(ringbuffer, fetch_second / CHANNEL_COUNT) *
+          CHANNEL_COUNT;
       rb_write_index = actual_fetched_second;
     }
     rb_available_shorts += actual_fetched_second;
@@ -213,6 +257,11 @@ bool binkModInit() {
           "bink2w32", "decompAudioInner", (uintptr_t*)&binkDllDecompAudioInner,
           decompAudioInnerHook, (LPVOID*)&binkDllDecompAudioInnerReal))
     return false;
+
+  HMODULE hmodBink = GetModuleHandleW(L"bink2w32");
+  BinkOpenTrack = (BINKOPENTRACK)GetProcAddress(hmodBink, "_BinkOpenTrack@8");
+  BinkCloseTrack =
+      (BINKCLOSETRACK)GetProcAddress(hmodBink, "_BinkCloseTrack@4");
 
   if (config["patch"]["fmv"].count("fonts") == 1) {
     for (auto font : config["patch"]["fmv"]["fonts"]) {
@@ -320,6 +369,7 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
       pVorbis =
           stb_vorbis_open_memory((const unsigned char*)pVorbisFile->c_str(),
                                  pVorbisFile->size(), &vorbisError, NULL);
+
       if (pVorbis == NULL) {
         std::stringstream ss;
         ss << "Error while trying to open audio redirection at '" << audioPath
@@ -328,6 +378,13 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
         delete pVorbisFile;
         pVorbisFile = NULL;
       } else {
+        BINKTRACK* track = BinkOpenTrack(bnk, 0);
+        bink_sample_rate = track->Frequency;
+        BinkCloseTrack(track);
+
+        stb_vorbis_info vi = stb_vorbis_get_info(pVorbis);
+        our_sample_rate = vi.sample_rate;
+
         rb_init();
       }
     }
@@ -377,6 +434,10 @@ void __stdcall BinkCloseHook(BINK* bnk) {
   }
   if (state->csri) {
     csri_close(state->csri);
+  }
+  if (resampler != NULL) {
+    speex_resampler_destroy(resampler);
+    resampler = NULL;
   }
   if (pVorbis != NULL) {
     stb_vorbis_close(pVorbis);
