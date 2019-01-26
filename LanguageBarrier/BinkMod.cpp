@@ -63,7 +63,12 @@ static const int RINGBUFFER_CAPACITY =
 static short ringbuffer[RINGBUFFER_CAPACITY];
 static int rb_read_index;
 static int rb_write_index;
-static size_t rb_available_samples;
+static size_t rb_available_shorts;
+
+static short decoded_buffer[RINGBUFFER_CAPACITY];
+static short resampled_buffer[RINGBUFFER_CAPACITY];
+static size_t resampled_available_samples;
+static size_t resampled_consumed_samples;
 
 // global because we don't have an easy way of getting to the bink handle in
 // decompAudioInner, and so we don't add a map lookup to the hot path careful
@@ -71,24 +76,54 @@ static size_t rb_available_samples;
 static stb_vorbis* pVorbis = NULL;
 static std::string* pVorbisFile = NULL;
 
+void clear_processing_buffers() {
+    memset(resampled_buffer, 0, sizeof(short) * RINGBUFFER_CAPACITY);
+    resampled_consumed_samples = 0;
+    resampled_available_samples = 0;
+}
+void fill_resampled_buffer() {
+    clear_processing_buffers();
+    resampled_available_samples = stb_vorbis_get_samples_short_interleaved(pVorbis, CHANNEL_COUNT, resampled_buffer, RINGBUFFER_CAPACITY);
+}
+size_t get_resampled(short* dest, size_t num_samples) {
+    size_t total_fetched = 0;
+
+    while (num_samples > 0) {
+        if (resampled_available_samples == 0) {
+            fill_resampled_buffer();
+            if (resampled_available_samples == 0) {
+                return total_fetched;
+            }
+        }
+
+        size_t to_fetch = min(num_samples, resampled_available_samples);
+        memcpy(dest + CHANNEL_COUNT * total_fetched, resampled_buffer + CHANNEL_COUNT * resampled_consumed_samples, CHANNEL_COUNT * sizeof(short) * to_fetch);
+        total_fetched += to_fetch;
+        resampled_consumed_samples += to_fetch;
+        resampled_available_samples -= to_fetch;
+        num_samples -= to_fetch;
+    }
+    return total_fetched;
+}
+
+// Just how drunk was I when I first wrote this?
+
 void rb_init() {
-  rb_read_index = rb_write_index = rb_available_samples = 0;
+    clear_processing_buffers();
+  rb_read_index = rb_write_index = rb_available_shorts = 0;
   memset(ringbuffer, 0, RINGBUFFER_CAPACITY * sizeof(short));
 }
-size_t rb_read(short* dest, size_t samples) {
-  if (samples > rb_available_samples) {
+size_t rb_read(short* dest, size_t shorts) {
+  if (shorts > rb_available_shorts) {
     // fetch more samples from vorbis decoder
-    size_t fetch_total = samples - rb_available_samples;
+    size_t fetch_total = shorts - rb_available_shorts;
     size_t fetch_first = min(fetch_total, RINGBUFFER_CAPACITY - rb_write_index);
     size_t actual_fetched_first = 0;
     if (fetch_first > 0) {
-      actual_fetched_first = stb_vorbis_get_samples_short_interleaved(
-                                 pVorbis, CHANNEL_COUNT,
-                                 ringbuffer + rb_write_index, fetch_first) *
-                             CHANNEL_COUNT;
+      actual_fetched_first = get_resampled(ringbuffer + rb_write_index, fetch_first / CHANNEL_COUNT) * CHANNEL_COUNT;
       rb_write_index += actual_fetched_first;
     }
-    rb_available_samples += actual_fetched_first;
+    rb_available_shorts += actual_fetched_first;
 
     // wrap around if necessary
     // TODO: handle fetching more than two iterations (rest of first + entire
@@ -100,29 +135,27 @@ size_t rb_read(short* dest, size_t samples) {
       // note: in this case rb_write_index is at capacity, start from the
       // beginning
       actual_fetched_second =
-          stb_vorbis_get_samples_short_interleaved(pVorbis, CHANNEL_COUNT,
-                                                   ringbuffer, fetch_second) *
-          CHANNEL_COUNT;
+          get_resampled(ringbuffer, fetch_second / CHANNEL_COUNT) * CHANNEL_COUNT;
       rb_write_index = actual_fetched_second;
     }
-    rb_available_samples += actual_fetched_second;
+    rb_available_shorts += actual_fetched_second;
   }
 
-  size_t samples_to_output_total = min(rb_available_samples, samples);
-  size_t samples_to_output_first =
-      min(samples_to_output_total, RINGBUFFER_CAPACITY - rb_read_index);
-  size_t samples_to_output_second =
-      samples_to_output_total - samples_to_output_first;
+  size_t shorts_to_output_total = min(rb_available_shorts, shorts);
+  size_t shorts_to_output_first =
+      min(shorts_to_output_total, RINGBUFFER_CAPACITY - rb_read_index);
+  size_t shorts_to_output_second =
+      shorts_to_output_total - shorts_to_output_first;
   memcpy(dest, &ringbuffer[rb_read_index],
-         sizeof(short) * samples_to_output_first);
-  if (samples_to_output_second > 0)
-    memcpy(dest + samples_to_output_first, ringbuffer,
-           sizeof(short) * samples_to_output_second);
-  return samples_to_output_total;
+         sizeof(short) * shorts_to_output_first);
+  if (shorts_to_output_second > 0)
+    memcpy(dest + shorts_to_output_first, ringbuffer,
+           sizeof(short) * shorts_to_output_second);
+  return shorts_to_output_total;
 }
 void rb_consume(size_t samples) {
-  samples = min(samples, rb_available_samples);
-  rb_available_samples -= samples;
+  samples = min(samples, rb_available_shorts);
+  rb_available_shorts -= samples;
   rb_read_index += samples;
   rb_read_index %= RINGBUFFER_CAPACITY;
 }
