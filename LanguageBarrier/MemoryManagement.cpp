@@ -45,18 +45,29 @@ size_t __cdecl msizeHook(void *ptr);
 void __cdecl freeHook(void *ptr);
 void *__cdecl reallocHook(void *ptr, size_t new_size);
 
+bool hookCalloc() {
+  if (config["gamedef"].count("compiler") == 1 &&
+      config["gamedef"]["compiler"].get<std::string>() == "msvc2015") {
+    return scanCreateEnableHook("game", "callocBase",
+                                (uintptr_t *)&gameExeCalloc, (LPVOID)callocHook,
+                                (LPVOID *)&gameExeCallocReal);
+  } else {
+    return scanCreateEnableHook("game", "calloc", (uintptr_t *)&gameExeCalloc,
+                                (LPVOID)callocHook,
+                                (LPVOID *)&gameExeCallocReal) &&
+           scanCreateEnableHook(
+               "game", "callocCrt", (uintptr_t *)&gameExeCallocCrt,
+               (LPVOID)callocCrtHook, (LPVOID *)&gameExeCallocCrtReal);
+  }
+}
+
 void memoryManagementInit() {
   if (config["patch"].count("usePoolAllocators") == 1 &&
       config["patch"]["usePoolAllocators"].get<bool>() == true) {
     if (scanCreateEnableHook("game", "malloc", (uintptr_t *)&gameExeMalloc,
                              (LPVOID)mallocHook,
                              (LPVOID *)&gameExeMallocReal) &&
-        scanCreateEnableHook("game", "calloc", (uintptr_t *)&gameExeCalloc,
-                             (LPVOID)callocHook,
-                             (LPVOID *)&gameExeCallocReal) &&
-        scanCreateEnableHook(
-            "game", "callocCrt", (uintptr_t *)&gameExeCallocCrt,
-            (LPVOID)callocCrtHook, (LPVOID *)&gameExeCallocCrtReal) &&
+        hookCalloc() &&
         scanCreateEnableHook("game", "msize", (uintptr_t *)&gameExeMsize,
                              (LPVOID)msizeHook, (LPVOID *)&gameExeMsizeReal) &&
         scanCreateEnableHook("game", "free", (uintptr_t *)&gameExeFree,

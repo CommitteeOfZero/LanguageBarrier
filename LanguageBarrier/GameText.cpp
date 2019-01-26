@@ -296,6 +296,19 @@ __declspec(naked) void ccBacklogNamePosAdjustHook() {
   }
 }
 
+__declspec(naked) void ccSteamBacklogNamePosAdjustHook() {
+  __asm {
+    // copied code
+        mov [ebx + 4], eax
+
+        // eax is y pos
+        mov eax, [ebp - 0x1AC]
+        add eax, [lb::DIALOGUE_REDESIGN_YOFFSET_SHIFT]
+
+        jmp gameExeCcBacklogNamePosAdjustRet
+  }
+}
+
 namespace lb {
 void __cdecl drawDialogueHook(int fontNumber, int pageNumber, uint32_t opacity,
                               int xOffset, int yOffset);
@@ -515,9 +528,17 @@ void gameTextInit() {
   if (NEEDS_CC_BACKLOG_NAME_POS_ADJUST) {
     gameExeCcBacklogNamePosAdjustRet =
         sigScan("game", "ccBacklogNamePosAdjustRet");
+    void *target;
+    if (config["gamedef"].count("ccBacklogNamePosAdjustVersion") == 1 &&
+        config["gamedef"]["ccBacklogNamePosAdjustVersion"].get<std::string>() ==
+            "ccsteam") {
+      target = ccSteamBacklogNamePosAdjustHook;
+    } else {
+      target = ccBacklogNamePosAdjustHook;
+    }
     scanCreateEnableHook("game", "ccBacklogNamePosCode",
-                         (uintptr_t *)&gameExeCcBacklogNamePosCode,
-                         (LPVOID)ccBacklogNamePosAdjustHook, NULL);
+                         (uintptr_t *)&gameExeCcBacklogNamePosCode, target,
+                         NULL);
   }
   // The following both have the same pattern and 'occurrence: 0' in the
   // signatures.json.
@@ -572,23 +593,37 @@ void gameTextInit() {
         (void *)sigScan("game", "ccBacklogHighlightDrawRet");
   }
 
-  // no point using the expression parser for these since the code is
-  // build-specific anyway
+  ptrdiff_t lookup1retoffset;
+  ptrdiff_t lookup2retoffset;
+  ptrdiff_t lookup3retoffset;
+  if (config["gamedef"].count("dialogueLayoutWidthLookupRetOffsets") == 1 &&
+      config["gamedef"]["dialogueLayoutWidthLookupRetOffsets"]
+              .get<std::string>() == "ccsteam") {
+    lookup1retoffset = 0x2B;
+    lookup2retoffset = 0x10;
+    lookup3retoffset = 0x7;
+  } else {
+    lookup1retoffset = 0x27;
+    lookup2retoffset = 0x12;
+    lookup3retoffset = 0x7;
+  }
+
   scanCreateEnableHook("game", "dialogueLayoutWidthLookup1",
                        &gameExeDialogueLayoutWidthLookup1,
                        dialogueLayoutWidthLookup1Hook, NULL);
-  gameExeDialogueLayoutWidthLookup1Return =
-      (uintptr_t)((uint8_t *)gameExeDialogueLayoutWidthLookup1 + 0x27);
+  // we should have used the expression parser for these but oh well
+  gameExeDialogueLayoutWidthLookup1Return = (uintptr_t)(
+      (uint8_t *)gameExeDialogueLayoutWidthLookup1 + lookup1retoffset);
   scanCreateEnableHook("game", "dialogueLayoutWidthLookup2",
                        &gameExeDialogueLayoutWidthLookup2,
                        dialogueLayoutWidthLookup2Hook, NULL);
-  gameExeDialogueLayoutWidthLookup2Return =
-      (uintptr_t)((uint8_t *)gameExeDialogueLayoutWidthLookup2 + 0x12);
+  gameExeDialogueLayoutWidthLookup2Return = (uintptr_t)(
+      (uint8_t *)gameExeDialogueLayoutWidthLookup2 + lookup2retoffset);
   scanCreateEnableHook("game", "dialogueLayoutWidthLookup3",
                        &gameExeDialogueLayoutWidthLookup3,
                        dialogueLayoutWidthLookup3Hook, NULL);
-  gameExeDialogueLayoutWidthLookup3Return =
-      (uintptr_t)((uint8_t *)gameExeDialogueLayoutWidthLookup3 + 0x7);
+  gameExeDialogueLayoutWidthLookup3Return = (uintptr_t)(
+      (uint8_t *)gameExeDialogueLayoutWidthLookup3 + lookup3retoffset);
 
   FILE *widthsfile = fopen("languagebarrier\\widths.bin", "rb");
   fread(widths, 1, TOTAL_NUM_FONT_CELLS, widthsfile);
@@ -615,9 +650,9 @@ int __cdecl dialogueLayoutRelatedHook(int unk0, int *unk1, int *unk2, int unk3,
 }
 
 #define DEF_DRAW_DIALOGUE_HOOK(funcName, pageType)                             \
-  \
-void __cdecl funcName(int fontNumber, int pageNumber, uint32_t opacity,        \
-                      int xOffset, int yOffset) {                              \
+                                                                               \
+  void __cdecl funcName(int fontNumber, int pageNumber, uint32_t opacity,      \
+                        int xOffset, int yOffset) {                            \
     pageType *page = &gameExeDialoguePages_##pageType[pageNumber];             \
                                                                                \
     for (int i = 0; i < page->pageLength; i++) {                               \
@@ -661,8 +696,7 @@ void __cdecl funcName(int fontNumber, int pageNumber, uint32_t opacity,        \
             page->charColor[i], _opacity);                                     \
       }                                                                        \
     }                                                                          \
-  \
-}
+  }
 DEF_DRAW_DIALOGUE_HOOK(drawDialogueHook, DialoguePage_t);
 DEF_DRAW_DIALOGUE_HOOK(ccDrawDialogueHook, CCDialoguePage_t);
 
@@ -899,10 +933,10 @@ signed int drawSingleTextLineHook(int textureId, int startX, signed int startY,
   if (NEEDS_CLEARLIST_TEXT_POSITION_ADJUST) {
     uintptr_t retaddr;
     __asm {
-		push eax
-		mov eax, [ebp + 4]
-		mov retaddr, eax
-		pop eax
+        push eax
+        mov eax, [ebp + 4]
+        mov retaddr, eax
+        pop eax
     }
     if (retaddr == gameExeClearlistDrawRet1 ||
         retaddr == gameExeClearlistDrawRet2 ||
