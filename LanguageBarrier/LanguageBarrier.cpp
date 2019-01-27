@@ -148,46 +148,47 @@ void LanguageBarrierInit() {
   _wsplitpath_s(path, NULL, 0, NULL, 0, exeName, _MAX_FNAME, NULL, 0);
   if (wcslen(exeName) >= wcslen(L"Launcher") &&
       _wcsnicmp(exeName, L"Launcher", wcslen(L"Launcher")) == 0) {
+    IsInitialised = true;
 
-      IsInitialised = true;
+    bool isMagesLauncher = wcslen(exeName) == wcslen(L"Launcher");
+    if (isMagesLauncher && config["patch"].count("hijackLauncher") == 1) {
+      std::string cmd =
+          "start " + config["patch"]["hijackLauncher"].get<std::string>();
+      system(cmd.c_str());
+      exit(0);
+    }
 
-      bool isMagesLauncher = wcslen(exeName) == wcslen(L"Launcher");
-      if (isMagesLauncher && config["patch"].count("hijackLauncher") == 1) {
-          std::string cmd = "start " + config["patch"]["hijackLauncher"].get<std::string>();
-          system(cmd.c_str());
-          exit(0);
-      }
-
-      return;
+    return;
   }
 
   if (!IsInitialised) {
     if (sigScan("game", "canary") != NULL) {
       // we're past DRM unpacking
-        std::remove("languagebarrier\\log.txt");
-        // TODO: proper versioning
-        LanguageBarrierLog("LanguageBarrier v1.20");
-        {
-            std::stringstream logstr;
-            logstr << "Game: " << configGetGameName();
-            LanguageBarrierLog(logstr.str());
-        }
-        {
-            std::stringstream logstr;
-            logstr << "Patch: " << configGetPatchName();
-            LanguageBarrierLog(logstr.str());
-        }
-        LanguageBarrierLog("**** Start apprication ****");
+      std::remove("languagebarrier\\log.txt");
+      // TODO: proper versioning
+      LanguageBarrierLog("LanguageBarrier v1.20");
+      {
+        std::stringstream logstr;
+        logstr << "Game: " << configGetGameName();
+        LanguageBarrierLog(logstr.str());
+      }
+      {
+        std::stringstream logstr;
+        logstr << "Patch: " << configGetPatchName();
+        LanguageBarrierLog(logstr.str());
+      }
+      LanguageBarrierLog("**** Start apprication ****");
 
-        MH_STATUS mhStatus = MH_Initialize();
-        if (mhStatus != MH_OK) {
-            std::stringstream logstr;
-            logstr << "MinHook failed to initialize!" << MH_StatusToString(mhStatus);
-            LanguageBarrierLog(logstr.str());
-            return;
-        }
+      MH_STATUS mhStatus = MH_Initialize();
+      if (mhStatus != MH_OK) {
+        std::stringstream logstr;
+        logstr << "MinHook failed to initialize!"
+               << MH_StatusToString(mhStatus);
+        LanguageBarrierLog(logstr.str());
+        return;
+      }
 
-        loadJsonConstants();
+      loadJsonConstants();
 
       IsInitialised = true;
 
