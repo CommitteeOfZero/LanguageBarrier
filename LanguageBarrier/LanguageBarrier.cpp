@@ -143,25 +143,18 @@ void LanguageBarrierInit() {
     configInit();
   }
 
-  WCHAR path[MAX_PATH], exeName[_MAX_FNAME];
-  GetModuleFileNameW(NULL, path, MAX_PATH);
-  _wsplitpath_s(path, NULL, 0, NULL, 0, exeName, _MAX_FNAME, NULL, 0);
-  if (wcslen(exeName) >= wcslen(L"Launcher") &&
-      _wcsnicmp(exeName, L"Launcher", wcslen(L"Launcher")) == 0) {
-    IsInitialised = true;
-
-    bool isMagesLauncher = wcslen(exeName) == wcslen(L"Launcher");
-    if (isMagesLauncher && config["patch"].count("hijackLauncher") == 1) {
-      std::string cmd =
-          "start " + config["patch"]["hijackLauncher"].get<std::string>();
-      system(cmd.c_str());
-      exit(0);
+  if (!IsInitialised) {
+    if (sigScan("game", "canaryMagesLauncher") != NULL) {
+      IsInitialised = true;
+      if (config["patch"].count("hijackLauncher") == 1) {
+        std::string cmd =
+            "start " + config["patch"]["hijackLauncher"].get<std::string>();
+        system(cmd.c_str());
+        exit(0);
+      }
+      return;
     }
 
-    return;
-  }
-
-  if (!IsInitialised) {
     if (sigScan("game", "canary") != NULL) {
       // we're past DRM unpacking
       std::remove("languagebarrier\\log.txt");
