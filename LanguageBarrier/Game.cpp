@@ -55,6 +55,12 @@ typedef int(__thiscall *MpkFopenByIdProc)(void *pThis, mpkObject *mpk,
 static MpkFopenByIdProc gameExeMpkFopenById = NULL;
 static MpkFopenByIdProc gameExeMpkFopenByIdReal = NULL;
 
+typedef int(__cdecl *SNDgetPlayLevelProc)(int a1);
+static SNDgetPlayLevelProc gameExeSNDgetPlayLevel = NULL;
+static SNDgetPlayLevelProc gameExeSNDgetPlayLevelReal = NULL;
+
+static void **gameExeVoiceTable = (void **)NULL;
+
 #pragma pack(push, 1)
 struct mgsFileHandle {
   char gap0[8];
@@ -182,6 +188,7 @@ FILE *__cdecl clibFopenHook(const char *filename, const char *mode);
 void __cdecl setSamplerStateWrapperHook(int sampler, int flags);
 int __fastcall readOggMetadataHook(CPlayer *pThis, void *EDX);
 BOOL __cdecl openMyGamesHook(char *outPath);
+int __cdecl SNDgetPlayLevelHook(int a1);
 
 void gameInit() {
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
@@ -268,6 +275,17 @@ void gameInit() {
     scanCreateEnableHook(
         "game", "readOggMetadata", (uintptr_t *)&gameExeReadOggMetadata,
         (LPVOID)readOggMetadataHook, (LPVOID *)&gameExeReadOggMetadataReal);
+  }
+
+  if (config["patch"].count("fixPlayLevelNullDeref") == 1 &&
+      config["patch"]["fixPlayLevelNullDeref"].get<bool>() == true) {
+    gameExeVoiceTable = (void **)sigScan("game", "useOfVoiceTable");
+
+    if (gameExeVoiceTable == 0 ||
+        !scanCreateEnableHook(
+            "game", "SNDgetPlayLevel", (uintptr_t *)&gameExeSNDgetPlayLevel,
+            (LPVOID)SNDgetPlayLevelHook, (LPVOID *)&gameExeSNDgetPlayLevelReal))
+      return;
   }
 
   gameExeScriptIdsToFileIds = (int *)sigScan("game", "useOfScriptIdsToFileIds");
@@ -495,6 +513,23 @@ BOOL __cdecl openMyGamesHook(char *outPath) {
   free(myGamesPath);
   CoTaskMemFree(myDocumentsPath);
   return result;
+}
+
+int __cdecl SNDgetPlayLevelHook(int a1) {
+  // Bounds check from original code (needed for below S;G Steam bounds check)
+  // if (a1 < 3 || a1 > 6) return 0;
+
+  // Bounds checks from S;G Steam
+  // int v4 = gameExeWavData[38 * a1 + 25];
+  // int v5 = gameExeWavData[38 * a1 + 24];
+  // if (v4 <= 0 || v5 <= 0 || v4 > v5) return 0;
+
+  // But what we actually care about is preventing this null deref
+  if (*gameExeVoiceTable == NULL) {
+    return 0;
+  } else {
+    return gameExeSNDgetPlayLevelReal(a1);
+  }
 }
 
 // TODO: I probably shouldn't be writing these in assembly given it looks like
