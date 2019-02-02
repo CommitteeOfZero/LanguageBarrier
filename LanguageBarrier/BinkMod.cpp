@@ -94,6 +94,9 @@ static short resampled_buffer[RESAMPLED_BUFFER_CAPACITY];
 static size_t resampled_available_samples;
 static size_t resampled_consumed_samples;
 
+// can be negative,for skipping
+static int delay_samples;
+
 static uint32_t bink_sample_rate;
 static uint32_t our_sample_rate;
 
@@ -123,6 +126,14 @@ void fill_resampled_buffer() {
 size_t get_resampled(short* dest, size_t num_samples) {
   size_t total_fetched = 0;
 
+  if (delay_samples > 0) {
+      int delay_out = min(num_samples, delay_samples);
+      memset(dest, 0, CHANNEL_COUNT * sizeof(short) * delay_out);
+      delay_samples -= delay_out;
+      num_samples -= delay_out;
+      total_fetched += delay_out;
+  }
+
   while (num_samples > 0) {
     if (resampled_available_samples == 0) {
       fill_resampled_buffer();
@@ -145,6 +156,9 @@ size_t get_resampled(short* dest, size_t num_samples) {
 
 // Just how drunk was I when I first wrote this?
 
+size_t rb_read(short* dest, size_t shorts);
+void rb_consume(size_t samples);
+
 void rb_init() {
   resampler =
       speex_resampler_init(CHANNEL_COUNT, our_sample_rate, bink_sample_rate,
@@ -153,6 +167,12 @@ void rb_init() {
   clear_processing_buffers();
   rb_read_index = rb_write_index = rb_available_shorts = 0;
   memset(ringbuffer, 0, RINGBUFFER_CAPACITY * sizeof(short));
+
+  while (delay_samples < 0) {
+      size_t skipped = rb_read(NULL, min(RINGBUFFER_CAPACITY, -delay_samples * CHANNEL_COUNT));
+      rb_consume(skipped);
+      delay_samples += skipped / CHANNEL_COUNT;
+  }
 }
 size_t rb_read(short* dest, size_t shorts) {
   if (shorts > rb_available_shorts) {
@@ -190,11 +210,14 @@ size_t rb_read(short* dest, size_t shorts) {
       min(shorts_to_output_total, RINGBUFFER_CAPACITY - rb_read_index);
   size_t shorts_to_output_second =
       shorts_to_output_total - shorts_to_output_first;
-  memcpy(dest, &ringbuffer[rb_read_index],
-         sizeof(short) * shorts_to_output_first);
-  if (shorts_to_output_second > 0)
-    memcpy(dest + shorts_to_output_first, ringbuffer,
-           sizeof(short) * shorts_to_output_second);
+  if (dest) {
+      memcpy(dest, &ringbuffer[rb_read_index],
+          sizeof(short) * shorts_to_output_first);
+      if (shorts_to_output_second > 0) {
+          memcpy(dest + shorts_to_output_first, ringbuffer,
+              sizeof(short) * shorts_to_output_second);
+      }
+  }
   return shorts_to_output_total;
 }
 void rb_consume(size_t samples) {
@@ -384,6 +407,9 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
 
         stb_vorbis_info vi = stb_vorbis_get_info(pVorbis);
         our_sample_rate = vi.sample_rate;
+
+        // seems to be the magic number of audio delay
+        delay_samples = -0.433f * (float)bink_sample_rate;
 
         rb_init();
       }
