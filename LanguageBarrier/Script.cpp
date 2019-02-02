@@ -2,12 +2,19 @@
 #include "Script.h"
 #include "Game.h"
 #include "SigScan.h"
+#include "Config.h"
 
 typedef void(__cdecl *ScriptInstProc)(ScriptThreadState *state);
 
 static ScriptInstProc *InstTableSystem = NULL;
 static ScriptInstProc *InstTableGraph = NULL;
 static ScriptInstProc *InstTableUser1 = NULL;
+
+static int* gameExeSCRflag = NULL;
+
+static ScriptInstProc gameExeSCRcomKeyWaitTimer = NULL;
+static ScriptInstProc gameExeSCRcomKeyWaitTimerReal = NULL;
+
 
 // Custom instruction stuff
 
@@ -29,16 +36,25 @@ namespace lb {
 void overrideScriptInst(const std::string &group, uint8_t op,
                         ScriptInstProc overrideProc);
 void __cdecl customScriptInstGetDic(ScriptThreadState *state);
+void __cdecl KeyWaitTimerHook(ScriptThreadState *state);
 
 void scriptInit() {
   gameExeSc3Eval = (Sc3EvalProc)sigScan("game", "sc3Eval");
   InstTableSystem = (ScriptInstProc *)sigScan("game", "instTableSystem");
   InstTableGraph = (ScriptInstProc *)sigScan("game", "instTableGraph");
   InstTableUser1 = (ScriptInstProc *)sigScan("game", "instTableUser1");
+  gameExeSCRflag = (int*)sigScan("game", "useOfSCRflag");
 
   if (CUSTOM_INST_GETDIC_ENABLED) {
     overrideScriptInst(CUSTOM_INST_GETDIC_GROUP, CUSTOM_INST_GETDIC_OP,
                        &customScriptInstGetDic);
+  }
+
+  if (config["patch"].count("blockingKeyWaitTimer") == 1 &&
+      config["patch"]["blockingKeyWaitTimer"].get<bool>() == true) {
+      scanCreateEnableHook(
+          "game", "SCRcomKeyWaitTimer", (uintptr_t *)&gameExeSCRcomKeyWaitTimer,
+          (LPVOID)KeyWaitTimerHook, (LPVOID *)&gameExeSCRcomKeyWaitTimerReal);
   }
 }
 
@@ -71,6 +87,11 @@ void __cdecl customScriptInstGetDic(ScriptThreadState *state) {
   int tipId = ReadScriptArgExpr(state);
   int outFlag = ReadScriptArgExpr(state);
   gameExeSetFlag(outFlag, !gameExeChkViewDic(tipId, 0));
+}
+
+void __cdecl KeyWaitTimerHook(ScriptThreadState *state) {
+    gameExeSCRcomKeyWaitTimerReal(state);
+    *gameExeSCRflag = 1;
 }
 
 }  // namespace lb
