@@ -59,6 +59,7 @@ typedef int(__cdecl *SNDgetPlayLevelProc)(int a1);
 static SNDgetPlayLevelProc gameExeSNDgetPlayLevel = NULL;
 static SNDgetPlayLevelProc gameExeSNDgetPlayLevelReal = NULL;
 
+static int *gameExeWavData = (int *)NULL;
 static void **gameExeVoiceTable = (void **)NULL;
 
 #pragma pack(push, 1)
@@ -280,8 +281,9 @@ void gameInit() {
   if (config["patch"].count("fixPlayLevelNullDeref") == 1 &&
       config["patch"]["fixPlayLevelNullDeref"].get<bool>() == true) {
     gameExeVoiceTable = (void **)sigScan("game", "useOfVoiceTable");
+    gameExeWavData = (int *)sigScan("game", "useOfWavData");
 
-    if (gameExeVoiceTable == 0 ||
+    if (gameExeVoiceTable == 0 || gameExeWavData == 0 ||
         !scanCreateEnableHook(
             "game", "SNDgetPlayLevel", (uintptr_t *)&gameExeSNDgetPlayLevel,
             (LPVOID)SNDgetPlayLevelHook, (LPVOID *)&gameExeSNDgetPlayLevelReal))
@@ -516,15 +518,18 @@ BOOL __cdecl openMyGamesHook(char *outPath) {
 }
 
 int __cdecl SNDgetPlayLevelHook(int a1) {
-  // Bounds check from original code (needed for below S;G Steam bounds check)
-  // if (a1 < 3 || a1 > 6) return 0;
+  // Bounds check from original code
+  if (a1 < 3 || a1 > 6) return 0;
 
   // Bounds checks from S;G Steam
-  // int v4 = gameExeWavData[38 * a1 + 25];
-  // int v5 = gameExeWavData[38 * a1 + 24];
-  // if (v4 <= 0 || v5 <= 0 || v4 > v5) return 0;
+  // I'm putting this one back in because the null check below apparently didn't
+  // work for a tester.
+  // No idea if that's the actual issue, but...
+  int v4 = gameExeWavData[38 * a1 + 25];
+  int v5 = gameExeWavData[38 * a1 + 24];
+  if (v4 <= 0 || v5 <= 0 || v4 > v5) return 0;
 
-  // But what we actually care about is preventing this null deref
+  // What we actually care about
   if (*gameExeVoiceTable == NULL) {
     return 0;
   } else {
