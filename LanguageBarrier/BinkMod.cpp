@@ -347,19 +347,40 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
       config["patch"]["fmv"]["videoRedirection"].count(tmp) == 1) {
     std::string videoFileName =
         config["patch"]["fmv"]["videoRedirection"][tmp].get<std::string>();
+
     std::stringstream ssVideoPath;
     ssVideoPath << "languagebarrier\\videos\\";
+
     if (strstr(name, "1280x720")) {
       ssVideoPath << "720p\\";
     } else {
       ssVideoPath << "1080p\\";
     }
+
     ssVideoPath << videoFileName;
+
     std::string videoPath = ssVideoPath.str();
     std::stringstream logstr;
-    logstr << "Redirecting " << tmp << " to " << videoPath;
+    logstr << "Redirecting " << tmp << " to " << videoPath << " ... ";
+
+    bnk = BinkOpen(videoPath.c_str(), flags);
+    if (!bnk) {
+      logstr << "\r\n\tCouldn't open video, trying absolute path... ";
+      std::string videoFullPath =
+          WideTo8BitPath(GetGameDirectoryPath()) + "\\" + videoPath;
+      bnk = BinkOpen(videoFullPath.c_str(), flags);
+      if (!bnk) {
+        logstr << "\r\n\tFalling back to original... ";
+        bnk = BinkOpen(name, flags);
+      }
+    }
+
+    if (bnk) {
+      logstr << "Successfully opened";
+    } else {
+      logstr << "Failed";
+    }
     LanguageBarrierLog(logstr.str());
-    bnk = BinkOpen(&videoPath[0], flags);
   } else {
     bnk = BinkOpen(name, flags);
   }

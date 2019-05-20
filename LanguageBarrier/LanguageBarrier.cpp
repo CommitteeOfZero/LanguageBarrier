@@ -24,6 +24,101 @@ void *memset_perms(void *dst, int val, size_t size) {
 size_t alignCeil(size_t val, size_t align) {
   return (val % align == 0) ? val : val + align - (val % align);
 }
+std::string WideToUtf8(std::wstring const &wide) {
+  if (wide.empty()) return std::string();
+
+  wchar_t const *convSrc = wide.c_str();
+
+  int sz = WideCharToMultiByte(CP_UTF8, NULL, convSrc, -1, NULL, 0, NULL, NULL);
+  char *buffer = (char *)_alloca(sz);
+  WideCharToMultiByte(CP_UTF8, NULL, convSrc, -1, buffer, sz, NULL, NULL);
+
+  std::string result(buffer);
+  _freea(buffer);
+  return result;
+}
+std::wstring Utf8ToWide(std::string const &utf8) {
+  if (utf8.empty()) return std::wstring();
+
+  char const *convSrc = utf8.c_str();
+
+  int sz = MultiByteToWideChar(CP_UTF8, NULL, convSrc, -1, NULL, NULL);
+  wchar_t *buffer = (wchar_t *)_alloca(sz * sizeof(wchar_t));
+  MultiByteToWideChar(CP_UTF8, NULL, convSrc, -1, buffer, sz);
+
+  std::wstring result(buffer);
+  _freea(buffer);
+  return result;
+}
+std::string WideTo8BitPath(std::wstring const &wide) {
+  if (wide.empty()) return std::string();
+
+  wchar_t const *convSrc = wide.c_str();
+  char *buffer;
+  wchar_t *shortBuffer;
+  int sz;
+  int shortSz;
+
+  UINT codepage = AreFileApisANSI() ? CP_ACP : CP_OEMCP;
+
+  // If path is longer than MAX_PATH or contains unrepresentable characters,
+  // it cannot be used with ANSI Windows APIs
+  // Short paths (DOS 8.3) can always be converted properly, and hopefully
+  // used...
+  BOOL needShortPath;
+
+  if (wide.size() > MAX_PATH) {
+    // Might not *help*, Windows gets *weird* beyond this limit, but...
+    needShortPath = TRUE;
+  } else {
+    sz = WideCharToMultiByte(codepage, WC_NO_BEST_FIT_CHARS, convSrc, -1, NULL,
+                             0, NULL, &needShortPath);
+  }
+
+  if (needShortPath) {
+    shortSz = GetShortPathNameW(convSrc, NULL, 0);
+    shortBuffer = (wchar_t *)_alloca(shortSz * sizeof(wchar_t));
+
+    GetShortPathNameW(convSrc, shortBuffer, shortSz);
+
+    sz = WideCharToMultiByte(codepage, WC_NO_BEST_FIT_CHARS, convSrc, -1, NULL,
+                             0, NULL, NULL);
+
+    convSrc = shortBuffer;
+  }
+
+  buffer = (char *)_alloca(sz);
+  WideCharToMultiByte(codepage, WC_NO_BEST_FIT_CHARS, convSrc, -1, buffer, sz,
+                      NULL, NULL);
+  std::string result(buffer);
+
+  if (needShortPath) {
+    _freea(shortBuffer);
+  }
+  _freea(buffer);
+
+  return result;
+}
+std::wstring GetGameDirectoryPath() {
+  int sz = MAX_PATH;
+
+  wchar_t *buffer = (wchar_t *)_alloca(sz * sizeof(wchar_t));
+  GetModuleFileNameW(NULL, buffer, sz);
+  while (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+    _freea(buffer);
+    sz *= 2;
+    buffer = (wchar_t *)_alloca(sz * sizeof(wchar_t));
+    GetModuleFileNameW(NULL, buffer, sz);
+  }
+
+  int dirlen = max(wcsrchr(buffer, L'\\'), wcsrchr(buffer, L'/')) - buffer;
+
+  std::wstring result(buffer, dirlen);
+
+  _freea(buffer);
+
+  return result;
+}
 void loadJsonConstants() {
   LanguageBarrierLog("loading constants from gamedef.json/patchdef.json...");
 
