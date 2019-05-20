@@ -127,11 +127,11 @@ size_t get_resampled(short* dest, size_t num_samples) {
   size_t total_fetched = 0;
 
   if (delay_samples > 0) {
-      int delay_out = min(num_samples, delay_samples);
-      memset(dest, 0, CHANNEL_COUNT * sizeof(short) * delay_out);
-      delay_samples -= delay_out;
-      num_samples -= delay_out;
-      total_fetched += delay_out;
+    int delay_out = min(num_samples, delay_samples);
+    memset(dest, 0, CHANNEL_COUNT * sizeof(short) * delay_out);
+    delay_samples -= delay_out;
+    num_samples -= delay_out;
+    total_fetched += delay_out;
   }
 
   while (num_samples > 0) {
@@ -169,9 +169,10 @@ void rb_init() {
   memset(ringbuffer, 0, RINGBUFFER_CAPACITY * sizeof(short));
 
   while (delay_samples < 0) {
-      size_t skipped = rb_read(NULL, min(RINGBUFFER_CAPACITY, -delay_samples * CHANNEL_COUNT));
-      rb_consume(skipped);
-      delay_samples += skipped / CHANNEL_COUNT;
+    size_t skipped =
+        rb_read(NULL, min(RINGBUFFER_CAPACITY, -delay_samples * CHANNEL_COUNT));
+    rb_consume(skipped);
+    delay_samples += skipped / CHANNEL_COUNT;
   }
 }
 size_t rb_read(short* dest, size_t shorts) {
@@ -211,12 +212,12 @@ size_t rb_read(short* dest, size_t shorts) {
   size_t shorts_to_output_second =
       shorts_to_output_total - shorts_to_output_first;
   if (dest) {
-      memcpy(dest, &ringbuffer[rb_read_index],
-          sizeof(short) * shorts_to_output_first);
-      if (shorts_to_output_second > 0) {
-          memcpy(dest + shorts_to_output_first, ringbuffer,
-              sizeof(short) * shorts_to_output_second);
-      }
+    memcpy(dest, &ringbuffer[rb_read_index],
+           sizeof(short) * shorts_to_output_first);
+    if (shorts_to_output_second > 0) {
+      memcpy(dest + shorts_to_output_first, ringbuffer,
+             sizeof(short) * shorts_to_output_second);
+    }
   }
   return shorts_to_output_total;
 }
@@ -315,7 +316,7 @@ bool binkModInit() {
     // we rely on "video redirection" later to handle 720p/1080p versions
 
     if (config["patch"]["fmv"].count("videoRedirection") == 0) {
-      config["patch"]["fmv"] = json::object();
+      config["patch"]["fmv"]["videoRedirection"] = json::object();
     }
 
     for (int i = 0; i < additionalCount; i++) {
