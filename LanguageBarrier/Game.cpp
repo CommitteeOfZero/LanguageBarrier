@@ -319,14 +319,10 @@ void gameInit() {
 int __cdecl earlyInitHook(int unk0, int unk1) {
   int retval = gameExeEarlyInitReal(unk0, unk1);
 
-  std::stringstream ssMpk;
-  CHAR path[MAX_PATH], drive[_MAX_DRIVE], dir[_MAX_DIR];
-  GetModuleFileNameA(NULL, path, MAX_PATH);
-  _splitpath_s(path, drive, _MAX_DRIVE, dir, _MAX_DIR, NULL, 0, NULL, 0);
-  ssMpk << drive << "\\" << dir << "languagebarrier";
-  std::string lbDir = ssMpk.str();
+  std::string lbDir =
+      WideTo8BitPath(GetGameDirectoryPath() + L"\\languagebarrier");
 
-  c0dataMpk = gameMountMpk("C0DATA", &lbDir[0], "c0data.mpk");
+  c0dataMpk = gameMountMpk("C0DATA", lbDir.c_str(), "c0data.mpk");
   LanguageBarrierLog("c0data.mpk mounted");
 
   if (!scanCreateEnableHook(
@@ -495,38 +491,26 @@ int __fastcall readOggMetadataHook(CPlayer *pThis, void *EDX) {
 
 BOOL __cdecl openMyGamesHook(char *outPath) {
   // The game knows only ANSI fopen(). Unfortunately, this prevents it from
-  // finding save data for users with out-of-locale usernames. So, let's first
-  // try to convert from Unicode...
+  // finding save data for users with out-of-locale usernames. So let's use our
+  // safe conversion.
 
-  const wchar_t MyGames[] = L"\\My Games\\";
+  const std::wstring MyGames(L"\\My Games\\");
 
   PWSTR myDocumentsPath;
   SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &myDocumentsPath);
 
-  wchar_t *myGamesPath = (wchar_t *)calloc(
-      wcslen(myDocumentsPath) + wcslen(MyGames) + 1, sizeof(wchar_t));
-  wcscpy(myGamesPath, myDocumentsPath);
-  wcscat(myGamesPath, MyGames);
-  BOOL result = CreateDirectoryW(myGamesPath, 0);
+  std::wstring myGamesPath(std::wstring(myDocumentsPath) + MyGames);
 
-  BOOL failedToConvert;
-  WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, myGamesPath, -1, outPath,
-                      MAX_PATH, NULL, &failedToConvert);
-  if (failedToConvert) {
-    // ...or if that fails, use 8.3 (MSDOS/FAT) short paths, which always fit in
-    // ANSI.
-    LanguageBarrierLog(
-        "Couldn't cleanly convert My Games path to 8-bit, falling back to 8.3 "
-        "paths");
-    wchar_t wideShortPath[MAX_PATH];
-    // Short paths (DOS 8.3 naming convention) can always be converted to ANSI
-    // properly
-    GetShortPathNameW(myGamesPath, wideShortPath, MAX_PATH);
-    WideCharToMultiByte(AreFileApisANSI() ? CP_ACP : CP_OEMCP, NULL,
-                        wideShortPath, -1, outPath, MAX_PATH, NULL, NULL);
+  BOOL result = CreateDirectoryW(myGamesPath.c_str(), 0);
+
+  std::string myGames8Bit = WideTo8BitPath(myGamesPath);
+  int sz = myGames8Bit.size();
+  if (sz > MAX_PATH - 1) {
+    LanguageBarrierLog("My Games path too long, uh oh...");
   }
+  strncpy_s(outPath, MAX_PATH - 1, myGames8Bit.c_str(), sz);
+  outPath[sz] = '\0';
 
-  free(myGamesPath);
   CoTaskMemFree(myDocumentsPath);
   return result;
 }
@@ -570,7 +554,8 @@ void gameLoadTexture(uint16_t textureId, void *buffer, size_t sz) {
   }
 }
 // returns an archive object
-mpkObject *gameMountMpk(char *mountpoint, char *directory, char *filename) {
+mpkObject *gameMountMpk(char const *mountpoint, char const *directory,
+                        char const *filename) {
   void *retval = calloc(1, 0x3a8);
   gameExeMpkConstructor(retval);
   __asm {

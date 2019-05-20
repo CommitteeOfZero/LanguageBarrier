@@ -34,8 +34,9 @@ GAME_H_IMPORT SetFlagProc gameExeSetFlag;
 GAME_H_IMPORT ChkViewDicProc gameExeChkViewDic;
 
 void gameInit();
-void gameLoadTexture(uint16_t textureId, void *buffer, size_t sz);
-mpkObject *gameMountMpk(char *mountpoint, char *directory, char *filename);
+void gameLoadTexture(uint16_t textureId, void* buffer, size_t sz);
+mpkObject* gameMountMpk(char const* mountpoint, char const* directory,
+                        char const* filename);
 void gameSetBgm(uint32_t fileId, bool shouldLoop);
 uint32_t gameGetBgm();
 bool gameGetBgmShouldLoop();
