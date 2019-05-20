@@ -24,32 +24,6 @@ void *memset_perms(void *dst, int val, size_t size) {
 size_t alignCeil(size_t val, size_t align) {
   return (val % align == 0) ? val : val + align - (val % align);
 }
-std::string WideToUtf8(std::wstring const &wide) {
-  if (wide.empty()) return std::string();
-
-  wchar_t const *convSrc = wide.c_str();
-
-  int sz = WideCharToMultiByte(CP_UTF8, NULL, convSrc, -1, NULL, 0, NULL, NULL);
-  char *buffer = (char *)_alloca(sz);
-  WideCharToMultiByte(CP_UTF8, NULL, convSrc, -1, buffer, sz, NULL, NULL);
-
-  std::string result(buffer);
-  _freea(buffer);
-  return result;
-}
-std::wstring Utf8ToWide(std::string const &utf8) {
-  if (utf8.empty()) return std::wstring();
-
-  char const *convSrc = utf8.c_str();
-
-  int sz = MultiByteToWideChar(CP_UTF8, NULL, convSrc, -1, NULL, NULL);
-  wchar_t *buffer = (wchar_t *)_alloca(sz * sizeof(wchar_t));
-  MultiByteToWideChar(CP_UTF8, NULL, convSrc, -1, buffer, sz);
-
-  std::wstring result(buffer);
-  _freea(buffer);
-  return result;
-}
 std::string WideTo8BitPath(std::wstring const &wide) {
   if (wide.empty()) return std::string();
 

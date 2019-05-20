@@ -33,8 +33,6 @@ void *memset_perms(void *dst, int val, size_t size);
 
 size_t alignCeil(size_t val, size_t align);
 
-std::string WideToUtf8(std::wstring const &wide);
-std::wstring Utf8ToWide(std::string const &wide);
 // For ANSI Windows APIs. Path must actually exist.
 std::string WideTo8BitPath(std::wstring const &wide);
 // No slash at end.
