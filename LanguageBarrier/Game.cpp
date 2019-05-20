@@ -59,8 +59,14 @@ typedef int(__cdecl *SNDgetPlayLevelProc)(int a1);
 static SNDgetPlayLevelProc gameExeSNDgetPlayLevel = NULL;
 static SNDgetPlayLevelProc gameExeSNDgetPlayLevelReal = NULL;
 
+typedef int(__cdecl *PadUpdateDeviceProc)();
+static PadUpdateDeviceProc gameExePadUpdateDevice = NULL;
+static PadUpdateDeviceProc gameExePadUpdateDeviceReal = NULL;
+
 static int *gameExeWavData = (int *)NULL;
 static void **gameExeVoiceTable = (void **)NULL;
+
+static uintptr_t gameExeControllerGuid = NULL;
 
 #pragma pack(push, 1)
 struct mgsFileHandle {
@@ -190,6 +196,7 @@ void __cdecl setSamplerStateWrapperHook(int sampler, int flags);
 int __fastcall readOggMetadataHook(CPlayer *pThis, void *EDX);
 BOOL __cdecl openMyGamesHook(char *outPath);
 int __cdecl SNDgetPlayLevelHook(int a1);
+int __cdecl PadUpdateDeviceHook();
 
 void gameInit() {
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
@@ -294,6 +301,13 @@ void gameInit() {
   gameExeAudioPlayers = *(CPlayer **)sigScan("game", "useOfAudioPlayers");
   if (config["gamedef"]["signatures"]["game"].count("useOfMpkObjects") == 1)
     gameExeMpkObjects = (mpkObject *)sigScan("game", "useOfMpkObjects");
+
+  gameExeControllerGuid = sigScan("game", "useOfControllerGuid");
+  if (gameExeControllerGuid != NULL) {  // signatures present
+    scanCreateEnableHook(
+        "game", "PadUpdateDevice", (uintptr_t *)&gameExePadUpdateDevice,
+        (LPVOID)PadUpdateDeviceHook, (LPVOID *)&gameExePadUpdateDeviceReal);
+  }
 
   binkModInit();
 }
@@ -535,6 +549,14 @@ int __cdecl SNDgetPlayLevelHook(int a1) {
   } else {
     return gameExeSNDgetPlayLevelReal(a1);
   }
+}
+
+int __cdecl PadUpdateDeviceHook() {
+  static const char emptyGUID[0x28] = {0};
+  // if controller GUID is null, disable controllers
+  if (memcmp((void *)gameExeControllerGuid, emptyGUID, 0x28) == 0) return 0;
+
+  return gameExePadUpdateDeviceReal();
 }
 
 // TODO: I probably shouldn't be writing these in assembly given it looks like
