@@ -9,6 +9,9 @@
 static bool isInitialised = false;
 
 namespace lb {
+size_t alignCeil(size_t val, size_t align) {
+  return (val % align == 0) ? val : val + align - (val % align);
+}
 void LanguageBarrierInit() {
   if (isInitialised) {
     LanguageBarrierLog("LanguageBarrierInit() called twice...");
