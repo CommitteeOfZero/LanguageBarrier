@@ -217,7 +217,6 @@ dinput8-Release/
 LanguageBarrier/contrib/bin/
 LanguageBarrier/contrib/include/*.h
 LanguageBarrier/contrib/include/*.hpp
-LanguageBarrier/contrib/include/Simd/
 LanguageBarrier/lib/Debug/
 LanguageBarrier/lib/Release/
 # keep xy-VSFilter build / csri headers
