@@ -1,5 +1,4 @@
 #include "LanguageBarrier.h"
-#include <Simd/SimdLib.h>
 #include <unordered_map>
 #include "BinkMod.h"
 #include "Config.h"
@@ -47,6 +46,10 @@ typedef struct {
   int field_130;
   float volume;
 } MgsBink_t;
+
+static const size_t alignment =
+    32;  // for fast memcpy, sizeof __m256, dunno if this *actually* matters but
+         // since we only use it for giant framebuffers, might as well
 
 typedef int(__thiscall* MgsBinkSetPausedProc)(MgsBink_t* pThis, char paused);
 static MgsBinkSetPausedProc gameExeMgsBinkSetPaused = NULL;
@@ -168,7 +171,7 @@ void __stdcall BinkCloseHook(BINK* bnk) {
 
   BinkModState_t* state = stateMap[bnk];
   if (state->framebuffer) {
-    SimdFree(state->framebuffer);
+    _aligned_free(state->framebuffer);
   }
   if (state->csri) {
     csri_close(state->csri);
@@ -198,22 +201,20 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
   uint32_t destwidth = destpitch / 4;
   double time = ((double)bnk->FrameRateDiv * (double)bnk->FrameNum) /
                 (double)bnk->FrameRate;
-  size_t align = SimdAlignment();
 
   if (bnk->FrameNum == state->lastFrameNum && destheight == state->destheight &&
       destwidth == state->destwidth) {
-    SimdCopy((uint8_t*)state->framebuffer, destpitch, destwidth, destheight, 4,
-             (uint8_t*)dest, destpitch);
+    memcpy(dest, state->framebuffer, destpitch * destheight);
     return 0;
   }
   if (state->destheight != destheight || state->destwidth != destwidth) {
     state->destheight = destheight;
     state->destwidth = destwidth;
     if (state->framebuffer != NULL) {
-      SimdFree(state->framebuffer);
+      _aligned_free(state->framebuffer);
     }
-    state->framebuffer =
-        SimdAllocate(SimdAlign(destpitch * destheight, align), align);
+    state->framebuffer = _aligned_malloc(
+        alignCeil(destpitch * destheight, alignment), alignment);
   }
 
   state->lastFrameNum = bnk->FrameNum;
@@ -245,8 +246,7 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
     ((uint32_t*)state->framebuffer)[i] |= 0xFF000000;
   }
 
-  SimdCopy((uint8_t*)state->framebuffer, destpitch, destpitch / 4, destheight,
-           4, (uint8_t*)dest, destpitch);
+  memcpy(dest, state->framebuffer, destpitch * destheight);
 
   return retval;
 }
