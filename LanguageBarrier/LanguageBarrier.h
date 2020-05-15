@@ -12,6 +12,7 @@
 #include "MinHook.h"
 
 namespace lb {
+size_t alignCeil(size_t val, size_t align);
 void LanguageBarrierInit();
 void LanguageBarrierLog(const std::string &text);
 bool scanCreateEnableHook(char *category, char *name, uintptr_t *ppTarget,
