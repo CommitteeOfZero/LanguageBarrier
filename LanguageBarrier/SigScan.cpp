@@ -89,7 +89,7 @@ static bool MatchByte(const unsigned char byte, const PatternByte& pbyte) {
   return (matched == 2);
 }
 
-uintptr_t FindPattern(vector<unsigned char> data, const char* pszPattern,
+uintptr_t FindPattern(const unsigned char* dataStart, const unsigned char* dataEnd, const char* pszPattern,
                       uintptr_t baseAddress, size_t offset, int occurrence) {
   // Build vectored pattern..
   vector<PatternByte> patterndata;
@@ -97,19 +97,19 @@ uintptr_t FindPattern(vector<unsigned char> data, const char* pszPattern,
 
   // The result count for multiple results..
   int resultCount = 0;
-  vector<unsigned char>::iterator scanStart = data.begin();
+  const unsigned char* scanStart = dataStart;
 
   while (true) {
     // Search for the pattern..
-    vector<unsigned char>::iterator ret =
-        search(scanStart, data.end(), patterndata.begin(), patterndata.end(),
+    const unsigned char* ret =
+        search(scanStart, dataEnd, patterndata.begin(), patterndata.end(),
                MatchByte);
 
     // Did we find a match..
-    if (ret != data.end()) {
+    if (ret != dataEnd) {
       // If we hit the usage count, return the result..
       if (occurrence == 0 || resultCount == occurrence)
-        return baseAddress + distance(data.begin(), ret) + offset;
+        return baseAddress + distance(dataStart, ret) + offset;
 
       // Increment the found count and scan again..
       resultCount++;
@@ -147,11 +147,10 @@ uintptr_t sigScanRaw(char* category, char* sigName, bool isData = false) {
       continue;
 
     uintptr_t baseAddress = (uintptr_t)hModule + pSectionHdr->VirtualAddress;
-    std::vector<unsigned char> rawData(
-        (unsigned char*)baseAddress,
-        (unsigned char*)baseAddress + pSectionHdr->Misc.VirtualSize);
     uintptr_t retval = (uintptr_t)FindPattern(
-        rawData, pattern, baseAddress, offset, sig["occurrence"].get<int>());
+        (unsigned char*)baseAddress,
+        (unsigned char*)baseAddress + pSectionHdr->Misc.VirtualSize,
+        pattern, baseAddress, offset, sig["occurrence"].get<int>());
 
     if (retval != NULL) {
       logstr << " found at 0x" << std::hex << retval;
