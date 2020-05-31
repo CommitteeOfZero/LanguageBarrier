@@ -412,7 +412,7 @@ void gameTextInit() {
           floorf(4096 / outlineRowHeightScaled) * outlineRowHeightScaled;
     }
   }
-  if (HAS_SPLIT_FONT) {
+  if (HAS_SPLIT_FONT && config["patch"].count("fontBFileName") == 1) {
     std::stringstream ss;
     ss << "languagebarrier\\"
        << config["patch"]["fontBFileName"].get<std::string>();
