@@ -228,7 +228,10 @@ void rb_consume(size_t samples) {
   rb_read_index %= RINGBUFFER_CAPACITY;
 }
 
-typedef void(__cdecl* DecompAudioInnerProc)(
+typedef int(__cdecl* DecompAudioInnerProc)(
+    // it actually takes an extra flag argument in ecx&1,
+    // but this cannot be represented in msvc
+    // (with __thiscall the callee cleanups the stack, not the case here)
     int samplesPerChannelPerChunk, float a5, size_t chunkCount,
     char* overlapSrcBase, int* a8, unsigned int a9, int a10, int a11,
     char* dest, unsigned int overlapCtBytes, int a14, char* overlapDest);
@@ -258,11 +261,12 @@ void __stdcall BinkCloseHook(BINK* bnk);
 int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
                                        uint32_t destheight, uint32_t destx,
                                        uint32_t desty, uint32_t flags);
-void __cdecl decompAudioInnerHook(int samplesPerChannelPerChunk, float a5,
-                                  size_t chunkCount, char* overlapSrcBase,
-                                  int* a8, unsigned int a9, int a10, int a11,
-                                  char* dest, unsigned int overlapCtBytes,
-                                  int a14, char* overlapDest);
+int __cdecl decompAudioInnerHook(int samplesPerChannelPerChunk, float a5,
+                                 size_t chunkCount, char* overlapSrcBase,
+                                 int* a8, unsigned int a9, int a10, int a11,
+                                 char* dest, unsigned int overlapCtBytes,
+                                 int a14, char* overlapDest);
+int decompAudioInnerHookThunk();
 
 bool binkModInit() {
   if (config["patch"].count("fmv") != 1) {
@@ -279,7 +283,7 @@ bool binkModInit() {
                            BinkCopyToBufferHook, (LPVOID*)&BinkCopyToBuffer) ||
       !scanCreateEnableHook(
           "bink2w32", "decompAudioInner", (uintptr_t*)&binkDllDecompAudioInner,
-          decompAudioInnerHook, (LPVOID*)&binkDllDecompAudioInnerReal))
+          decompAudioInnerHookThunk, (LPVOID*)&binkDllDecompAudioInnerReal))
     return false;
 
   HMODULE hmodBink = GetModuleHandleW(L"bink2w32");
@@ -566,16 +570,23 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
   return retval;
 }
 
-void __cdecl decompAudioInnerHook(int samplesPerChannelPerChunk, float a5,
-                                  size_t chunkCount, char* overlapSrcBase,
-                                  int* a8, unsigned int a9, int a10, int a11,
-                                  char* dest, unsigned int overlapCtBytes,
-                                  int a14, char* overlapDest) {
-  if (pVorbis == NULL)
-    return binkDllDecompAudioInnerReal(
-        samplesPerChannelPerChunk, a5, chunkCount, overlapSrcBase, a8, a9, a10,
-        a11, dest, overlapCtBytes, a14, overlapDest);
+#pragma warning(push)
+#pragma warning(disable:4414) // short jump to function converted to near
+int __declspec(naked) decompAudioInnerHookThunk() {
+  __asm {
+    // remember to save/restore ecx if [binkDllDecompAudioInnerReal] is going to be used
+    cmp [pVorbis], 0
+    jnz decompAudioInnerHook
+    jmp [binkDllDecompAudioInnerReal]
+  }
+}
+#pragma warning(pop)
 
+int __cdecl decompAudioInnerHook(int samplesPerChannelPerChunk, float a5,
+                                 size_t chunkCount, char* overlapSrcBase,
+                                 int* a8, unsigned int a9, int a10, int a11,
+                                 char* dest, unsigned int overlapCtBytes,
+                                 int a14, char* overlapDest) {
   // note: rb_read and rb_consume take shorts, memmove takes bytes
   rb_read((short*)dest, CHANNEL_COUNT * samplesPerChannelPerChunk * chunkCount);
   rb_consume(CHANNEL_COUNT * samplesPerChannelPerChunk -
@@ -583,5 +594,6 @@ void __cdecl decompAudioInnerHook(int samplesPerChannelPerChunk, float a5,
   memmove(overlapSrcBase,
           dest + sizeof(short) * CHANNEL_COUNT * samplesPerChannelPerChunk,
           sizeof(short) * CHANNEL_COUNT * samplesPerChannelPerChunk);
+  return 0; // number of bytes to advance a8; we don't use it, so we don't care
 }
 }  // namespace lb
