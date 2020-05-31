@@ -4,7 +4,16 @@
 #include "game.h"
 
 BOOL WINAPI DllMain(HINSTANCE hInst, DWORD reason, LPVOID reserved) {
-  if (!lb::IsInitialised) lb::LanguageBarrierInit();
+  if (!lb::IsInitialised) {
+    try {
+      lb::LanguageBarrierInit();
+    } catch (std::exception& e) {
+      // if we're here, next attempts to initialize will probably
+      // throw the same exception, no sense to retry initialization
+      lb::IsInitialised = true;
+      MessageBoxA(NULL, e.what(), "LanguageBarrier exception", MB_ICONSTOP);
+    }
+  }
   return TRUE;
 }
 

@@ -319,22 +319,26 @@ void gameInit() {
 int __cdecl earlyInitHook(int unk0, int unk1) {
   int retval = gameExeEarlyInitReal(unk0, unk1);
 
-  std::string lbDir =
-      WideTo8BitPath(GetGameDirectoryPath() + L"\\languagebarrier");
+  try {
+    std::string lbDir =
+        WideTo8BitPath(GetGameDirectoryPath() + L"\\languagebarrier");
 
-  c0dataMpk = gameMountMpk("C0DATA", lbDir.c_str(), "c0data.mpk");
-  LanguageBarrierLog("c0data.mpk mounted");
+    c0dataMpk = gameMountMpk("C0DATA", lbDir.c_str(), "c0data.mpk");
+    LanguageBarrierLog("c0data.mpk mounted");
 
-  if (!scanCreateEnableHook(
+    if (!scanCreateEnableHook(
           "game", "mpkFopenById", (uintptr_t *)&gameExeMpkFopenById,
           (LPVOID)&mpkFopenByIdHook, (LPVOID *)&gameExeMpkFopenByIdReal))
-    return retval;
+      return retval;
 
-  if (config["patch"]["redoDialogueWordwrap"].get<bool>() == true) {
-    dialogueWordwrapInit();
-  }
-  if (config["patch"]["hookText"].get<bool>() == true) {
-    gameTextInit();
+    if (config["patch"]["redoDialogueWordwrap"].get<bool>() == true) {
+      dialogueWordwrapInit();
+    }
+    if (config["patch"]["hookText"].get<bool>() == true) {
+      gameTextInit();
+    }
+  } catch (std::exception& e) {
+    MessageBoxA(NULL, e.what(), "LanguageBarrier exception", MB_ICONSTOP);
   }
 
   return retval;
