@@ -608,6 +608,17 @@ void gameTextInit() {
     lookup3retoffset = 0x7;
   }
 
+  const json& signatures = config["gamedef"]["signatures"]["game"];
+  int configretoffset = signatures["dialogueLayoutWidthLookup1"].value<int>("return", 0);
+  if (configretoffset)
+    lookup1retoffset = configretoffset;
+  configretoffset = signatures["dialogueLayoutWidthLookup2"].value<int>("return", 0);
+  if (configretoffset)
+    lookup2retoffset = configretoffset;
+  configretoffset = signatures["dialogueLayoutWidthLookup3"].value<int>("return", 0);
+  if (configretoffset)
+    lookup3retoffset = configretoffset;
+
   scanCreateEnableHook("game", "dialogueLayoutWidthLookup1",
                        &gameExeDialogueLayoutWidthLookup1,
                        dialogueLayoutWidthLookup1Hook, NULL);
