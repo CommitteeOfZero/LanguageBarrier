@@ -66,11 +66,6 @@ std::string WideTo8BitPath(std::wstring const &wide) {
                       NULL, NULL);
   std::string result(buffer);
 
-  if (needShortPath) {
-    _freea(shortBuffer);
-  }
-  _freea(buffer);
-
   return result;
 }
 std::wstring GetGameDirectoryPath() {
@@ -79,7 +74,6 @@ std::wstring GetGameDirectoryPath() {
   wchar_t *buffer = (wchar_t *)_alloca(sz * sizeof(wchar_t));
   GetModuleFileNameW(NULL, buffer, sz);
   while (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-    _freea(buffer);
     sz *= 2;
     buffer = (wchar_t *)_alloca(sz * sizeof(wchar_t));
     GetModuleFileNameW(NULL, buffer, sz);
@@ -88,8 +82,6 @@ std::wstring GetGameDirectoryPath() {
   int dirlen = max(wcsrchr(buffer, L'\\'), wcsrchr(buffer, L'/')) - buffer;
 
   std::wstring result(buffer, dirlen);
-
-  _freea(buffer);
 
   return result;
 }
