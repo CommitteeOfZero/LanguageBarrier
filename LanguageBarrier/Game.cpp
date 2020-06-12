@@ -63,6 +63,10 @@ typedef int(__cdecl *PadUpdateDeviceProc)();
 static PadUpdateDeviceProc gameExePadUpdateDevice = NULL;
 static PadUpdateDeviceProc gameExePadUpdateDeviceReal = NULL;
 
+typedef void(__cdecl *SetAreaParams)(int areaId, short params[24]);
+static SetAreaParams gameExeSetAreaParams = NULL;
+static SetAreaParams gameExeSetAreaParamsReal = NULL;
+
 static int *gameExeWavData = (int *)NULL;
 static void **gameExeVoiceTable = (void **)NULL;
 
@@ -197,6 +201,7 @@ int __fastcall readOggMetadataHook(CPlayer *pThis, void *EDX);
 BOOL __cdecl openMyGamesHook(char *outPath);
 int __cdecl SNDgetPlayLevelHook(int a1);
 int __cdecl PadUpdateDeviceHook();
+void __cdecl setAreaParamsHook(int areaId, short params[24]);
 
 void gameInit() {
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
@@ -310,6 +315,12 @@ void gameInit() {
   }
 
   binkModInit();
+
+  if (config["patch"].count("overrideAreaParams")) {
+    scanCreateEnableHook(
+        "game", "setAreaParams", (uintptr_t *)&gameExeSetAreaParams,
+        (LPVOID)setAreaParamsHook, (LPVOID *)&gameExeSetAreaParamsReal);
+  }
 }
 
 // earlyInit is called after all the subsystems have been initialised but before
@@ -545,6 +556,22 @@ int __cdecl PadUpdateDeviceHook() {
   if (memcmp((void *)gameExeControllerGuid, emptyGUID, 0x28) == 0) return 0;
 
   return gameExePadUpdateDeviceReal();
+}
+
+void __cdecl setAreaParamsHook(int areaId, short data[24]) {
+  try {
+    const json& hooked = config["patch"]["overrideAreaParams"];
+    std::string key = std::to_string(areaId);
+    json::const_iterator it = hooked.find(key);
+    if (it != hooked.end()) {
+      std::vector<short> patchedData = it->get<std::vector<short>>();
+      gameExeSetAreaParamsReal(areaId, patchedData.data());
+      return;
+    }
+  } catch(std::exception&) {
+    // not an array of integers, just ignore it
+  }
+  gameExeSetAreaParamsReal(areaId, data);
 }
 
 // TODO: I probably shouldn't be writing these in assembly given it looks like
