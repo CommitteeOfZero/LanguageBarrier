@@ -15,6 +15,7 @@
 #include "Script.h"
 #include "Shlobj.h"
 #include "SigScan.h"
+#include "TextReplace.h"
 
 typedef int(__cdecl *EarlyInitProc)(int unk0, int unk1);
 static EarlyInitProc gameExeEarlyInit = NULL;
@@ -212,6 +213,8 @@ void gameInit() {
   in.read(&stringReplacementTable[0], stringReplacementTable.size());
   in.close();
 
+  globalTextReplacementsInit();
+
   gameExeTextureLoadInit1 = sigScan("game", "textureLoadInit1");
   gameExeTextureLoadInit2 = sigScan("game", "textureLoadInit2");
   gameExeGslPngload = sigScan("game", "gslPngload");
@@ -396,6 +399,7 @@ int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, mpkObject *mpk,
 
 const char *__cdecl getStringFromScriptHook(int scriptId, int stringId) {
   int fileId = gameExeScriptIdsToFileIds[scriptId];
+  const char* result = gameExeGetStringFromScriptReal(scriptId, stringId);
   if (config["patch"].count("stringRedirection") == 1) {
     const json &targets = config["patch"]["stringRedirection"];
     std::string sFileId = std::to_string(fileId);
@@ -410,11 +414,11 @@ const char *__cdecl getStringFromScriptHook(int scriptId, int stringId) {
 
         uint32_t repId = targets[sFileId][sStringId].get<uint32_t>();
         uint32_t offset = ((uint32_t *)stringReplacementTable.c_str())[repId];
-        return &(stringReplacementTable.c_str()[offset]);
+        result = &(stringReplacementTable.c_str()[offset]);
       }
     }
   }
-  return gameExeGetStringFromScriptReal(scriptId, stringId);
+  return processTextReplacements(result, fileId, stringId);
 }
 
 int __fastcall closeAllSystemsHook(void *pThis, void *EDX) {

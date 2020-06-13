@@ -130,6 +130,7 @@ endlocal</Command>
     <ClInclude Include="SigExpr.h" />
     <ClInclude Include="SigScan.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="TextReplace.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BinkMod.cpp" />
@@ -153,6 +154,7 @@ endlocal</Command>
     <ClCompile Include="Script.cpp" />
     <ClCompile Include="SigExpr.cpp" />
     <ClCompile Include="SigScan.cpp" />
+    <ClCompile Include="TextReplace.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
