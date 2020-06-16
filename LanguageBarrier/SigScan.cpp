@@ -123,7 +123,7 @@ uintptr_t FindPattern(const unsigned char* dataStart, const unsigned char* dataE
 }  // namespace
 
 namespace lb {
-uintptr_t sigScanRaw(char* category, char* sigName, bool isData = false) {
+uintptr_t sigScanRaw(const char* category, const char* sigName, bool isData = false) {
   std::stringstream logstr;
   logstr << "SigScan: looking for " << category << "/" << sigName << "... "
          << std::endl;
@@ -168,7 +168,7 @@ uintptr_t sigScanRaw(char* category, char* sigName, bool isData = false) {
   return NULL;
 }
 
-uintptr_t sigScan(char* category, char* sigName, bool isData = false) {
+uintptr_t sigScan(const char* category, const char* sigName, bool isData = false) {
   uintptr_t raw = sigScanRaw(category, sigName, isData);
   json sig = config["gamedef"]["signatures"][category][sigName];
   if (sig.count("expr") == 0) return raw;

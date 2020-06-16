@@ -224,19 +224,10 @@ static uintptr_t gameExeDialogueLayoutWidthLookup3Return = NULL;
 static uintptr_t gameExeTipsListWidthLookup = NULL;
 static uintptr_t gameExeTipsListWidthLookupReturn = NULL;
 
-static uintptr_t gameExeClearlistDrawRet1 = NULL;
-static uintptr_t gameExeClearlistDrawRet2 = NULL;
-static uintptr_t gameExeClearlistDrawRet3 = NULL;
-static uintptr_t gameExeClearlistDrawRet4 = NULL;
-static uintptr_t gameExeClearlistDrawRet5 = NULL;
-static uintptr_t gameExeClearlistDrawRet6 = NULL;
-static uintptr_t gameExeClearlistDrawRet7 = NULL;
-static uintptr_t gameExeClearlistDrawRet8 = NULL;
-static uintptr_t gameExeClearlistDrawRet9 = NULL;
-static uintptr_t gameExeClearlistDrawRet10 = NULL;
-static uintptr_t gameExeClearlistDrawRet11 = NULL;
-static uintptr_t gameExeClearlistDrawRet12 = NULL;
-static uintptr_t gameExeClearlistDrawRet13 = NULL;
+typedef struct {
+  int dx, dy;
+} SingleLineOffset_t;
+static std::map<uintptr_t, SingleLineOffset_t> retAddrToSingleLineFixes;
 
 static uintptr_t gameExeCcBacklogNamePosCode = NULL;       // = 0x00454FE9
 static uintptr_t gameExeCcBacklogNamePosAdjustRet = NULL;  // = 0x00454FEF
@@ -516,24 +507,53 @@ void gameTextInit() {
         "game", "drawPhoneText", (uintptr_t *)&gameExeDrawPhoneText,
         (LPVOID)drawPhoneTextHook, (LPVOID *)&gameExeDrawPhoneTextReal);
   }
+  // compatibility with old configs
   if (NEEDS_CLEARLIST_TEXT_POSITION_ADJUST) {
+    static const char clearlistConfigText[] = "["
+      "{\"sigName\":\"clearlistDrawRet1\",\"dx\":-264,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet2\",\"dx\":-264,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet3\",\"dx\":-264,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet4\",\"dx\":-264,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet5\",\"dx\":-264,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet6\",\"dx\":-264,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet7\",\"dx\":-192,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet8\",\"dx\":-192,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet9\",\"dx\":-192,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet10\",\"dx\":-150,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet11\",\"dx\":-150,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet12\",\"dx\":-150,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet13\",\"dx\":-150,\"dy\":32}"
+      "]";
+    const json clearlistConfig = json::parse(clearlistConfigText);
+    json& arr = config["patch"]["singleTextLineFixes"];
+    if (!arr.is_array())
+      arr = json::array();
+    arr.insert(arr.end(), clearlistConfig.begin(), clearlistConfig.end());
+  }
+  const auto& singleTextLineFixes = config["patch"].find("singleTextLineFixes");
+  if (singleTextLineFixes != config["patch"].end() && singleTextLineFixes->is_array()) {
     scanCreateEnableHook("game", "drawSingleTextLine",
                          (uintptr_t *)&gameExeDrawSingleTextLine,
                          (LPVOID)drawSingleTextLineHook,
                          (LPVOID *)&gameExeDrawSingleTextLineReal);
-    gameExeClearlistDrawRet1 = sigScan("game", "clearlistDrawRet1");
-    gameExeClearlistDrawRet2 = sigScan("game", "clearlistDrawRet2");
-    gameExeClearlistDrawRet3 = sigScan("game", "clearlistDrawRet3");
-    gameExeClearlistDrawRet4 = sigScan("game", "clearlistDrawRet4");
-    gameExeClearlistDrawRet5 = sigScan("game", "clearlistDrawRet5");
-    gameExeClearlistDrawRet6 = sigScan("game", "clearlistDrawRet6");
-    gameExeClearlistDrawRet7 = sigScan("game", "clearlistDrawRet7");
-    gameExeClearlistDrawRet8 = sigScan("game", "clearlistDrawRet8");
-    gameExeClearlistDrawRet9 = sigScan("game", "clearlistDrawRet9");
-    gameExeClearlistDrawRet10 = sigScan("game", "clearlistDrawRet10");
-    gameExeClearlistDrawRet11 = sigScan("game", "clearlistDrawRet11");
-    gameExeClearlistDrawRet12 = sigScan("game", "clearlistDrawRet12");
-    gameExeClearlistDrawRet13 = sigScan("game", "clearlistDrawRet13");
+    for (const json& item : *singleTextLineFixes) {
+      if (!item.is_object())
+        continue;
+      auto sigNameIter = item.find("sigName"), dxIter = item.find("dx"), dyIter = item.find("dy");
+      if (sigNameIter == item.end() || dxIter == item.end() || dyIter == item.end())
+        continue;
+      if (!sigNameIter->is_string() || !dxIter->is_number_integer() || !dyIter->is_number_integer())
+        continue;
+      const std::string& sigName = sigNameIter->get<std::string>();
+      int dx = dxIter->get<int>();
+      int dy = dyIter->get<int>();
+      uintptr_t targetPtr = sigScan("game", sigName.c_str());
+      if (!targetPtr)
+        continue;
+      SingleLineOffset_t& fix = retAddrToSingleLineFixes[targetPtr];
+      fix.dx = dx;
+      fix.dy = dy;
+    }
   }
   if (NEEDS_CC_BACKLOG_NAME_POS_ADJUST) {
     gameExeCcBacklogNamePosAdjustRet =
@@ -962,36 +982,17 @@ signed int drawSingleTextLineHook(int textureId, int startX, signed int startY,
                                   signed int maxLength, int color,
                                   int glyphSize, signed int opacity) {
   // yolo
-  if (NEEDS_CLEARLIST_TEXT_POSITION_ADJUST) {
-    uintptr_t retaddr;
-    __asm {
-        push eax
-        mov eax, [ebp + 4]
-        mov retaddr, eax
-        pop eax
-    }
-    if (retaddr == gameExeClearlistDrawRet1 ||
-        retaddr == gameExeClearlistDrawRet2 ||
-        retaddr == gameExeClearlistDrawRet3 ||
-        retaddr == gameExeClearlistDrawRet4 ||
-        retaddr == gameExeClearlistDrawRet5 ||
-        retaddr == gameExeClearlistDrawRet6) {
-      startY += 32;
-      startX -= 264;
-    }
-    else if (retaddr == gameExeClearlistDrawRet7 ||
-             retaddr == gameExeClearlistDrawRet8 ||
-             retaddr == gameExeClearlistDrawRet9) {
-      startY += 32;
-      startX -= 192;
-    }
-    else if (retaddr == gameExeClearlistDrawRet10 ||
-             retaddr == gameExeClearlistDrawRet11 ||
-             retaddr == gameExeClearlistDrawRet12 ||
-             retaddr == gameExeClearlistDrawRet13) {
-      startY += 32;
-      startX -= 150;
-    }
+  uintptr_t retaddr;
+  __asm {
+      push eax
+      mov eax, [ebp + 4]
+      mov retaddr, eax
+      pop eax
+  }
+  auto fixIter = retAddrToSingleLineFixes.find(retaddr);
+  if (fixIter != retAddrToSingleLineFixes.end()) {
+    startX += fixIter->second.dx;
+    startY += fixIter->second.dy;
   }
   return gameExeDrawSingleTextLineReal(textureId, startX, startY, a4, string,
                                        maxLength, color, glyphSize, opacity);
