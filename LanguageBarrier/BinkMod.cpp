@@ -1,7 +1,7 @@
 #include "BinkMod.h"
 #include <csri/csri.h>
 #include <stb_vorbis.h>
-#include <xmmintrin.h>
+#include <emmintrin.h>
 #include <fstream>
 #include <unordered_map>
 #include "Config.h"

@@ -3,6 +3,7 @@
 #include <list>
 #include <sstream>
 #include <vector>
+#include <intrin.h>
 #include "Config.h"
 #include "Game.h"
 #include "LanguageBarrier.h"
