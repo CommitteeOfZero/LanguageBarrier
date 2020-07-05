@@ -962,7 +962,7 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
   afterWord:
     if (it->endsWithLinebreak) {
       result->lines++;
-      prevLineLength = 0;
+      prevLineLength = curLineLength;
       curLineLength = 0;
     }
   }
