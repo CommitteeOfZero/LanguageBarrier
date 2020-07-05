@@ -29,6 +29,7 @@ typedef struct {
   int linkCount;
   int curLinkNumber;
   int curColor;
+  int usedLineLength;
   bool error;
 } ProcessedSc3String_t;
 
@@ -202,6 +203,10 @@ static GetSc3StringLineCountProc gameExeGetSc3StringLineCount =
     NULL;  // = (GetSc3StringLineCountProc)0x442790;
 static GetSc3StringLineCountProc gameExeGetSc3StringLineCountReal = NULL;
 
+typedef int(__cdecl *GetRineInputRectangleProc)(int* lineLength, char *text, unsigned int baseGlyphSize);
+static GetRineInputRectangleProc gameExeGetRineInputRectangle = NULL;
+static GetRineInputRectangleProc gameExeGetRineInputRectangleReal = NULL;
+
 typedef int(__cdecl *SetTipContentProc)(char *sc3string);
 static SetTipContentProc gameExeSetTipContent =
     NULL;  // = (SetTipContentProc)0x44FB20;
@@ -361,6 +366,7 @@ int __cdecl sghdDrawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
                                       int selectedLink);
 int __cdecl getSc3StringLineCountHook(int lineLength, char *sc3string,
                                       unsigned int baseGlyphSize);
+int __cdecl getRineInputRectangleHook(int* lineLength, char *text, unsigned int baseGlyphSize);
 int __cdecl sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
                              float glyphInTextureStartY,
                              float glyphInTextureWidth,
@@ -676,6 +682,12 @@ void gameTextInit() {
     gameExeTipsListWidthLookupReturn =
         (uintptr_t)((uint8_t *)gameExeTipsListWidthLookup + tipsListWidthRetoffset);
   }
+  if (signatures.count("getRineInputRectangle") == 1) {
+    scanCreateEnableHook("game", "getRineInputRectangle",
+                         (uintptr_t *)&gameExeGetRineInputRectangle,
+                         (LPVOID)getRineInputRectangleHook,
+                         (LPVOID *)&gameExeGetRineInputRectangleReal);
+  }
 
   FILE *widthsfile = fopen("languagebarrier\\widths.bin", "rb");
   fread(widths, 1, TOTAL_NUM_FONT_CELLS, widthsfile);
@@ -841,6 +853,7 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
 
   int curProcessedStringLength = 0;
   int curLineLength = 0;
+  int prevLineLength = 0;
 
   int spaceCost =
       (widths[GLYPH_ID_FULLWIDTH_SPACE] * baseGlyphSize) / FONT_CELL_WIDTH;
@@ -857,6 +870,7 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
       if (curLineLength != 0 && it->startsWithSpace == true)
         wordCost -= spaceCost;
       result->lines++;
+      prevLineLength = curLineLength;
       curLineLength = 0;
     }
     if (result->lines >= lineCount) {
@@ -936,6 +950,7 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
   afterWord:
     if (it->endsWithLinebreak) {
       result->lines++;
+      prevLineLength = 0;
       curLineLength = 0;
     }
   }
@@ -947,6 +962,7 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
   result->linkCount = lastLinkNumber + 1;
   result->curColor = currentColor;
   result->curLinkNumber = curLinkNumber;
+  result->usedLineLength = curLineLength ? curLineLength : prevLineLength;
 }
 
 int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
@@ -1139,6 +1155,17 @@ int __cdecl getSc3StringLineCountHook(int lineLength, char *sc3string,
   semiTokeniseSc3String(sc3string, words, baseGlyphSize, lineLength);
   processSc3TokenList(0, 0, lineLength, words, LINECOUNT_DISABLE_OR_ERROR, 0,
                       baseGlyphSize, &str, true, 1.0f, -1, NOT_A_LINK, 0);
+  return str.lines + 1;
+}
+int __cdecl getRineInputRectangleHook(int* lineLength, char* text, unsigned int baseGlyphSize) {
+  ProcessedSc3String_t str;
+  int maxLineLength = (lineLength && *lineLength ? *lineLength : DEFAULT_LINE_LENGTH);
+
+  std::list<StringWord_t> words;
+  semiTokeniseSc3String(text, words, baseGlyphSize, maxLineLength);
+  processSc3TokenList(0, 0, maxLineLength, words, LINECOUNT_DISABLE_OR_ERROR, 0,
+                      baseGlyphSize, &str, true, 1.0f, -1, NOT_A_LINK, 0);
+  *lineLength = str.usedLineLength;
   return str.lines + 1;
 }
 int sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
