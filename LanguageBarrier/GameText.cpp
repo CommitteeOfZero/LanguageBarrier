@@ -231,6 +231,7 @@ static uintptr_t gameExeTipsListWidthLookupReturn = NULL;
 
 typedef struct {
   int dx, dy;
+  int fontSize;
 } SingleLineOffset_t;
 static std::map<uintptr_t, SingleLineOffset_t> retAddrToSingleLineFixes;
 
@@ -545,20 +546,31 @@ void gameTextInit() {
     for (const json& item : *singleTextLineFixes) {
       if (!item.is_object())
         continue;
-      auto sigNameIter = item.find("sigName"), dxIter = item.find("dx"), dyIter = item.find("dy");
-      if (sigNameIter == item.end() || dxIter == item.end() || dyIter == item.end())
+      auto sigNameIter = item.find("sigName");
+      if (sigNameIter == item.end())
         continue;
-      if (!sigNameIter->is_string() || !dxIter->is_number_integer() || !dyIter->is_number_integer())
+      if (!sigNameIter->is_string())
         continue;
       const std::string& sigName = sigNameIter->get<std::string>();
-      int dx = dxIter->get<int>();
-      int dy = dyIter->get<int>();
       uintptr_t targetPtr = sigScan("game", sigName.c_str());
       if (!targetPtr)
         continue;
       SingleLineOffset_t& fix = retAddrToSingleLineFixes[targetPtr];
-      fix.dx = dx;
-      fix.dy = dy;
+      auto iter = item.find("dx");
+      if (iter != item.end() && iter->is_number_integer())
+        fix.dx = iter->get<int>();
+      else
+        fix.dx = 0;
+      iter = item.find("dy");
+      if (iter != item.end() && iter->is_number_integer())
+        fix.dy = iter->get<int>();
+      else
+        fix.dy = 0;
+      iter = item.find("fontSize");
+      if (iter != item.end() && iter->is_number_integer())
+        fix.fontSize = iter->get<int>();
+      else
+        fix.fontSize = 0;
     }
   }
   if (NEEDS_CC_BACKLOG_NAME_POS_ADJUST) {
@@ -1009,6 +1021,8 @@ signed int drawSingleTextLineHook(int textureId, int startX, signed int startY,
   if (fixIter != retAddrToSingleLineFixes.end()) {
     startX += fixIter->second.dx;
     startY += fixIter->second.dy;
+    if (fixIter->second.fontSize)
+      glyphSize = fixIter->second.fontSize;
   }
   return gameExeDrawSingleTextLineReal(textureId, startX, startY, a4, string,
                                        maxLength, color, glyphSize, opacity);
