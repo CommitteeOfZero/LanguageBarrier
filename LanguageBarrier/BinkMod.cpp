@@ -218,6 +218,9 @@ size_t rb_read(short* dest, size_t shorts) {
       memcpy(dest + shorts_to_output_first, ringbuffer,
              sizeof(short) * shorts_to_output_second);
     }
+    if (shorts_to_output_first + shorts_to_output_second < shorts)
+      memset(dest + shorts_to_output_first + shorts_to_output_second, 0,
+             sizeof(short) * (shorts - shorts_to_output_first - shorts_to_output_second));
   }
   return shorts_to_output_total;
 }
