@@ -235,6 +235,13 @@ typedef struct {
 } SingleLineOffset_t;
 static std::map<uintptr_t, SingleLineOffset_t> retAddrToSingleLineFixes;
 
+typedef struct {
+  float dx, dy;
+  float width, height;
+  float srcDx, srcDy;
+} SpriteFix_t;
+static std::map<uintptr_t, SpriteFix_t> retAddrToSpriteFixes;
+
 static uintptr_t gameExeCcBacklogNamePosCode = NULL;       // = 0x00454FE9
 static uintptr_t gameExeCcBacklogNamePosAdjustRet = NULL;  // = 0x00454FEF
 
@@ -573,6 +580,36 @@ void gameTextInit() {
         fix.fontSize = 0;
     }
   }
+  const auto& spriteFixes = config["patch"].find("spriteFixes");
+  if (spriteFixes != config["patch"].end() && spriteFixes->is_array()) {
+    for (const json& item : *spriteFixes) {
+      if (!item.is_object())
+        continue;
+      auto sigNameIter = item.find("sigName");
+      if (sigNameIter == item.end() || !sigNameIter->is_string())
+        continue;
+      const std::string& sigName = sigNameIter->get<std::string>();
+      uintptr_t targetPtr = sigScan("game", sigName.c_str());
+      if (!targetPtr)
+        continue;
+      SpriteFix_t& fix = retAddrToSpriteFixes[targetPtr];
+      const struct { const char* name; float* ptr; } name2var[] = {
+        {"dx", &fix.dx},
+        {"dy", &fix.dy},
+        {"width", &fix.width},
+        {"height", &fix.height},
+        {"srcDx", &fix.srcDx},
+        {"srcDy", &fix.srcDy},
+      };
+      for (size_t i = 0; i < sizeof(name2var) / sizeof(name2var[0]); i++) {
+        auto it = item.find(name2var[i].name);
+        if (it != item.end() && it->is_number())
+          *name2var[i].ptr = it->get<float>();
+        else
+          *name2var[i].ptr = 0;
+      }
+    }
+  }
   if (NEEDS_CC_BACKLOG_NAME_POS_ADJUST) {
     gameExeCcBacklogNamePosAdjustRet =
         sigScan("game", "ccBacklogNamePosAdjustRet");
@@ -630,10 +667,12 @@ void gameTextInit() {
         "game", "drawTipContent", (uintptr_t *)&gameExeDrawTipContent,
         (LPVOID)drawTipContentHook, (LPVOID *)&gameExeDrawTipContentReal);
   }
-  if (CC_BACKLOG_HIGHLIGHT) {
+  if (CC_BACKLOG_HIGHLIGHT || !retAddrToSpriteFixes.empty()) {
     scanCreateEnableHook("game", "drawSprite", (uintptr_t *)&gameExeDrawSprite,
                          (LPVOID)drawSpriteHook,
-                         (LPVOID *)&gameExeDrawSpriteReal);
+	                 (LPVOID *)&gameExeDrawSpriteReal);
+  }
+  if (CC_BACKLOG_HIGHLIGHT) {
     gameExeCcBacklogCurLine = (int *)sigScan("game", "useOfCcBacklogCurLine");
     gameExeCcBacklogLineHeights =
         (int *)sigScan("game", "useOfCcBacklogLineHeights");
@@ -1308,6 +1347,17 @@ int drawSpriteHook(int textureId, float spriteX, float spriteY,
             CC_BACKLOG_HIGHLIGHT_SPRITE_HEIGHT);
     spriteY = CC_BACKLOG_HIGHLIGHT_SPRITE_Y;
     displayY += CC_BACKLOG_HIGHLIGHT_YOFFSET_SHIFT;
+  }
+  auto it = retAddrToSpriteFixes.find((uintptr_t)_ReturnAddress());
+  if (it != retAddrToSpriteFixes.end()) {
+    spriteX += it->second.srcDx;
+    spriteY += it->second.srcDy;
+    if (it->second.width)
+      spriteWidth = it->second.width;
+    if (it->second.height)
+      spriteHeight = it->second.height;
+    displayX += it->second.dx;
+    displayY += it->second.dy;
   }
   return gameExeDrawSpriteReal(textureId, spriteX, spriteY, spriteWidth,
                                spriteHeight, displayX, displayY, color, opacity,
