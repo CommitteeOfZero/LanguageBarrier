@@ -20,13 +20,15 @@ static std::set<uint16_t> type2_punctuation = {0x00CA, 0x00CC, 0x00CE, 0x00D0,
                                                0x00DA, 0x00DC};
 
 enum mask_bytes {
+  // seems to be a bitmask, but only certain combinations are used
   other = 0x00,
   type1_punct = 0x01,
   type2_punct = 0x02,
   linebreak = 0x07,
   word_last_char = 0x09,
   word_first_char = 0x0A,
-  letter = 0x0B
+  letter = 0x0B,
+  ruby_letter = 0x1B
 };
 
 constexpr uint16_t name_start = 0x8001;
@@ -61,6 +63,7 @@ void dialogueWordwrapInit() {
 
 void dlgWordwrapGenerateMaskHook(int unk0) {
   int pos = 0;
+  bool insideRubyBase = false, insideRubyText = false;
 
   // If it's a piece of dialogue, we should deal with the name first.
   // s[n] == name_start -> mask[n] = type2_punct (L - Rojikku)
@@ -83,13 +86,43 @@ void dlgWordwrapGenerateMaskHook(int unk0) {
     auto curr = gameExeDlgWordwrapString[pos];
     // s[n] is a control sequence -> mask[n] = other
     if (curr >= 0x8000) {
-      gameExeDlgWordwrapMask[pos] =
-          curr == 0x8000 ? mask_bytes::linebreak : mask_bytes::other;
+      uint8_t curMask = mask_bytes::other;
+      switch (curr & 0xFF) {
+        case 0:
+          curMask = mask_bytes::linebreak;
+          break;
+        case 9:
+          insideRubyBase = true;
+          curMask = mask_bytes::type2_punct;
+          break;
+        case 10:
+          insideRubyText = true;
+          curMask = mask_bytes::letter;
+          break;
+        case 11:
+          insideRubyBase = insideRubyText = false;
+          curMask = mask_bytes::type1_punct;
+          break;
+        case 18:
+          curMask = mask_bytes::type2_punct;
+          break;
+        case 30:
+          curMask = mask_bytes::letter;
+          break;
+      }
+      gameExeDlgWordwrapMask[pos] = curMask;
       pos++;
       continue;
     }
 
-    if (is_type1_punct(curr)) {
+    if (insideRubyText) {
+      gameExeDlgWordwrapMask[pos] = mask_bytes::ruby_letter;
+      pos++;
+    } else if (insideRubyBase) {
+      // never break lines inside ruby text
+      gameExeDlgWordwrapMask[pos] = mask_bytes::letter;
+      pos++;
+    } else if (is_type1_punct(curr)) {
       gameExeDlgWordwrapMask[pos] = mask_bytes::type1_punct;
       pos++;
     } else if (is_type2_punct(curr)) {
