@@ -51,7 +51,7 @@ std::string WideTo8BitPath(std::wstring const &wide) {
 
   if (needShortPath) {
     shortSz = GetShortPathNameW(convSrc, NULL, 0);
-    shortBuffer = (wchar_t *)_alloca(shortSz * sizeof(wchar_t));
+    shortBuffer = (wchar_t *)_malloca(shortSz * sizeof(wchar_t));
 
     GetShortPathNameW(convSrc, shortBuffer, shortSz);
 
@@ -61,27 +61,35 @@ std::string WideTo8BitPath(std::wstring const &wide) {
     convSrc = shortBuffer;
   }
 
-  buffer = (char *)_alloca(sz);
+  buffer = (char *)_malloca(sz);
   WideCharToMultiByte(codepage, WC_NO_BEST_FIT_CHARS, convSrc, -1, buffer, sz,
                       NULL, NULL);
   std::string result(buffer);
+
+  if (needShortPath) {
+    _freea(shortBuffer);
+  }
+  _freea(buffer);
 
   return result;
 }
 std::wstring GetGameDirectoryPath() {
   int sz = MAX_PATH;
 
-  wchar_t *buffer = (wchar_t *)_alloca(sz * sizeof(wchar_t));
+  wchar_t *buffer = (wchar_t *)_malloca(sz * sizeof(wchar_t));
   GetModuleFileNameW(NULL, buffer, sz);
   while (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+    _freea(buffer);
     sz *= 2;
-    buffer = (wchar_t *)_alloca(sz * sizeof(wchar_t));
+    buffer = (wchar_t *)_malloca(sz * sizeof(wchar_t));
     GetModuleFileNameW(NULL, buffer, sz);
   }
 
   int dirlen = max(wcsrchr(buffer, L'\\'), wcsrchr(buffer, L'/')) - buffer;
 
   std::wstring result(buffer, dirlen);
+
+  _freea(buffer);
 
   return result;
 }
