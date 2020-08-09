@@ -310,11 +310,13 @@ void gameInit() {
   if (config["gamedef"]["signatures"]["game"].count("useOfMpkObjects") == 1)
     gameExeMpkObjects = (mpkObject *)sigScan("game", "useOfMpkObjects");
 
-  gameExeControllerGuid = sigScan("game", "useOfControllerGuid");
-  if (gameExeControllerGuid != NULL) {  // signatures present
-    scanCreateEnableHook(
-        "game", "PadUpdateDevice", (uintptr_t *)&gameExePadUpdateDevice,
-        (LPVOID)PadUpdateDeviceHook, (LPVOID *)&gameExePadUpdateDeviceReal);
+  if (config["patch"].value<bool>("disableUnconfiguredControllers", true)) {
+    gameExeControllerGuid = sigScan("game", "useOfControllerGuid");
+    if (gameExeControllerGuid != NULL) {  // signatures present
+      scanCreateEnableHook(
+          "game", "PadUpdateDevice", (uintptr_t *)&gameExePadUpdateDevice,
+          (LPVOID)PadUpdateDeviceHook, (LPVOID *)&gameExePadUpdateDeviceReal);
+    }
   }
 
   binkModInit();
