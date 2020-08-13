@@ -46,12 +46,26 @@ typedef int32_t(__stdcall* BINKCOPYTOBUFFER)(BINK* bnk, void* dest,
                                              uint32_t flags);
 typedef BINKTRACK*(__stdcall* BINKOPENTRACK)(BINK* bnk, uint32_t trackindex);
 typedef void(__stdcall* BINKCLOSETRACK)(BINKTRACK* bnkt);
+typedef void(__stdcall* BINKNEXTFRAME)(BINK* bnk);
+typedef int(__stdcall* BINKDOFRAMEASYNCMULTI)(BINK* bnk, const int32_t* threadIds, int32_t numThreads);
+typedef int(__stdcall* BINKDOFRAMEASYNCWAIT)(BINK* bnk, int32_t timeout);
+typedef int(__stdcall* BINKSETVIDEOONOFF)(BINK* bnk, int32_t enable);
+typedef void(__stdcall* BINKSETSOUNDTRACK)(uint32_t numTracks, const uint32_t* trackIds);
+typedef uint32_t(__stdcall* BINKGETKEYFRAME)(BINK* bnk, uint32_t frame, uint32_t flags);
+typedef int32_t(__stdcall* RADTIMERREAD)(void);
 
 static BINKOPEN BinkOpen = NULL;
 static BINKCLOSE BinkClose = NULL;
 static BINKCOPYTOBUFFER BinkCopyToBuffer = NULL;
 static BINKOPENTRACK BinkOpenTrack = NULL;
 static BINKCLOSETRACK BinkCloseTrack = NULL;
+static BINKNEXTFRAME BinkNextFrame = NULL;
+static BINKDOFRAMEASYNCMULTI BinkDoFrameAsyncMulti = NULL;
+static BINKDOFRAMEASYNCWAIT BinkDoFrameAsyncWait = NULL;
+static BINKSETVIDEOONOFF BinkSetVideoOnOff = NULL;
+static BINKSETSOUNDTRACK BinkSetSoundTrack = NULL;
+static BINKGETKEYFRAME BinkGetKeyFrame = NULL;
+static RADTIMERREAD RADTimerRead = NULL;
 
 typedef struct {
   char isOpen;
@@ -243,11 +257,26 @@ static DecompAudioInnerProc binkDllDecompAudioInner =
 static DecompAudioInnerProc binkDllDecompAudioInnerReal = NULL;
 
 typedef struct {
-  void* framebuffer;
-  uint32_t destwidth;
-  uint32_t destheight;
-  uint32_t lastFrameNum;
-  csri_inst* csri;
+  BINK* otherFile;
+  unsigned startFrame;
+  unsigned frameCount;
+  bool shouldCloseBink;
+} BinkPartialRedirect_t;
+
+bool operator<(const BinkPartialRedirect_t& left, const BinkPartialRedirect_t& right) {
+  return left.startFrame < right.startFrame;
+}
+
+typedef struct {
+  void* framebuffer = NULL;
+  uint32_t destwidth = 0;
+  uint32_t destheight = 0;
+  uint32_t lastFrameNum = 0;
+  csri_inst* csri = NULL;
+  std::vector<BinkPartialRedirect_t> partialRedirects;
+  size_t currentPartialRedirectPos = 0;
+  BINK* nowRedirected = NULL;
+  uint32_t redirectKeyFrame = 0;
 } BinkModState_t;
 
 static std::unordered_map<BINK*, BinkModState_t*> stateMap;
@@ -270,6 +299,9 @@ int __cdecl decompAudioInnerHook(int samplesPerChannelPerChunk, float a5,
                                  char* dest, unsigned int overlapCtBytes,
                                  int a14, char* overlapDest);
 int decompAudioInnerHookThunk();
+void __stdcall BinkNextFrameHook(BINK* bnk);
+int __stdcall BinkDoFrameAsyncMultiHook(BINK* bnk, const int32_t* threadIds, int32_t numThreads);
+int __stdcall BinkDoFrameAsyncWaitHook(BINK* bnk, int32_t timeout);
 
 bool binkModInit() {
   if (config["patch"].count("fmv") != 1) {
@@ -293,6 +325,10 @@ bool binkModInit() {
   BinkOpenTrack = (BINKOPENTRACK)GetProcAddress(hmodBink, "_BinkOpenTrack@8");
   BinkCloseTrack =
       (BINKCLOSETRACK)GetProcAddress(hmodBink, "_BinkCloseTrack@4");
+  BinkSetVideoOnOff = (BINKSETVIDEOONOFF)GetProcAddress(hmodBink, "_BinkSetVideoOnOff@8");
+  BinkSetSoundTrack = (BINKSETSOUNDTRACK)GetProcAddress(hmodBink, "_BinkSetSoundTrack@8");
+  BinkGetKeyFrame = (BINKGETKEYFRAME)GetProcAddress(hmodBink, "_BinkGetKeyFrame@12");
+  RADTimerRead = (RADTIMERREAD)GetProcAddress(hmodBink, "_RADTimerRead@0");
 
   if (config["patch"]["fmv"].count("fonts") == 1) {
     for (auto font : config["patch"]["fmv"]["fonts"]) {
@@ -338,7 +374,57 @@ bool binkModInit() {
     write_perms(videoTableUse, videoNameTable);
   }
 
+  if (config["patch"]["fmv"].count("videoPartialRedirection") == 1) {
+    createEnableApiHook(L"bink2w32", "_BinkNextFrame@4", BinkNextFrameHook,
+                        (LPVOID*)&BinkNextFrame);
+    createEnableApiHook(L"bink2w32", "_BinkDoFrameAsyncMulti@12", BinkDoFrameAsyncMultiHook,
+                        (LPVOID*)&BinkDoFrameAsyncMulti);
+    createEnableApiHook(L"bink2w32", "_BinkDoFrameAsyncWait@8", BinkDoFrameAsyncWaitHook,
+                        (LPVOID*)&BinkDoFrameAsyncWait);
+  }
+
   return true;
+}
+
+void updatePartialRedirectState(BINK* bnk, BinkModState_t* state) {
+  size_t pos = state->currentPartialRedirectPos;
+  if (pos >= state->partialRedirects.size())
+    return;
+  BinkPartialRedirect_t* redir = &state->partialRedirects[pos];
+  // frames in BINK are 1-based, and I prefer 0-based frames in config, so +1
+  // check end-of-redirection condition before start-of-redirection
+  // to allow adjacent redirects (not sure how useful it is, but why not?)
+  if (bnk->FrameNum == redir->startFrame + redir->frameCount + 1) {
+    BinkSetVideoOnOff(bnk, 1);
+    ++state->currentPartialRedirectPos;
+    state->nowRedirected = NULL;
+    ++pos;
+    ++redir;
+    if (pos >= state->partialRedirects.size())
+      return;
+  }
+  if (bnk->FrameNum == redir->startFrame + 1) {
+    state->nowRedirected = redir->otherFile;
+    // If the redirection covers everything till the end,
+    // we don't need to decode the original video anymore.
+    if (bnk->FrameNum + redir->frameCount >= bnk->Frames) {
+      BinkSetVideoOnOff(bnk, 0);
+    } else {
+      // If we will need to switch back and there is a keyframe,
+      // we can skip decoding before the last keyframe,
+      // but we will need to start decoding again after that.
+      // If there is no keyframe, we can't skip decoding at all.
+      //
+      // flags=0 == search the frame before or equal to the given one
+      uint32_t lastKeyFrame = BinkGetKeyFrame(bnk, bnk->FrameNum + redir->frameCount, 0);
+      if (lastKeyFrame > bnk->FrameNum) {
+        BinkSetVideoOnOff(bnk, 0);
+        state->redirectKeyFrame = lastKeyFrame;
+      }
+    }
+  }
+  if (bnk->FrameNum == state->redirectKeyFrame)
+    BinkSetVideoOnOff(bnk, 1);
 }
 
 BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
@@ -348,6 +434,12 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
   if (strrchr(tmp, '/')) tmp = strrchr(tmp, '/') + 1;
   _strlwr(tmp);  // case isn't always equivalent to filename on disk
 
+  std::string videoFilesDir = "languagebarrier\\videos\\";
+  if (strstr(name, "1280x720"))
+    videoFilesDir += "720p\\";
+  else
+    videoFilesDir += "1080p\\";
+
   BINK* bnk;
 
   if (config["patch"]["fmv"].count("videoRedirection") == 1 &&
@@ -355,18 +447,7 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
     std::string videoFileName =
         config["patch"]["fmv"]["videoRedirection"][tmp].get<std::string>();
 
-    std::stringstream ssVideoPath;
-    ssVideoPath << "languagebarrier\\videos\\";
-
-    if (strstr(name, "1280x720")) {
-      ssVideoPath << "720p\\";
-    } else {
-      ssVideoPath << "1080p\\";
-    }
-
-    ssVideoPath << videoFileName;
-
-    std::string videoPath = ssVideoPath.str();
+    std::string videoPath = videoFilesDir + videoFileName;
     std::stringstream logstr;
     logstr << "Redirecting " << tmp << " to " << videoPath << " ... ";
 
@@ -392,7 +473,7 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
     bnk = BinkOpen(name, flags);
   }
 
-  BinkModState_t* state = (BinkModState_t*)calloc(1, sizeof(BinkModState_t));
+  BinkModState_t* state = new BinkModState_t;
   stateMap.emplace(bnk, state);
 
   if (config["patch"]["fmv"].count("audioRedirection") == 1 &&
@@ -475,6 +556,48 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
     in.close();
   }
 
+  if (config["patch"]["fmv"].count("videoPartialRedirection") == 1 &&
+      config["patch"]["fmv"]["videoPartialRedirection"].count(tmp) == 1) {
+    std::unordered_map<std::string, BINK*> otherFiles;
+    for (const json& part : config["patch"]["fmv"]["videoPartialRedirection"][tmp]) {
+      auto namePtr = part.find("name");
+      if (namePtr == part.end() || !namePtr->is_string())
+        continue;
+      std::string name = namePtr->get<std::string>();
+      unsigned startFrame = part.value<unsigned>("startFrame", 0);
+      unsigned frameCount = part.value<unsigned>("frameCount", 0);
+      bool preload = part.value<bool>("preload", false);
+      auto otherFile = otherFiles.find(name);
+      bool shouldCloseBink = false;
+      if (otherFile == otherFiles.end()) {
+        std::string fullName = videoFilesDir + name;
+        std::string log = "Trying to open " + fullName + " for videoPartialRedirection ... ";
+        // 0x100000 means decoding alpha if it is present in the file
+        // 0x4000 means use tracks from BinkSetSoundTrack
+        BinkSetSoundTrack(0, NULL); // no audio
+        BINK* otherBink = BinkOpen(fullName.c_str(), preload ? 0x106000 : 0x104000);
+        const static uint32_t zero = 0;
+        BinkSetSoundTrack(1, &zero); // reset to defaults
+        if (!otherBink) {
+          log += "failed";
+          LanguageBarrierLog(log);
+          continue;
+        }
+        log += "success";
+        LanguageBarrierLog(log);
+        shouldCloseBink = true;
+        otherFile = otherFiles.insert(std::make_pair(name, otherBink)).first;
+      }
+      state->partialRedirects.push_back(BinkPartialRedirect_t());
+      state->partialRedirects.back().otherFile = otherFile->second;
+      state->partialRedirects.back().startFrame = startFrame;
+      state->partialRedirects.back().frameCount = frameCount;
+      state->partialRedirects.back().shouldCloseBink = shouldCloseBink;
+    }
+    std::sort(state->partialRedirects.begin(), state->partialRedirects.end());
+    updatePartialRedirectState(bnk, state);
+  }
+
   free(dup);
   return bnk;
 }
@@ -502,7 +625,10 @@ void __stdcall BinkCloseHook(BINK* bnk) {
     delete pVorbisFile;
     pVorbisFile = NULL;
   }
-  free(state);
+  for (auto it = state->partialRedirects.begin(); it != state->partialRedirects.end(); ++it)
+    if (it->shouldCloseBink)
+      BinkClose(it->otherFile);
+  delete state;
   stateMap.erase(bnk);
 }
 
@@ -513,11 +639,12 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
     return BinkCopyToBuffer(bnk, dest, destpitch, destheight, destx, desty,
                             flags);
   BinkModState_t* state = stateMap[bnk];
+  BINK* videoSourceBnk = state->nowRedirected ? state->nowRedirected : bnk;
 
   uint32_t destwidth = destpitch / 4;
 
   if (state->csri == NULL)
-    return BinkCopyToBuffer(bnk, dest, destpitch, destheight, destx, desty,
+    return BinkCopyToBuffer(videoSourceBnk, dest, destpitch, destheight, destx, desty,
                             flags);
 
   double time = ((double)bnk->FrameRateDiv * (double)bnk->FrameNum) /
@@ -543,7 +670,7 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
 
   // TODO: actually use destx and desty (figure out if Bink clips output or
   // expects destpitch/destheight to match)
-  int32_t retval = BinkCopyToBuffer(bnk, state->framebuffer, destpitch,
+  int32_t retval = BinkCopyToBuffer(videoSourceBnk, state->framebuffer, destpitch,
                                     destheight, destx, desty, flags);
 
   csri_frame frame;
@@ -571,6 +698,53 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
   memcpy(dest, state->framebuffer, destpitch * destheight);
 
   return retval;
+}
+
+void __stdcall BinkNextFrameHook(BINK* bnk) {
+  BinkNextFrame(bnk);
+  auto stateIter = stateMap.find(bnk);
+  if (stateIter == stateMap.end())
+    return;
+  BinkModState_t* state = stateIter->second;
+  if (state->nowRedirected)
+    BinkNextFrame(state->nowRedirected);
+  updatePartialRedirectState(bnk, state);
+}
+
+int __stdcall BinkDoFrameAsyncMultiHook(BINK* bnk, const int32_t* threadIds, int32_t numThreads) {
+  int ret = BinkDoFrameAsyncMulti(bnk, threadIds, numThreads);
+  auto stateIter = stateMap.find(bnk);
+  if (stateIter != stateMap.end() && stateIter->second->nowRedirected) {
+    int ret2 = BinkDoFrameAsyncMulti(stateIter->second->nowRedirected, threadIds, numThreads);
+    ret = ret && ret2;
+  }
+  return ret;
+}
+
+int __stdcall BinkDoFrameAsyncWaitHook(BINK* bnk, int32_t timeout) {
+  auto stateIter = stateMap.find(bnk);
+  if (stateIter == stateMap.end() || !stateIter->second->nowRedirected)
+    return BinkDoFrameAsyncWait(bnk, timeout);
+  BINK* other = stateIter->second->nowRedirected;
+  if (timeout <= 0) {
+    // negative timeout = infinite, zero timeout = check status, don't wait
+    // in both cases, just do both calls
+    int ret1 = BinkDoFrameAsyncWait(bnk, timeout);
+    int ret2 = BinkDoFrameAsyncWait(other, timeout);
+    return ret1 && ret2;
+  }
+  // GetTickCount() instead of (RADTimerRead() / 1000) would probably suffice as well,
+  // but let's be closer to how the bink engine measures time
+  uint32_t start = RADTimerRead();
+  int ret1 = BinkDoFrameAsyncWait(bnk, timeout);
+  if (!ret1)
+    return 0;
+  int32_t passed = (RADTimerRead() - start) / 1000;
+  if (timeout > passed)
+    timeout -= passed;
+  else
+    timeout = 0;
+  return BinkDoFrameAsyncWait(other, timeout);
 }
 
 #pragma warning(push)
