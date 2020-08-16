@@ -739,6 +739,19 @@ void gameTextInit() {
                          (LPVOID)getRineInputRectangleHook,
                          (LPVOID *)&gameExeGetRineInputRectangleReal);
   }
+  if (signatures.count("calcSpeakerNameLength")) {
+    unsigned char* ptr = (unsigned char*)sigScan("game", "calcSpeakerNameLength");
+    if (ptr) {
+      // swap "shl eax,7" (3 bytes) and "div ecx" (2 bytes)
+      unsigned char swapped[5];
+      swapped[0] = ptr[3];
+      swapped[1] = ptr[4];
+      swapped[2] = ptr[0];
+      swapped[3] = ptr[1];
+      swapped[4] = ptr[2];
+      memcpy_perms(ptr, swapped, 5);
+    }
+  }
 
   FILE *widthsfile = fopen("languagebarrier\\widths.bin", "rb");
   fread(widths, 1, TOTAL_NUM_FONT_CELLS, widthsfile);

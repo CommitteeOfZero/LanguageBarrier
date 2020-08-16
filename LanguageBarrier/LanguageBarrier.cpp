@@ -21,6 +21,13 @@ void *memset_perms(void *dst, int val, size_t size) {
   VirtualProtect(dst, size, oldProtect, &oldProtect);
   return retval;
 }
+void *memcpy_perms(void* dst, const void* src, size_t size) {
+  DWORD oldProtect;
+  VirtualProtect(dst, size, PAGE_READWRITE, &oldProtect);
+  void *retval = memcpy(dst, src, size);
+  VirtualProtect(dst, size, oldProtect, &oldProtect);
+  return retval;
+}
 size_t alignCeil(size_t val, size_t align) {
   return (val % align == 0) ? val : val + align - (val % align);
 }
