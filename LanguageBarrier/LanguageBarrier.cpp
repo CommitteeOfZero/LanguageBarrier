@@ -21,6 +21,13 @@ void *memset_perms(void *dst, int val, size_t size) {
   VirtualProtect(dst, size, oldProtect, &oldProtect);
   return retval;
 }
+void *memcpy_perms(void* dst, const void* src, size_t size) {
+  DWORD oldProtect;
+  VirtualProtect(dst, size, PAGE_READWRITE, &oldProtect);
+  void *retval = memcpy(dst, src, size);
+  VirtualProtect(dst, size, oldProtect, &oldProtect);
+  return retval;
+}
 size_t alignCeil(size_t val, size_t align) {
   return (val % align == 0) ? val : val + align - (val % align);
 }
@@ -51,7 +58,7 @@ std::string WideTo8BitPath(std::wstring const &wide) {
 
   if (needShortPath) {
     shortSz = GetShortPathNameW(convSrc, NULL, 0);
-    shortBuffer = (wchar_t *)_alloca(shortSz * sizeof(wchar_t));
+    shortBuffer = (wchar_t *)_malloca(shortSz * sizeof(wchar_t));
 
     GetShortPathNameW(convSrc, shortBuffer, shortSz);
 
@@ -61,7 +68,7 @@ std::string WideTo8BitPath(std::wstring const &wide) {
     convSrc = shortBuffer;
   }
 
-  buffer = (char *)_alloca(sz);
+  buffer = (char *)_malloca(sz);
   WideCharToMultiByte(codepage, WC_NO_BEST_FIT_CHARS, convSrc, -1, buffer, sz,
                       NULL, NULL);
   std::string result(buffer);
@@ -76,12 +83,12 @@ std::string WideTo8BitPath(std::wstring const &wide) {
 std::wstring GetGameDirectoryPath() {
   int sz = MAX_PATH;
 
-  wchar_t *buffer = (wchar_t *)_alloca(sz * sizeof(wchar_t));
+  wchar_t *buffer = (wchar_t *)_malloca(sz * sizeof(wchar_t));
   GetModuleFileNameW(NULL, buffer, sz);
   while (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
     _freea(buffer);
     sz *= 2;
-    buffer = (wchar_t *)_alloca(sz * sizeof(wchar_t));
+    buffer = (wchar_t *)_malloca(sz * sizeof(wchar_t));
     GetModuleFileNameW(NULL, buffer, sz);
   }
 

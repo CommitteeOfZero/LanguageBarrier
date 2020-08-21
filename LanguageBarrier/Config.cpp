@@ -102,7 +102,7 @@ void configLoadFiles() {
     }
 
     std::ofstream o(path.str());
-    rawConfig >> o;
+    o << rawConfig.dump(2) << '\n';
   }
 }
 }  // namespace lb

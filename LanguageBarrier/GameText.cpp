@@ -3,6 +3,7 @@
 #include <list>
 #include <sstream>
 #include <vector>
+#include <intrin.h>
 #include "Config.h"
 #include "Game.h"
 #include "LanguageBarrier.h"
@@ -28,6 +29,7 @@ typedef struct {
   int linkCount;
   int curLinkNumber;
   int curColor;
+  int usedLineLength;
   bool error;
 } ProcessedSc3String_t;
 
@@ -201,6 +203,10 @@ static GetSc3StringLineCountProc gameExeGetSc3StringLineCount =
     NULL;  // = (GetSc3StringLineCountProc)0x442790;
 static GetSc3StringLineCountProc gameExeGetSc3StringLineCountReal = NULL;
 
+typedef int(__cdecl *GetRineInputRectangleProc)(int* lineLength, char *text, unsigned int baseGlyphSize);
+static GetRineInputRectangleProc gameExeGetRineInputRectangle = NULL;
+static GetRineInputRectangleProc gameExeGetRineInputRectangleReal = NULL;
+
 typedef int(__cdecl *SetTipContentProc)(char *sc3string);
 static SetTipContentProc gameExeSetTipContent =
     NULL;  // = (SetTipContentProc)0x44FB20;
@@ -220,20 +226,21 @@ static uintptr_t gameExeDialogueLayoutWidthLookup2 = NULL;
 static uintptr_t gameExeDialogueLayoutWidthLookup2Return = NULL;
 static uintptr_t gameExeDialogueLayoutWidthLookup3 = NULL;
 static uintptr_t gameExeDialogueLayoutWidthLookup3Return = NULL;
+static uintptr_t gameExeTipsListWidthLookup = NULL;
+static uintptr_t gameExeTipsListWidthLookupReturn = NULL;
 
-static uintptr_t gameExeClearlistDrawRet1 = NULL;
-static uintptr_t gameExeClearlistDrawRet2 = NULL;
-static uintptr_t gameExeClearlistDrawRet3 = NULL;
-static uintptr_t gameExeClearlistDrawRet4 = NULL;
-static uintptr_t gameExeClearlistDrawRet5 = NULL;
-static uintptr_t gameExeClearlistDrawRet6 = NULL;
-static uintptr_t gameExeClearlistDrawRet7 = NULL;
-static uintptr_t gameExeClearlistDrawRet8 = NULL;
-static uintptr_t gameExeClearlistDrawRet9 = NULL;
-static uintptr_t gameExeClearlistDrawRet10 = NULL;
-static uintptr_t gameExeClearlistDrawRet11 = NULL;
-static uintptr_t gameExeClearlistDrawRet12 = NULL;
-static uintptr_t gameExeClearlistDrawRet13 = NULL;
+typedef struct {
+  int dx, dy;
+  int fontSize;
+} SingleLineOffset_t;
+static std::map<uintptr_t, SingleLineOffset_t> retAddrToSingleLineFixes;
+
+typedef struct {
+  float dx, dy;
+  float width, height;
+  float srcDx, srcDy;
+} SpriteFix_t;
+static std::map<uintptr_t, SpriteFix_t> retAddrToSpriteFixes;
 
 static uintptr_t gameExeCcBacklogNamePosCode = NULL;       // = 0x00454FE9
 static uintptr_t gameExeCcBacklogNamePosAdjustRet = NULL;  // = 0x00454FEF
@@ -280,6 +287,13 @@ __declspec(naked) void dialogueLayoutWidthLookup3Hook() {
   __asm {
     movzx ecx, widths[edx]
     jmp gameExeDialogueLayoutWidthLookup3Return
+  }
+}
+
+__declspec(naked) void tipsListWidthLookupHook() {
+  __asm {
+    movzx eax, widths[edx]
+    jmp gameExeTipsListWidthLookupReturn
   }
 }
 
@@ -360,6 +374,7 @@ int __cdecl sghdDrawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
                                       int selectedLink);
 int __cdecl getSc3StringLineCountHook(int lineLength, char *sc3string,
                                       unsigned int baseGlyphSize);
+int __cdecl getRineInputRectangleHook(int* lineLength, char *text, unsigned int baseGlyphSize);
 int __cdecl sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
                              float glyphInTextureStartY,
                              float glyphInTextureWidth,
@@ -412,7 +427,7 @@ void gameTextInit() {
           floorf(4096 / outlineRowHeightScaled) * outlineRowHeightScaled;
     }
   }
-  if (HAS_SPLIT_FONT) {
+  if (HAS_SPLIT_FONT && config["patch"].count("fontBFileName") == 1) {
     std::stringstream ss;
     ss << "languagebarrier\\"
        << config["patch"]["fontBFileName"].get<std::string>();
@@ -506,24 +521,94 @@ void gameTextInit() {
         "game", "drawPhoneText", (uintptr_t *)&gameExeDrawPhoneText,
         (LPVOID)drawPhoneTextHook, (LPVOID *)&gameExeDrawPhoneTextReal);
   }
+  // compatibility with old configs
   if (NEEDS_CLEARLIST_TEXT_POSITION_ADJUST) {
+    static const char clearlistConfigText[] = "["
+      "{\"sigName\":\"clearlistDrawRet1\",\"dx\":-264,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet2\",\"dx\":-264,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet3\",\"dx\":-264,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet4\",\"dx\":-264,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet5\",\"dx\":-264,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet6\",\"dx\":-264,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet7\",\"dx\":-192,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet8\",\"dx\":-192,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet9\",\"dx\":-192,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet10\",\"dx\":-150,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet11\",\"dx\":-150,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet12\",\"dx\":-150,\"dy\":32},"
+      "{\"sigName\":\"clearlistDrawRet13\",\"dx\":-150,\"dy\":32}"
+      "]";
+    const json clearlistConfig = json::parse(clearlistConfigText);
+    json& arr = config["patch"]["singleTextLineFixes"];
+    if (!arr.is_array())
+      arr = json::array();
+    arr.insert(arr.end(), clearlistConfig.begin(), clearlistConfig.end());
+  }
+  const auto& singleTextLineFixes = config["patch"].find("singleTextLineFixes");
+  if (singleTextLineFixes != config["patch"].end() && singleTextLineFixes->is_array()) {
     scanCreateEnableHook("game", "drawSingleTextLine",
                          (uintptr_t *)&gameExeDrawSingleTextLine,
                          (LPVOID)drawSingleTextLineHook,
                          (LPVOID *)&gameExeDrawSingleTextLineReal);
-    gameExeClearlistDrawRet1 = sigScan("game", "clearlistDrawRet1");
-    gameExeClearlistDrawRet2 = sigScan("game", "clearlistDrawRet2");
-    gameExeClearlistDrawRet3 = sigScan("game", "clearlistDrawRet3");
-    gameExeClearlistDrawRet4 = sigScan("game", "clearlistDrawRet4");
-    gameExeClearlistDrawRet5 = sigScan("game", "clearlistDrawRet5");
-    gameExeClearlistDrawRet6 = sigScan("game", "clearlistDrawRet6");
-    gameExeClearlistDrawRet7 = sigScan("game", "clearlistDrawRet7");
-    gameExeClearlistDrawRet8 = sigScan("game", "clearlistDrawRet8");
-    gameExeClearlistDrawRet9 = sigScan("game", "clearlistDrawRet9");
-    gameExeClearlistDrawRet10 = sigScan("game", "clearlistDrawRet10");
-    gameExeClearlistDrawRet11 = sigScan("game", "clearlistDrawRet11");
-    gameExeClearlistDrawRet12 = sigScan("game", "clearlistDrawRet12");
-    gameExeClearlistDrawRet13 = sigScan("game", "clearlistDrawRet13");
+    for (const json& item : *singleTextLineFixes) {
+      if (!item.is_object())
+        continue;
+      auto sigNameIter = item.find("sigName");
+      if (sigNameIter == item.end())
+        continue;
+      if (!sigNameIter->is_string())
+        continue;
+      const std::string& sigName = sigNameIter->get<std::string>();
+      uintptr_t targetPtr = sigScan("game", sigName.c_str());
+      if (!targetPtr)
+        continue;
+      SingleLineOffset_t& fix = retAddrToSingleLineFixes[targetPtr];
+      auto iter = item.find("dx");
+      if (iter != item.end() && iter->is_number_integer())
+        fix.dx = iter->get<int>();
+      else
+        fix.dx = 0;
+      iter = item.find("dy");
+      if (iter != item.end() && iter->is_number_integer())
+        fix.dy = iter->get<int>();
+      else
+        fix.dy = 0;
+      iter = item.find("fontSize");
+      if (iter != item.end() && iter->is_number_integer())
+        fix.fontSize = iter->get<int>();
+      else
+        fix.fontSize = 0;
+    }
+  }
+  const auto& spriteFixes = config["patch"].find("spriteFixes");
+  if (spriteFixes != config["patch"].end() && spriteFixes->is_array()) {
+    for (const json& item : *spriteFixes) {
+      if (!item.is_object())
+        continue;
+      auto sigNameIter = item.find("sigName");
+      if (sigNameIter == item.end() || !sigNameIter->is_string())
+        continue;
+      const std::string& sigName = sigNameIter->get<std::string>();
+      uintptr_t targetPtr = sigScan("game", sigName.c_str());
+      if (!targetPtr)
+        continue;
+      SpriteFix_t& fix = retAddrToSpriteFixes[targetPtr];
+      const struct { const char* name; float* ptr; } name2var[] = {
+        {"dx", &fix.dx},
+        {"dy", &fix.dy},
+        {"width", &fix.width},
+        {"height", &fix.height},
+        {"srcDx", &fix.srcDx},
+        {"srcDy", &fix.srcDy},
+      };
+      for (size_t i = 0; i < sizeof(name2var) / sizeof(name2var[0]); i++) {
+        auto it = item.find(name2var[i].name);
+        if (it != item.end() && it->is_number())
+          *name2var[i].ptr = it->get<float>();
+        else
+          *name2var[i].ptr = 0;
+      }
+    }
   }
   if (NEEDS_CC_BACKLOG_NAME_POS_ADJUST) {
     gameExeCcBacklogNamePosAdjustRet =
@@ -582,10 +667,12 @@ void gameTextInit() {
         "game", "drawTipContent", (uintptr_t *)&gameExeDrawTipContent,
         (LPVOID)drawTipContentHook, (LPVOID *)&gameExeDrawTipContentReal);
   }
-  if (CC_BACKLOG_HIGHLIGHT) {
+  if (CC_BACKLOG_HIGHLIGHT || !retAddrToSpriteFixes.empty()) {
     scanCreateEnableHook("game", "drawSprite", (uintptr_t *)&gameExeDrawSprite,
                          (LPVOID)drawSpriteHook,
-                         (LPVOID *)&gameExeDrawSpriteReal);
+	                 (LPVOID *)&gameExeDrawSpriteReal);
+  }
+  if (CC_BACKLOG_HIGHLIGHT) {
     gameExeCcBacklogCurLine = (int *)sigScan("game", "useOfCcBacklogCurLine");
     gameExeCcBacklogLineHeights =
         (int *)sigScan("game", "useOfCcBacklogLineHeights");
@@ -596,6 +683,7 @@ void gameTextInit() {
   ptrdiff_t lookup1retoffset;
   ptrdiff_t lookup2retoffset;
   ptrdiff_t lookup3retoffset;
+  ptrdiff_t tipsListWidthRetoffset = 0x14;
   if (config["gamedef"].count("dialogueLayoutWidthLookupRetOffsets") == 1 &&
       config["gamedef"]["dialogueLayoutWidthLookupRetOffsets"]
               .get<std::string>() == "ccsteam") {
@@ -607,6 +695,17 @@ void gameTextInit() {
     lookup2retoffset = 0x12;
     lookup3retoffset = 0x7;
   }
+
+  const json& signatures = config["gamedef"]["signatures"]["game"];
+  int configretoffset = signatures["dialogueLayoutWidthLookup1"].value<int>("return", 0);
+  if (configretoffset)
+    lookup1retoffset = configretoffset;
+  configretoffset = signatures["dialogueLayoutWidthLookup2"].value<int>("return", 0);
+  if (configretoffset)
+    lookup2retoffset = configretoffset;
+  configretoffset = signatures["dialogueLayoutWidthLookup3"].value<int>("return", 0);
+  if (configretoffset)
+    lookup3retoffset = configretoffset;
 
   scanCreateEnableHook("game", "dialogueLayoutWidthLookup1",
                        &gameExeDialogueLayoutWidthLookup1,
@@ -624,6 +723,35 @@ void gameTextInit() {
                        dialogueLayoutWidthLookup3Hook, NULL);
   gameExeDialogueLayoutWidthLookup3Return = (uintptr_t)(
       (uint8_t *)gameExeDialogueLayoutWidthLookup3 + lookup3retoffset);
+  if (signatures.count("tipsListWidthLookup") == 1) {
+    configretoffset = signatures["tipsListWidthLookup"].value<int>("return", 0);
+    if (configretoffset)
+      tipsListWidthRetoffset = configretoffset;
+    scanCreateEnableHook("game", "tipsListWidthLookup",
+                         &gameExeTipsListWidthLookup,
+                         tipsListWidthLookupHook, NULL);
+    gameExeTipsListWidthLookupReturn =
+        (uintptr_t)((uint8_t *)gameExeTipsListWidthLookup + tipsListWidthRetoffset);
+  }
+  if (signatures.count("getRineInputRectangle") == 1) {
+    scanCreateEnableHook("game", "getRineInputRectangle",
+                         (uintptr_t *)&gameExeGetRineInputRectangle,
+                         (LPVOID)getRineInputRectangleHook,
+                         (LPVOID *)&gameExeGetRineInputRectangleReal);
+  }
+  if (signatures.count("calcSpeakerNameLength")) {
+    unsigned char* ptr = (unsigned char*)sigScan("game", "calcSpeakerNameLength");
+    if (ptr) {
+      // swap "shl eax,7" (3 bytes) and "div ecx" (2 bytes)
+      unsigned char swapped[5];
+      swapped[0] = ptr[3];
+      swapped[1] = ptr[4];
+      swapped[2] = ptr[0];
+      swapped[3] = ptr[1];
+      swapped[4] = ptr[2];
+      memcpy_perms(ptr, swapped, 5);
+    }
+  }
 
   FILE *widthsfile = fopen("languagebarrier\\widths.bin", "rb");
   fread(widths, 1, TOTAL_NUM_FONT_CELLS, widthsfile);
@@ -789,6 +917,7 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
 
   int curProcessedStringLength = 0;
   int curLineLength = 0;
+  int prevLineLength = 0;
 
   int spaceCost =
       (widths[GLYPH_ID_FULLWIDTH_SPACE] * baseGlyphSize) / FONT_CELL_WIDTH;
@@ -805,6 +934,7 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
       if (curLineLength != 0 && it->startsWithSpace == true)
         wordCost -= spaceCost;
       result->lines++;
+      prevLineLength = curLineLength;
       curLineLength = 0;
     }
     if (result->lines >= lineCount) {
@@ -884,6 +1014,7 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
   afterWord:
     if (it->endsWithLinebreak) {
       result->lines++;
+      prevLineLength = curLineLength;
       curLineLength = 0;
     }
   }
@@ -895,6 +1026,7 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
   result->linkCount = lastLinkNumber + 1;
   result->curColor = currentColor;
   result->curLinkNumber = curLinkNumber;
+  result->usedLineLength = curLineLength ? curLineLength : prevLineLength;
 }
 
 int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
@@ -930,36 +1062,19 @@ signed int drawSingleTextLineHook(int textureId, int startX, signed int startY,
                                   signed int maxLength, int color,
                                   int glyphSize, signed int opacity) {
   // yolo
-  if (NEEDS_CLEARLIST_TEXT_POSITION_ADJUST) {
-    uintptr_t retaddr;
-    __asm {
-        push eax
-        mov eax, [ebp + 4]
-        mov retaddr, eax
-        pop eax
-    }
-    if (retaddr == gameExeClearlistDrawRet1 ||
-        retaddr == gameExeClearlistDrawRet2 ||
-        retaddr == gameExeClearlistDrawRet3 ||
-        retaddr == gameExeClearlistDrawRet4 ||
-        retaddr == gameExeClearlistDrawRet5 ||
-        retaddr == gameExeClearlistDrawRet6) {
-      startY += 32;
-      startX -= 264;
-    }
-    else if (retaddr == gameExeClearlistDrawRet7 ||
-             retaddr == gameExeClearlistDrawRet8 ||
-             retaddr == gameExeClearlistDrawRet9) {
-      startY += 32;
-      startX -= 192;
-    }
-    else if (retaddr == gameExeClearlistDrawRet10 ||
-             retaddr == gameExeClearlistDrawRet11 ||
-             retaddr == gameExeClearlistDrawRet12 ||
-             retaddr == gameExeClearlistDrawRet13) {
-      startY += 32;
-      startX -= 150;
-    }
+  uintptr_t retaddr;
+  __asm {
+      push eax
+      mov eax, [ebp + 4]
+      mov retaddr, eax
+      pop eax
+  }
+  auto fixIter = retAddrToSingleLineFixes.find(retaddr);
+  if (fixIter != retAddrToSingleLineFixes.end()) {
+    startX += fixIter->second.dx;
+    startY += fixIter->second.dy;
+    if (fixIter->second.fontSize)
+      glyphSize = fixIter->second.fontSize;
   }
   return gameExeDrawSingleTextLineReal(textureId, startX, startY, a4, string,
                                        maxLength, color, glyphSize, opacity);
@@ -1108,6 +1223,17 @@ int __cdecl getSc3StringLineCountHook(int lineLength, char *sc3string,
                       baseGlyphSize, &str, true, 1.0f, -1, NOT_A_LINK, 0);
   return str.lines + 1;
 }
+int __cdecl getRineInputRectangleHook(int* lineLength, char* text, unsigned int baseGlyphSize) {
+  ProcessedSc3String_t str;
+  int maxLineLength = (lineLength && *lineLength ? *lineLength : DEFAULT_LINE_LENGTH);
+
+  std::list<StringWord_t> words;
+  semiTokeniseSc3String(text, words, baseGlyphSize, maxLineLength);
+  processSc3TokenList(0, 0, maxLineLength, words, LINECOUNT_DISABLE_OR_ERROR, 0,
+                      baseGlyphSize, &str, true, 1.0f, -1, NOT_A_LINK, 0);
+  *lineLength = str.usedLineLength;
+  return str.lines + 1;
+}
 int sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
                      float glyphInTextureStartY, float glyphInTextureWidth,
                      float glyphInTextureHeight, float displayStartX,
@@ -1234,6 +1360,17 @@ int drawSpriteHook(int textureId, float spriteX, float spriteY,
             CC_BACKLOG_HIGHLIGHT_SPRITE_HEIGHT);
     spriteY = CC_BACKLOG_HIGHLIGHT_SPRITE_Y;
     displayY += CC_BACKLOG_HIGHLIGHT_YOFFSET_SHIFT;
+  }
+  auto it = retAddrToSpriteFixes.find((uintptr_t)_ReturnAddress());
+  if (it != retAddrToSpriteFixes.end()) {
+    spriteX += it->second.srcDx;
+    spriteY += it->second.srcDy;
+    if (it->second.width)
+      spriteWidth = it->second.width;
+    if (it->second.height)
+      spriteHeight = it->second.height;
+    displayX += it->second.dx;
+    displayY += it->second.dy;
   }
   return gameExeDrawSpriteReal(textureId, spriteX, spriteY, spriteWidth,
                                spriteHeight, displayX, displayY, color, opacity,

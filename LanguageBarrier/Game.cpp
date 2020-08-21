@@ -15,6 +15,7 @@
 #include "Script.h"
 #include "Shlobj.h"
 #include "SigScan.h"
+#include "TextReplace.h"
 
 typedef int(__cdecl *EarlyInitProc)(int unk0, int unk1);
 static EarlyInitProc gameExeEarlyInit = NULL;
@@ -62,6 +63,10 @@ static SNDgetPlayLevelProc gameExeSNDgetPlayLevelReal = NULL;
 typedef int(__cdecl *PadUpdateDeviceProc)();
 static PadUpdateDeviceProc gameExePadUpdateDevice = NULL;
 static PadUpdateDeviceProc gameExePadUpdateDeviceReal = NULL;
+
+typedef void(__cdecl *SetAreaParams)(int areaId, short params[24]);
+static SetAreaParams gameExeSetAreaParams = NULL;
+static SetAreaParams gameExeSetAreaParamsReal = NULL;
 
 static int *gameExeWavData = (int *)NULL;
 static void **gameExeVoiceTable = (void **)NULL;
@@ -197,6 +202,7 @@ int __fastcall readOggMetadataHook(CPlayer *pThis, void *EDX);
 BOOL __cdecl openMyGamesHook(char *outPath);
 int __cdecl SNDgetPlayLevelHook(int a1);
 int __cdecl PadUpdateDeviceHook();
+void __cdecl setAreaParamsHook(int areaId, short params[24]);
 
 void gameInit() {
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
@@ -206,6 +212,8 @@ void gameInit() {
   in.seekg(0, std::ios::beg);
   in.read(&stringReplacementTable[0], stringReplacementTable.size());
   in.close();
+
+  globalTextReplacementsInit();
 
   gameExeTextureLoadInit1 = sigScan("game", "textureLoadInit1");
   gameExeTextureLoadInit2 = sigScan("game", "textureLoadInit2");
@@ -302,14 +310,22 @@ void gameInit() {
   if (config["gamedef"]["signatures"]["game"].count("useOfMpkObjects") == 1)
     gameExeMpkObjects = (mpkObject *)sigScan("game", "useOfMpkObjects");
 
-  gameExeControllerGuid = sigScan("game", "useOfControllerGuid");
-  if (gameExeControllerGuid != NULL) {  // signatures present
-    scanCreateEnableHook(
-        "game", "PadUpdateDevice", (uintptr_t *)&gameExePadUpdateDevice,
-        (LPVOID)PadUpdateDeviceHook, (LPVOID *)&gameExePadUpdateDeviceReal);
+  if (config["patch"].value<bool>("disableUnconfiguredControllers", true)) {
+    gameExeControllerGuid = sigScan("game", "useOfControllerGuid");
+    if (gameExeControllerGuid != NULL) {  // signatures present
+      scanCreateEnableHook(
+          "game", "PadUpdateDevice", (uintptr_t *)&gameExePadUpdateDevice,
+          (LPVOID)PadUpdateDeviceHook, (LPVOID *)&gameExePadUpdateDeviceReal);
+    }
   }
 
   binkModInit();
+
+  if (config["patch"].count("overrideAreaParams")) {
+    scanCreateEnableHook(
+        "game", "setAreaParams", (uintptr_t *)&gameExeSetAreaParams,
+        (LPVOID)setAreaParamsHook, (LPVOID *)&gameExeSetAreaParamsReal);
+  }
 }
 
 // earlyInit is called after all the subsystems have been initialised but before
@@ -319,22 +335,26 @@ void gameInit() {
 int __cdecl earlyInitHook(int unk0, int unk1) {
   int retval = gameExeEarlyInitReal(unk0, unk1);
 
-  std::string lbDir =
-      WideTo8BitPath(GetGameDirectoryPath() + L"\\languagebarrier");
+  try {
+    std::string lbDir =
+        WideTo8BitPath(GetGameDirectoryPath() + L"\\languagebarrier");
 
-  c0dataMpk = gameMountMpk("C0DATA", lbDir.c_str(), "c0data.mpk");
-  LanguageBarrierLog("c0data.mpk mounted");
+    c0dataMpk = gameMountMpk("C0DATA", lbDir.c_str(), "c0data.mpk");
+    LanguageBarrierLog("c0data.mpk mounted");
 
-  if (!scanCreateEnableHook(
+    if (!scanCreateEnableHook(
           "game", "mpkFopenById", (uintptr_t *)&gameExeMpkFopenById,
           (LPVOID)&mpkFopenByIdHook, (LPVOID *)&gameExeMpkFopenByIdReal))
-    return retval;
+      return retval;
 
-  if (config["patch"]["redoDialogueWordwrap"].get<bool>() == true) {
-    dialogueWordwrapInit();
-  }
-  if (config["patch"]["hookText"].get<bool>() == true) {
-    gameTextInit();
+    if (config["patch"]["redoDialogueWordwrap"].get<bool>() == true) {
+      dialogueWordwrapInit();
+    }
+    if (config["patch"]["hookText"].get<bool>() == true) {
+      gameTextInit();
+    }
+  } catch (std::exception& e) {
+    MessageBoxA(NULL, e.what(), "LanguageBarrier exception", MB_ICONSTOP);
   }
 
   return retval;
@@ -381,6 +401,7 @@ int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, mpkObject *mpk,
 
 const char *__cdecl getStringFromScriptHook(int scriptId, int stringId) {
   int fileId = gameExeScriptIdsToFileIds[scriptId];
+  const char* result = gameExeGetStringFromScriptReal(scriptId, stringId);
   if (config["patch"].count("stringRedirection") == 1) {
     const json &targets = config["patch"]["stringRedirection"];
     std::string sFileId = std::to_string(fileId);
@@ -395,11 +416,11 @@ const char *__cdecl getStringFromScriptHook(int scriptId, int stringId) {
 
         uint32_t repId = targets[sFileId][sStringId].get<uint32_t>();
         uint32_t offset = ((uint32_t *)stringReplacementTable.c_str())[repId];
-        return &(stringReplacementTable.c_str()[offset]);
+        result = &(stringReplacementTable.c_str()[offset]);
       }
     }
   }
-  return gameExeGetStringFromScriptReal(scriptId, stringId);
+  return processTextReplacements(result, fileId, stringId);
 }
 
 int __fastcall closeAllSystemsHook(void *pThis, void *EDX) {
@@ -541,6 +562,22 @@ int __cdecl PadUpdateDeviceHook() {
   if (memcmp((void *)gameExeControllerGuid, emptyGUID, 0x28) == 0) return 0;
 
   return gameExePadUpdateDeviceReal();
+}
+
+void __cdecl setAreaParamsHook(int areaId, short data[24]) {
+  try {
+    const json& hooked = config["patch"]["overrideAreaParams"];
+    std::string key = std::to_string(areaId);
+    json::const_iterator it = hooked.find(key);
+    if (it != hooked.end()) {
+      std::vector<short> patchedData = it->get<std::vector<short>>();
+      gameExeSetAreaParamsReal(areaId, patchedData.data());
+      return;
+    }
+  } catch(std::exception&) {
+    // not an array of integers, just ignore it
+  }
+  gameExeSetAreaParamsReal(areaId, data);
 }
 
 // TODO: I probably shouldn't be writing these in assembly given it looks like
