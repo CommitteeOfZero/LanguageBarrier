@@ -37,6 +37,8 @@ static CloseAllSystemsProc gameExeCloseAllSystemsReal = NULL;
 typedef int(__cdecl *SghdGslPngLoadProc)(int textureId, void *png, int size);
 typedef int(__cdecl *Sg0GslPngLoadProc)(int textureId, void *png, int size,
                                         int unused0, int unused1);
+typedef int(__cdecl* RnGslPngLoadProc)(int textureId, void* png, int size,
+                                        int unused0);
 static uintptr_t gameExeGslPngload = NULL;
 
 typedef void(__cdecl *SetSamplerStateWrapperProc)(int sampler, int flags);
@@ -223,7 +225,10 @@ void gameInit() {
   gameExePCurrentBgm = sigScan("game", "useOfPCurrentBgm");
   gameExePLoopBgm = sigScan("game", "useOfPLoopBgm");
   gameExePShouldPlayBgm = sigScan("game", "useOfPShouldPlayBgm");
-  gameExeMpkConstructor = (MpkConstructorProc)sigScan("game", "mpkConstructor");
+
+  if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "mpk") {
+    gameExeMpkConstructor = (MpkConstructorProc)sigScan("game", "mpkConstructor");
+  }
 
   gameExeGetFlag = (GetFlagProc)sigScan("game", "getFlag");
   gameExeSetFlag = (SetFlagProc)sigScan("game", "setFlag");
@@ -249,11 +254,13 @@ void gameInit() {
   memoryManagementInit();
   scriptInit();
 
-  gameExePMgsD3D9State =
-      *((MgsD3D9State **)sigScan("game", "useOfMgsD3D9State"));
-  gameExePpD3D9Ex = *((IDirect3D9Ex ***)sigScan("game", "useOfD3D9Ex"));
-  gameExePPresentParameters =
-      *((D3DPRESENT_PARAMETERS **)sigScan("game", "useOfPresentParameters"));
+  if (config["gamedef"]["gameDxVersion"].get<std::string>() == "dx9") {
+    gameExePMgsD3D9State =
+        *((MgsD3D9State**)sigScan("game", "useOfMgsD3D9State"));
+    gameExePpD3D9Ex = *((IDirect3D9Ex***)sigScan("game", "useOfD3D9Ex"));
+    gameExePPresentParameters =
+        *((D3DPRESENT_PARAMETERS**)sigScan("game", "useOfPresentParameters"));
+  }
 
   if (config["patch"]["textureFiltering"].get<bool>() == true) {
     /*LanguageBarrierLog("Forcing bilinear filtering");
@@ -319,7 +326,9 @@ void gameInit() {
     }
   }
 
-  binkModInit();
+  if (config["gamedef"]["gameVideoMiddleware"].get<std::string>() == "bink") {
+    binkModInit();
+  }
 
   if (config["patch"].count("overrideAreaParams")) {
     scanCreateEnableHook(
@@ -339,13 +348,15 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
     std::string lbDir =
         WideTo8BitPath(GetGameDirectoryPath() + L"\\languagebarrier");
 
-    c0dataMpk = gameMountMpk("C0DATA", lbDir.c_str(), "c0data.mpk");
-    LanguageBarrierLog("c0data.mpk mounted");
+    if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "mpk") {
+      c0dataMpk = gameMountMpk("C0DATA", lbDir.c_str(), "c0data.mpk");
+      LanguageBarrierLog("c0data.mpk mounted");
 
-    if (!scanCreateEnableHook(
-          "game", "mpkFopenById", (uintptr_t *)&gameExeMpkFopenById,
-          (LPVOID)&mpkFopenByIdHook, (LPVOID *)&gameExeMpkFopenByIdReal))
-      return retval;
+      if (!scanCreateEnableHook(
+            "game", "mpkFopenById", (uintptr_t *)&gameExeMpkFopenById,
+            (LPVOID)&mpkFopenByIdHook, (LPVOID *)&gameExeMpkFopenByIdReal))
+        return retval;
+    }
 
     if (config["patch"]["redoDialogueWordwrap"].get<bool>() == true) {
       dialogueWordwrapInit();
@@ -588,6 +599,9 @@ void gameLoadTexture(uint16_t textureId, void *buffer, size_t sz) {
   } else if (config["gamedef"]["gslPngLoadVersion"].get<std::string>() ==
              "sg0") {
     ((Sg0GslPngLoadProc)gameExeGslPngload)(textureId, buffer, sz, 0, 0);
+  } else if (config["gamedef"]["gslPngLoadVersion"].get<std::string>() ==
+             "rn") {
+    ((RnGslPngLoadProc)gameExeGslPngload)(textureId, buffer, sz, 0);
   }
 }
 // returns an archive object
