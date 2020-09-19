@@ -38,7 +38,7 @@ typedef int(__cdecl *SghdGslPngLoadProc)(int textureId, void *png, int size);
 typedef int(__cdecl *Sg0GslPngLoadProc)(int textureId, void *png, int size,
                                         int unused0, int unused1);
 typedef int(__cdecl* RnGslPngLoadProc)(int textureId, void* png, int size,
-                                        int unused0);
+                                        float opacity);
 static uintptr_t gameExeGslPngload = NULL;
 
 typedef void(__cdecl *SetSamplerStateWrapperProc)(int sampler, int flags);
@@ -48,6 +48,12 @@ static SetSamplerStateWrapperProc gameExeSetSamplerStateWrapperReal = NULL;
 typedef FILE *(__cdecl *FopenProc)(const char *filename, const char *mode);
 static FopenProc gameExeClibFopen = NULL;
 static FopenProc gameExeClibFopenReal = NULL;
+
+typedef HANDLE (__cdecl* OpenFileProc)(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode,
+    LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition,
+    DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
+static OpenFileProc gameExeOpenFile = NULL;
+static OpenFileProc gameExeOpenFileReal = NULL;
 
 typedef BOOL(__cdecl *OpenMyGamesProc)(char *outPath);
 static OpenMyGamesProc gameExeOpenMyGames = NULL;  // = 0x48EE50 (C;C)
@@ -199,6 +205,9 @@ int __fastcall mpkFopenByIdHook(void *pThis, void *EDX, mpkObject *mpk,
 const char *__cdecl getStringFromScriptHook(int scriptId, int stringId);
 int __fastcall closeAllSystemsHook(void *pThis, void *EDX);
 FILE *__cdecl clibFopenHook(const char *filename, const char *mode);
+HANDLE __cdecl openFileHook(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode,
+    LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition,
+    DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
 void __cdecl setSamplerStateWrapperHook(int sampler, int flags);
 int __fastcall readOggMetadataHook(CPlayer *pThis, void *EDX);
 BOOL __cdecl openMyGamesHook(char *outPath);
@@ -250,6 +259,10 @@ void gameInit() {
                             (LPVOID)clibFopenHook,
                             (LPVOID *)&gameExeClibFopenReal))
     return;
+
+  scanCreateEnableHook("game", "openFile", (uintptr_t*)&gameExeOpenFile,
+      (LPVOID)openFileHook,
+      (LPVOID*)&gameExeOpenFileReal);
 
   memoryManagementInit();
   scriptInit();
@@ -480,6 +493,33 @@ FILE *clibFopenHook(const char *filename, const char *mode) {
   return gameExeClibFopenReal(filename, mode);
 }
 
+HANDLE openFileHook(
+    LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, 
+    LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition,
+    DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
+  const char* tmp = lpFileName;
+  if (strrchr(tmp, '\\')) tmp = strrchr(tmp, '\\') + 1;
+  if (strrchr(tmp, '/')) tmp = strrchr(tmp, '/') + 1;
+
+  if (config["patch"].count("physicalFileRedirection") == 1 &&
+      config["patch"]["physicalFileRedirection"].count(tmp) == 1) {
+      std::stringstream newPath;
+      newPath
+          << "languagebarrier\\"
+          << config["patch"]["physicalFileRedirection"][tmp].get<std::string>();
+
+      std::stringstream logstr;
+      logstr << "redirecting physical openFile " << tmp << " to " << newPath.str();
+      LanguageBarrierLog(logstr.str());
+
+      return gameExeOpenFileReal(newPath.str().c_str(), dwDesiredAccess, dwShareMode, lpSecurityAttributes,
+                                 dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+    }
+
+    return gameExeOpenFileReal(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes,
+                               dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+}
+
 void setSamplerStateWrapperHook(int sampler, int flags) {
   gameExeSetSamplerStateWrapperReal(sampler, flags);
   gameExePMgsD3D9State->device->SetSamplerState(sampler, D3DSAMP_MINFILTER,
@@ -601,7 +641,7 @@ void gameLoadTexture(uint16_t textureId, void *buffer, size_t sz) {
     ((Sg0GslPngLoadProc)gameExeGslPngload)(textureId, buffer, sz, 0, 0);
   } else if (config["gamedef"]["gslPngLoadVersion"].get<std::string>() ==
              "rn") {
-    ((RnGslPngLoadProc)gameExeGslPngload)(textureId, buffer, sz, 0);
+    ((RnGslPngLoadProc)gameExeGslPngload)(textureId, buffer, sz, 1.0f);
   }
 }
 // returns an archive object
