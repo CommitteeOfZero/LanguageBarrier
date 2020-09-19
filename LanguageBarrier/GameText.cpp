@@ -50,44 +50,45 @@ typedef struct __declspec(align(4)) {
   int displayHeight;
 } LinkMetrics_t;
 
-#define DEF_DIALOGUE_PAGE(name, size) \
-  typedef struct {                    \
-    int field_0;                      \
-    int field_4;                      \
-    int drawNextPageNow;              \
-    int pageLength;                   \
-    int field_10;                     \
-    char field_14;                    \
-    char field_15;                    \
-    char field_16;                    \
-    char field_17;                    \
-    int field_18;                     \
-    int field_1C;                     \
-    int field_20;                     \
-    int field_24;                     \
-    int field_28;                     \
-    int field_2C;                     \
-    int field_30;                     \
-    int field_34;                     \
-    int field_38;                     \
-    int fontNumber[size];             \
-    int charColor[size];              \
-    int charOutlineColor[size];       \
-    char glyphCol[size];              \
-    char glyphRow[size];              \
-    char glyphOrigWidth[size];        \
-    char glyphOrigHeight[size];       \
-    __int16 charDisplayX[size];       \
-    __int16 charDisplayY[size];       \
-    __int16 glyphDisplayWidth[size];  \
-    __int16 glyphDisplayHeight[size]; \
-    char field_BBBC[size];            \
-    int field_C38C[size];             \
-    char charDisplayOpacity[size];    \
-  } name;                             \
+#define DEF_DIALOGUE_PAGE(name, size, opacityType)  \
+  typedef struct {                                  \
+    int field_0;                                    \
+    int field_4;                                    \
+    int drawNextPageNow;                            \
+    int pageLength;                                 \
+    int field_10;                                   \
+    char field_14;                                  \
+    char field_15;                                  \
+    char field_16;                                  \
+    char field_17;                                  \
+    int field_18;                                   \
+    int field_1C;                                   \
+    int field_20;                                   \
+    int field_24;                                   \
+    int field_28;                                   \
+    int field_2C;                                   \
+    int field_30;                                   \
+    int field_34;                                   \
+    int field_38;                                   \
+    int fontNumber[size];                           \
+    int charColor[size];                            \
+    int charOutlineColor[size];                     \
+    char glyphCol[size];                            \
+    char glyphRow[size];                            \
+    char glyphOrigWidth[size];                      \
+    char glyphOrigHeight[size];                     \
+    __int16 charDisplayX[size];                     \
+    __int16 charDisplayY[size];                     \
+    __int16 glyphDisplayWidth[size];                \
+    __int16 glyphDisplayHeight[size];               \
+    char field_BBBC[size];                          \
+    int field_C38C[size];                           \
+    opacityType charDisplayOpacity[size];           \
+  } name;                                           \
   static name *gameExeDialoguePages_##name = NULL;
-DEF_DIALOGUE_PAGE(DialoguePage_t, 2000);
-DEF_DIALOGUE_PAGE(CCDialoguePage_t, 600);
+DEF_DIALOGUE_PAGE(DialoguePage_t, 2000, char);
+DEF_DIALOGUE_PAGE(CCDialoguePage_t, 600, char);
+DEF_DIALOGUE_PAGE(RNDialoguePage_t, 2200, __int16);
 
 typedef void(__cdecl *DrawDialogueProc)(int fontNumber, int pageNumber,
                                         int opacity, int xOffset, int yOffset);
@@ -332,6 +333,10 @@ void __cdecl ccDrawDialogueHook(int fontNumber, int pageNumber,
                                 uint32_t opacity, int xOffset, int yOffset);
 void __cdecl ccDrawDialogue2Hook(int fontNumber, int pageNumber,
                                  uint32_t opacity);
+void __cdecl rnDrawDialogueHook(int fontNumber, int pageNumber,
+                                 uint32_t opacity, int xOffset, int yOffset);
+void __cdecl rnDrawDialogue2Hook(int fontNumber, int pageNumber,
+                                 uint32_t opacity);
 int __cdecl dialogueLayoutRelatedHook(int unk0, int *unk1, int *unk2, int unk3,
                                       int unk4, int unk5, int unk6, int yOffset,
                                       int lineHeight);
@@ -498,6 +503,18 @@ void gameTextInit() {
       scanCreateEnableHook(
           "game", "drawDialogue2", (uintptr_t *)&gameExeDrawDialogue2,
           (LPVOID)ccDrawDialogue2Hook, (LPVOID *)&gameExeDrawDialogue2Real);
+    }
+  } else if (config["gamedef"].count("dialoguePageVersion") == 1 &&
+             config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
+    gameExeDialoguePages_RNDialoguePage_t =
+       (RNDialoguePage_t*)sigScan("game", "useOfDialoguePages");
+    if (IMPROVE_DIALOGUE_OUTLINES) {
+      scanCreateEnableHook(
+         "game", "drawDialogue", (uintptr_t*)&gameExeDrawDialogue,
+         (LPVOID)rnDrawDialogueHook, (LPVOID*)&gameExeDrawDialogueReal);
+      scanCreateEnableHook(
+         "game", "drawDialogue2", (uintptr_t*)&gameExeDrawDialogue2,
+         (LPVOID)rnDrawDialogue2Hook, (LPVOID*)&gameExeDrawDialogue2Real);
     }
   } else {
     gameExeDialoguePages_DialoguePage_t =
@@ -827,6 +844,7 @@ int __cdecl dialogueLayoutRelatedHook(int unk0, int *unk1, int *unk2, int unk3,
   }
 DEF_DRAW_DIALOGUE_HOOK(drawDialogueHook, DialoguePage_t);
 DEF_DRAW_DIALOGUE_HOOK(ccDrawDialogueHook, CCDialoguePage_t);
+DEF_DRAW_DIALOGUE_HOOK(rnDrawDialogueHook, RNDialoguePage_t);
 
 void __cdecl drawDialogue2Hook(int fontNumber, int pageNumber,
                                uint32_t opacity) {
@@ -836,6 +854,10 @@ void __cdecl drawDialogue2Hook(int fontNumber, int pageNumber,
 void __cdecl ccDrawDialogue2Hook(int fontNumber, int pageNumber,
                                  uint32_t opacity) {
   ccDrawDialogueHook(fontNumber, pageNumber, opacity, 0, 0);
+}
+void __cdecl rnDrawDialogue2Hook(int fontNumber, int pageNumber,
+                                 uint32_t opacity) {
+  rnDrawDialogueHook(fontNumber, pageNumber, opacity, 0, 0);
 }
 
 void semiTokeniseSc3String(char *sc3string, std::list<StringWord_t> &words,
