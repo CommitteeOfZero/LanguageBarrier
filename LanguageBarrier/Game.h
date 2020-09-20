@@ -16,6 +16,12 @@ struct mpkObject {
   char gap10[919];
   char field_C;
 };
+
+struct mgsVFSObject {
+  char gap0[8];
+  char archiveName[16];
+  char gap1[10664];
+};
 #pragma pack(pop)
 
 typedef BOOL(__cdecl* GetFlagProc)(int flagId);
@@ -28,6 +34,7 @@ LB_GLOBAL uint32_t BGM_CLEAR;
 LB_GLOBAL uint8_t MPK_ID_SCRIPT_MPK;
 LB_GLOBAL uint8_t MPK_ID_BGM_MPK;
 LB_GLOBAL uint8_t AUDIO_PLAYER_ID_BGM1;
+LB_GLOBAL uint32_t C0DATA_MOUNT_ID;
 
 GAME_H_IMPORT GetFlagProc gameExeGetFlag;
 GAME_H_IMPORT SetFlagProc gameExeSetFlag;
