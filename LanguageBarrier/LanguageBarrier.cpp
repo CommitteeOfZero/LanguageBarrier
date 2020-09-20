@@ -108,6 +108,7 @@ void loadJsonConstants() {
   MPK_ID_SCRIPT_MPK = config["gamedef"]["mpkIdScriptMpk"].get<uint8_t>();
   MPK_ID_BGM_MPK = config["gamedef"]["mpkIdBgmMpk"].get<uint8_t>();
   AUDIO_PLAYER_ID_BGM1 = config["gamedef"]["audioPlayerIdBgm1"].get<uint8_t>();
+  C0DATA_MOUNT_ID = 15;
 
   // GameText.h
   FIRST_FONT_ID = config["gamedef"]["firstFontId"].get<uint8_t>();

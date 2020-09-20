@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30413.136
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LanguageBarrier", "LanguageBarrier\LanguageBarrier.vcxproj", "{EB407818-EE6D-4CE0-8F39-E81B95D63034}"
 EndProject
@@ -11,12 +11,15 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{EB407818-EE6D-4CE0-8F39-E81B95D63034}.Debug|x86.ActiveCfg = dinput8-Debug|Win32
-		{EB407818-EE6D-4CE0-8F39-E81B95D63034}.Debug|x86.Build.0 = dinput8-Debug|Win32
-		{EB407818-EE6D-4CE0-8F39-E81B95D63034}.Release|x86.ActiveCfg = dinput8-Release|Win32
-		{EB407818-EE6D-4CE0-8F39-E81B95D63034}.Release|x86.Build.0 = dinput8-Release|Win32
+		{EB407818-EE6D-4CE0-8F39-E81B95D63034}.Debug|x86.ActiveCfg = Debug|Win32
+		{EB407818-EE6D-4CE0-8F39-E81B95D63034}.Debug|x86.Build.0 = Debug|Win32
+		{EB407818-EE6D-4CE0-8F39-E81B95D63034}.Release|x86.ActiveCfg = Release|Win32
+		{EB407818-EE6D-4CE0-8F39-E81B95D63034}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B1A512A4-C3F1-4B48-A664-0F923F328257}
 	EndGlobalSection
 EndGlobal
