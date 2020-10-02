@@ -27,7 +27,7 @@ TextRendering::TextRendering()
 	char charset[16000];
 	fread(charset, 8895, 1, f);
 	wchar_t charset16[8895];
-	auto b = MultiByteToWideChar(CP_UTF8, 0, charset, -1, charset16, 16000);
+	auto b = MultiByteToWideChar(CP_UTF8, 0, charset, -1, charset16, 8895);
 	charMap = std::wstring(charset16);
 }
 
