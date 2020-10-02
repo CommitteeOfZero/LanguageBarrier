@@ -27,14 +27,14 @@ typedef const char* (__cdecl* GetStringFromScriptProc)(int scriptId,
 static GetStringFromScriptProc gameExeGetStringFromScript = NULL;
 static GetStringFromScriptProc gameExeGetStringFromScriptReal = NULL;
 
-typedef void(__thiscall* MpkConstructorProc)(void* pThis);
+typedef void(__thiscall *MpkConstructorProc)(void *pThis);
 static MpkConstructorProc gameExeMpkConstructor = NULL;
 
-typedef int(__cdecl* MountArchiveProc)(int id, const char* mountPoint,
-	const char* archiveName, int unk01);
+typedef int(__cdecl *MountArchiveProc)(int id, const char* mountPoint,
+                                       const char* archiveName, int unk01);
 static MountArchiveProc gameExeMountArchive = NULL;
 
-typedef int(__thiscall* CloseAllSystemsProc)(void* pThis);
+typedef int(__thiscall *CloseAllSystemsProc)(void *pThis);
 static CloseAllSystemsProc gameExeCloseAllSystems = NULL;
 static CloseAllSystemsProc gameExeCloseAllSystemsReal = NULL;
 
@@ -193,13 +193,13 @@ struct mgsFileHandle {
 };
 
 struct mgsFileLoader {
-	uint32_t unk01;
-	uint32_t unk02;
-	uint32_t fileId;
-	uint32_t unk03;
-	char fileName[64];
-	char gap0[228];
-	mgsVFSObject* vfsObject;
+  uint32_t unk01;
+  uint32_t unk02;
+  uint32_t fileId;
+  uint32_t unk03;
+  char fileName[64];
+  char gap0[228];
+  mgsVFSObject* vfsObject;
 };
 #pragma pack(pop)
 
@@ -343,6 +343,8 @@ namespace lb {
 
 		if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "mpk") {
 			gameExeMpkConstructor = (MpkConstructorProc)sigScan("game", "mpkConstructor");
+  } else if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "cri") {
+    gameExeMountArchive = (MountArchiveProc)sigScan("game", "mountArchive");
 		}
 		else if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "cri") {
 			gameExeMountArchive = (MountArchiveProc)sigScan("game", "mountArchive");
@@ -502,6 +504,17 @@ namespace lb {
 				if (!scanCreateEnableHook(
 					"game", "mpkFopenById", (uintptr_t*)&gameExeMpkFopenById,
 					(LPVOID)&mpkFopenByIdHook, (LPVOID*)&gameExeMpkFopenByIdReal))
+        return retval;
+    } else if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "cri") {
+      // 15 is just a random ID, let's hope it won't ever get used
+      int ret = gameExeMountArchive(C0DATA_MOUNT_ID, "C0DATA", "languagebarrier\\C0DATA", 0);
+      LanguageBarrierLog("c0data mounted");
+
+      c0dataCpk = &gameExeFileObjects[C0DATA_MOUNT_ID];
+
+      if (!scanCreateEnableHook(
+            "game", "mgsFileOpen", (uintptr_t*)&gameExeMgsFileOpen,
+            (LPVOID)&mgsFileOpenHook, (LPVOID*)&gameExeMgsFileOpenReal))
 					return retval;
 			}
 			else if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "cri") {
