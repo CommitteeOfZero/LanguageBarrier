@@ -91,18 +91,16 @@ typedef struct {
 } MgsMoviePlayerObj_t;
 
 typedef struct {
-  bool playing = false;
   uint32_t lastFrameNum = 0;
   bool keepLastFrame = false;
   double time = 0;
+  ID3D11Texture2D* stagingTexture = NULL;
   csri_inst* csri = NULL;
 } CriManaModState_t;
 
 static std::unordered_map<MgsMoviePlayerObj_t*, CriManaModState_t*> stateMap;
 
-static __m128i MaskFF000000 = _mm_set1_epi32(0xFF000000);
 uint32_t RENDER_TARGET_SURF_ID = 199;
-uint32_t SUBS_LAYER_SURF_ID = 312;
 
 typedef int(__thiscall* MgsMovieCPlayerPlayProc)(MgsMoviePlayerObj_t* pThis, int a2, int a3,
                                                  char* movieFileName);
@@ -117,37 +115,16 @@ typedef int(__thiscall* MgsMovieCPlayerRenderProc)(MgsMoviePlayerObj_t* pThis);
 static MgsMovieCPlayerRenderProc gameExeMgsMovieCPlayerRender = NULL;
 static MgsMovieCPlayerRenderProc gameExeMgsMovieCPlayerRenderReal = NULL;
 
-typedef int (__cdecl* GslCreateSurfProc)(int id, int width, int height, int format);
-static GslCreateSurfProc gameExeGslCreateSurface = NULL;
-static GslCreateSurfProc gameExeGslCreateSurfaceReal = NULL;
-
-typedef int (__cdecl* GslDrawSpriteProc)(int textureId, float spriteX,
-                                         float spriteY, float spriteWidth,
-                                         float spriteHeight, float displayX,
-                                         float displayY, int color, int opacity,
-                                         int shaderId);
-static GslDrawSpriteProc gameExeGslDrawSprite = NULL;
-static GslDrawSpriteProc gameExeGslDrawSpriteReal = NULL;
-
 typedef int(__cdecl* DrawMovieFrameProc)(int tint, int opacity);
 static DrawMovieFrameProc gameExeDrawMovieFrame = NULL;
 static DrawMovieFrameProc gameExeDrawMovieFrameReal = NULL;
 
-typedef int(__cdecl* gslFillHookProc)(int id, int a1, int a2, int a3, int a4, int r, int g, int b, int a);
-static gslFillHookProc gameExegslFill = NULL;
-static gslFillHookProc gameExegslFillReal = NULL;
-
 namespace lb {
-int __cdecl gslCreateSurfaceHook(int id, int width, int height, int format);
-int __cdecl gslDrawSpriteHook(int textureId, float spriteX, float spriteY,
-                      float spriteWidth, float spriteHeight, float displayX,
-                      float displayY, int color, int opacity, int shaderId);
 int __fastcall mgsMovieCPlayerPlayHook(MgsMoviePlayerObj_t* pThis, void* dummy, int a2,
                                        int a3, char* movieFileName);
 int __fastcall mgsMovieCPlayerStopHook(MgsMoviePlayerObj_t* pThis);
 int __fastcall mgsMovieCPlayerRenderHook(MgsMoviePlayerObj_t* pThis);
 int __cdecl drawMovieFrameHook(int tint, int opacity);
-int __cdecl gslFillHook(int id, int a1, int a2, int a3, int a4, int r, int g, int b, int a);
 
 bool criManaModInit() {
   if (config["patch"].count("fmv") != 1) {
@@ -165,18 +142,9 @@ bool criManaModInit() {
       !scanCreateEnableHook("game", "mgsMovieCPlayerRender", (uintptr_t*)&gameExeMgsMovieCPlayerRender,
                             (LPVOID)&mgsMovieCPlayerRenderHook,
                             (LPVOID*)&gameExeMgsMovieCPlayerRenderReal) ||
-      !scanCreateEnableHook("game", "gslCreateSurface", (uintptr_t*)&gameExeGslCreateSurface,
-                            (LPVOID)&gslCreateSurfaceHook,
-                            (LPVOID*)&gameExeGslCreateSurfaceReal) ||
-      !scanCreateEnableHook("game", "gslDrawSprite", (uintptr_t*)&gameExeGslDrawSprite,
-                            (LPVOID)&gslDrawSpriteHook,
-                            (LPVOID*)&gameExeGslDrawSpriteReal) ||
       !scanCreateEnableHook("game", "drawMovieFrame", (uintptr_t*)&gameExeDrawMovieFrame,
                             (LPVOID)&drawMovieFrameHook,
-                            (LPVOID*)&gameExeDrawMovieFrameReal) ||
-      !scanCreateEnableHook("game", "gslFill", (uintptr_t*)&gameExegslFill,
-                            (LPVOID)&gslFillHook,
-                            (LPVOID*)&gameExegslFillReal))
+                            (LPVOID*)&gameExeDrawMovieFrameReal))
     return false;
 
   if (config["patch"]["fmv"].count("fonts") == 1) {
@@ -195,76 +163,30 @@ int __cdecl drawMovieFrameHook(int tint, int opacity) {
   int ret = gameExeDrawMovieFrameReal(tint, opacity);
 
   for (const auto& kv : stateMap) {
-    if (kv.second->playing) {
-      if (!kv.second->keepLastFrame) {      
-        DirectX::ScratchImage image;
-        HRESULT hr = CaptureTexture(gameExePMgsD3D11State->pid3d11deviceC, gameExePMgsD3D11State->pid3d11devicecontext18, surfaceArray[RENDER_TARGET_SURF_ID].texPtr[0], image);
-        
-        if (surfaceArray[SUBS_LAYER_SURF_ID].texPtr[0]) {
-            surfaceArray[SUBS_LAYER_SURF_ID].shaderRscView->Release();
-            surfaceArray[SUBS_LAYER_SURF_ID].texPtr[0]->Release();
-        }
-        
-        auto state = stateMap.begin()->second;
-        uint8_t* imagePtr = image.GetPixels();
-        csri_frame frame;
-        frame.planes[0] = imagePtr;
-        frame.strides[0] = image.GetImages()[0].rowPitch;
-        frame.pixfmt = CSRI_F_BGR_;
-        csri_fmt format = { frame.pixfmt, image.GetMetadata().width, image.GetMetadata().height };
-        if (csri_request_fmt(state->csri, &format) == 0) {
-            csri_render(state->csri, &frame, state->time);
-        }
-        
-        // xy-VSFilter apparently doesn't support drawing onto BGRA directly and will
-        // set the alpha of everything it touches to 0. So let's just pretend
-        // everything's opaque and set it to FF. (Note it does alpha-blend onto the
-        // BGR32 background though). We could save video alpha and reapply it, but we
-        // don't need that for now since all our videos are 100% opaque.
-        size_t i, imax;
-        for (i = 0, imax = image.GetMetadata().width * image.GetMetadata().height; i < imax; i += 4) {
-            __m128i* vec = (__m128i*)((uint32_t*)image.GetPixels() + i);
-            *vec = _mm_or_si128(*vec, MaskFF000000);
-        }
-        for (; i < imax; i++) {
-            ((uint32_t*)imagePtr)[i] |= 0xFF000000;
-        }
-        
-        D3D11_SHADER_RESOURCE_VIEW_DESC rscViewDesc;
-        memset(&rscViewDesc, 0, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
-        auto result = DirectX::CreateTexture(gameExePMgsD3D11State->pid3d11deviceC, image.GetImages(),
-            image.GetImageCount(), image.GetMetadata(),
-            (ID3D11Resource**)&surfaceArray[SUBS_LAYER_SURF_ID].texPtr[0]);
-        rscViewDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-        rscViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        rscViewDesc.Buffer.NumElements = 1;
-        rscViewDesc.Texture2D.MipLevels = image.GetMetadata().mipLevels;
-        result = gameExePMgsD3D11State->pid3d11deviceC->
-            CreateShaderResourceView(surfaceArray[SUBS_LAYER_SURF_ID].texPtr[0],
-                &rscViewDesc, &surfaceArray[SUBS_LAYER_SURF_ID].shaderRscView);
+    auto state = kv.second;
+    if (!state->keepLastFrame) {      
+      gameExePMgsD3D11State->pid3d11devicecontext18->CopyResource(state->stagingTexture, surfaceArray[RENDER_TARGET_SURF_ID].texPtr[0]);
+      
+      D3D11_MAPPED_SUBRESOURCE rsc;
+      memset(&rsc, 0, sizeof(D3D11_MAPPED_SUBRESOURCE));
+      gameExePMgsD3D11State->pid3d11devicecontext18->Map(state->stagingTexture, 0, D3D11_MAP_READ_WRITE, 0, &rsc);
+      
+      uint8_t* imagePtr = (uint8_t*)rsc.pData;
+      csri_frame frame;
+      frame.planes[0] = imagePtr;
+      frame.strides[0] = rsc.RowPitch;
+      frame.pixfmt = CSRI_F_BGR_;
+      csri_fmt format = { frame.pixfmt, surfaceArray[RENDER_TARGET_SURF_ID].width, surfaceArray[RENDER_TARGET_SURF_ID].height };
+      if (csri_request_fmt(state->csri, &format) == 0) {
+          csri_render(state->csri, &frame, state->time);
       }
-
-      gslDrawSpriteHook(SUBS_LAYER_SURF_ID, 0.0f, 0.0f, 1920.0f, 1080.0f, 0.0f, 0.0f, 0xFFFFFF, 256, 1);
+      
+      gameExePMgsD3D11State->pid3d11devicecontext18->Unmap(state->stagingTexture, 0);
+      gameExePMgsD3D11State->pid3d11devicecontext18->CopyResource(surfaceArray[RENDER_TARGET_SURF_ID].texPtr[0], state->stagingTexture);
     }
   }
 
   return ret;
-}
-
-int gslCreateSurfaceHook(int id, int width, int height, int format) {
-  return gameExeGslCreateSurfaceReal(id, width, height, format);
-}
-
-int gslDrawSpriteHook(int textureId, float spriteX, float spriteY,
-                      float spriteWidth, float spriteHeight, float displayX,
-                      float displayY, int color, int opacity, int shaderId) {
-  return gameExeGslDrawSpriteReal(textureId, spriteX, spriteY, spriteWidth,
-                                  spriteHeight, displayX, displayY, color, opacity,
-                                  shaderId);
-}
-
-int __cdecl gslFillHook(int id, int a1, int a2, int a3, int a4, int r, int g, int b, int a) {
-  return gameExegslFillReal(id, a1, a2, a3, a4, r, g, b, a);
 }
 
 int __fastcall mgsMovieCPlayerPlayHook(MgsMoviePlayerObj_t* pThis, void* dummy, int a2,
@@ -293,12 +215,17 @@ int __fastcall mgsMovieCPlayerPlayHook(MgsMoviePlayerObj_t* pThis, void* dummy, 
       CriManaModState_t* state = new CriManaModState_t;
       stateMap.emplace(pThis, state);
 
-      gslCreateSurfaceHook(SUBS_LAYER_SURF_ID, 1920, 1080, 32);
-      gslFillHook(SUBS_LAYER_SURF_ID, 0, 0, 0, 0, 0, 0, 0, 255);
+      D3D11_TEXTURE2D_DESC desc;
+      memset(&desc, 0, sizeof(D3D11_TEXTURE2D_DESC));
+      surfaceArray[RENDER_TARGET_SURF_ID].texPtr[0]->GetDesc(&desc);
+      desc.Usage = D3D11_USAGE_STAGING;
+      desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
+      desc.BindFlags = 0;
+
+      gameExePMgsD3D11State->pid3d11deviceC->CreateTexture2D(&desc, 0, &state->stagingTexture);
 
       state->csri =
           csri_open_mem(csri_renderer_default(), &sub[0], sub.size(), NULL);
-      state->playing = true;
     }
     in.close();
   }
@@ -313,6 +240,9 @@ int __fastcall mgsMovieCPlayerStopHook(MgsMoviePlayerObj_t* pThis) {
 
   if (state->csri) {
       csri_close(state->csri);
+  }
+  if (state->stagingTexture) {
+      state->stagingTexture->Release();
   }
   delete state;
   stateMap.erase(pThis);

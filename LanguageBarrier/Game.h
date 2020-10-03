@@ -68,8 +68,8 @@ struct __declspec(align(4)) SurfaceStruct
   signed int field_2C;
   signed int field_30;
   signed int field_34;
-  UINT field_38;
-  UINT field_3C;
+  UINT width;
+  UINT height;
   int field_40;
   int field_44;
   float field_48;
