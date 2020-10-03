@@ -476,7 +476,6 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
       gameExePMgsD3D11State =
         (**(MgsD3D11State***)sigScan("game", "useOfMgsD3D11State"));
     }
-    gameExeScrWork = (int*)sigScan("game", "useOfScrWork");
 
     //	gameLoadTexture(400, FreeType::Instance().texture.GetBufferPointer(), FreeType::Instance().texture.GetBufferSize());
     //	gameLoadTexture(401, FreeType::Instance().texture2.GetBufferPointer(), FreeType::Instance().texture2.GetBufferSize());

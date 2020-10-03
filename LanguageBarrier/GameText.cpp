@@ -771,11 +771,11 @@ namespace lb {
       dialogueLayoutWidthLookup2Hook, NULL);
     gameExeDialogueLayoutWidthLookup2Return = (uintptr_t)(
       (uint8_t*)gameExeDialogueLayoutWidthLookup2 + lookup2retoffset);
-    scanCreateEnableHook("game", "dialogueLayoutWidthLookup3",
-      &gameExeDialogueLayoutWidthLookup3,
-      dialogueLayoutWidthLookup3Hook, NULL);
-    gameExeDialogueLayoutWidthLookup3Return = (uintptr_t)(
-      (uint8_t*)gameExeDialogueLayoutWidthLookup3 + lookup3retoffset);
+    //scanCreateEnableHook("game", "dialogueLayoutWidthLookup3",
+    //  &gameExeDialogueLayoutWidthLookup3,
+    //  dialogueLayoutWidthLookup3Hook, NULL);
+    //gameExeDialogueLayoutWidthLookup3Return = (uintptr_t)(
+    //  (uint8_t*)gameExeDialogueLayoutWidthLookup3 + lookup3retoffset);
     if (signatures.count("tipsListWidthLookup") == 1) {
       configretoffset = signatures["tipsListWidthLookup"].value<int>("return", 0);
       if (configretoffset)

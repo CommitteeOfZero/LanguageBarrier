@@ -15,200 +15,39 @@
 #define RANDOM_PREFIX lb_speexdsp_
 #include "contrib/speexdsp/speex_resampler.h"
 
-static CSurface* gameExeCSurfaceObjects = NULL;
-
-typedef unsigned char CriUint8;
-typedef signed char CriSint8;
-typedef unsigned short CriUint16;
-typedef signed short CriSint16;
-typedef unsigned long CriUint32;
-typedef signed long CriSint32;
-typedef unsigned __int64 CriUint64;
-typedef signed __int64 CriSint64;
 typedef struct {
-    CriUint64	h;						
-    CriUint64	l;						
-} CriUint128;
-typedef struct {
-    CriSint64	h;						
-    CriUint64	l;						
-} CriSint128;
-typedef signed short CriFloat16;
-typedef float CriFloat32;
-typedef double CriFloat64;
-typedef signed long	CriFixed32;
-typedef CriSint32 CriBool;
-typedef char CriChar8;
-
-typedef enum {
-  CRIMANA_AUDIO_CODEC_UNKNOWN = 0,
-  CRIMANA_AUDIO_CODEC_ADX = 2,
-  CRIMANA_AUDIO_CODEC_HCA = 4,
-  CRIMANA_AUDIO_CODEC_ENUM_SIZE_IS_4BYTES = 0x7FFFFFFF
-} CriManaAudioCodecType;
-
-typedef enum {
-  CRIMANA_COMPO_OPAQ = 0,
-  CRIMANA_COMPO_ALPHFULL = 1,
-  CRIMANA_COMPO_ALPH3STEP = 2,
-  CRIMANA_COMPO_ALPH32BIT = 3,
-  CRIMANA_COMPO_ALPH1BIT = 4,
-  CRIMANA_COMPO_ALPH2BIT = 5,
-  CRIMANA_COMPO_ALPH3BIT = 6,
-  CRIMANA_COMPO_ALPH4BIT = 7,
-  CRIMANA_COMPO_ENUM_SIZE_IS_4BYTES = 0x7FFFFFFF
-} CriManaAlphaType;
-
-typedef enum {
-  CRIMANA_REFER_RESULT_OK = 0,
-  CRIMANA_REFER_RESULT_SHORT_INPUT = 1,
-  CRIMANA_REFER_RESULT_SHORT_CPUTIME = 2,
-  CRIMANA_REFER_RESULT_NO_MORE_KEEP = 3,
-  CRIMANA_REFER_RESULT_ENUM_SIZE_IS_4BYTES = 0x7FFFFFFF
-} CriManaReferFrameResult;
-
-typedef enum {
-  CRIMANA_COLORSPACE_CONVERSION_TYPE_ITU_R_BT601_LIMITED = 0,
-  CRIMANA_COLORSPACE_CONVERSION_TYPE_ITU_R_BT601_FULLRANGE = 1,
-  CRIMANA_COLORSPACE_CONVERSION_TYPE_ENUM_SIZE_IS_4BYTES = 0x7FFFFFFF
-} CriManaColorSpaceConversionType;
-
-typedef enum {
-  CRIMANA_VIDEO_CODEC_UNKNOWN = 0,
-  CRIMANA_VIDEO_CODEC_SOFDEC_PRIME = 1,
-  CRIMANA_VIDEO_CODEC_H264 = 5,
-  CRIMANA_VIDEO_CODEC_VP9 = 9,
-  CRIMANA_VIDEO_CODEC_ENUM_SIZE_IS_4BYTES = 0x7FFFFFFF
-} CriManaVideoCodecType;
-
-typedef struct {
-  CriUint8* imageptr;
-  CriUint32 bufsize;
-  CriUint32 line_pitch;
-  CriUint32 line_size;
-  CriUint32 num_lines;
+  uint8_t* imageptr;
+  uint32_t bufsize;
+  uint32_t line_pitch;
+  uint32_t line_size;
+  uint32_t num_lines;
 } CriManaImageBufferInfo;
 
-int piece_of_crap = 1280;
-
 typedef struct {
-  CriSint32 frame_no;
-  CriSint32 frame_no_per_file;
-  CriUint32 width;
-  CriUint32 height;
-  CriUint32 disp_width;
-  CriUint32 disp_height;
-  CriUint32 framerate;
-  CriUint32 framerate_n;
-  CriUint32 framerate_d;
-  CriUint32 total_frames_per_file;
-  CriUint64 time;
-  CriUint64 time_per_file;
-  CriUint64 tunit;
-  CriUint32 cnt_concatenated_movie;
-  CriSint32 num_images;
+  int32_t frame_no;
+  int32_t frame_no_per_file;
+  uint32_t width;
+  uint32_t height;
+  uint32_t disp_width;
+  uint32_t disp_height;
+  uint32_t framerate;
+  uint32_t framerate_n;
+  uint32_t framerate_d;
+  uint32_t total_frames_per_file;
+  uint64_t time;
+  uint64_t time_per_file;
+  uint64_t tunit;
+  uint32_t cnt_concatenated_movie;
+  int32_t num_images;
   CriManaImageBufferInfo image_info[4];
-  CriBool csc_flag;
-  CriManaAlphaType alpha_type;
-  CriManaReferFrameResult ref_result;
+  int32_t csc_flag;
+  uint32_t alpha_type;
+  uint32_t ref_result;
   void* details_ptr[2];
-  CriManaColorSpaceConversionType color_conv;
-  CriUint32 cnt_skipped_frames;
-  CriUint32 reserved[1];
+  uint32_t color_conv;
+  uint32_t cnt_skipped_frames;
+  uint32_t reserved[1];
 } CriManaFrameInfo;
-
-typedef struct {
-  CriUint32 width;
-  CriUint32 height;
-  CriUint32 disp_width;
-  CriUint32 disp_height;
-  CriUint32 framerate;
-  CriUint32 framerate_n;
-  CriUint32 framerate_d;
-  CriUint32 total_frames;
-  CriUint32 material_width;
-  CriUint32 material_height;
-  CriManaVideoCodecType codec_type;
-  CriManaColorSpaceConversionType color_conv;
-  CriSint32 max_picture_size;
-  CriSint32 average_bitrate;
-} CriManaVideoInfo;
-
-typedef struct {
-  CriUint32 width;
-  CriUint32 height;
-  CriUint32 disp_width;
-  CriUint32 disp_height;
-  CriUint32 framerate;
-  CriUint32 framerate_n;
-  CriUint32 framerate_d;
-  CriUint32 total_frames;
-  CriManaAlphaType alpha_type;
-  CriManaVideoCodecType codec_type;
-  CriManaColorSpaceConversionType color_conv;
-  CriSint32 max_picture_size;
-  CriSint32 average_bitrate;
-} CriManaAlphaInfo;
-
-typedef struct {
-  CriManaAudioCodecType codec_type;
-  CriUint32 sampling_rate;
-  CriUint32 num_channels;
-  CriUint32 total_samples;
-  CriUint32 output_buffer_samples;
-  CriUint8 ambisonics;
-} CriManaAudioInfo;
-
-typedef struct {
-  CriUint32 is_playable;
-  CriUint32 average_bitrate;
-  CriUint32 max_chunk_size;
-  CriUint32 min_buffer_size;
-  CriUint32 num_video_streams;
-  CriManaVideoInfo video_prm[1];
-  CriUint32 num_audio_streams;
-  CriManaAudioInfo audio_prm[32];
-  CriUint32 num_subtitle_channels;
-  CriUint32 max_subtitle_size;
-  CriUint32 num_alpha_streams;
-  CriManaAlphaInfo alpha_prm[1];
-  CriBool seekinfo_flag;
-  CriUint32 format_ver;
-} CriManaMovieInfo;
-
-typedef struct {
-  char gap_0[16];
-  int field_10;
-  char gap_14[16];
-  int field_24;
-  int field_28;
-  char gap_2C[4];
-  int* CriMvEasyPlayer;
-  char gap_34[4];
-  int field_38;
-  char gap_3C[12];
-  int field_48;
-  int field_4C;
-  char gap_50[4];
-  int field_54;
-  char gap_58[20];
-  int field_6C;
-  char gap_70[48];
-  int field_A0;
-  int field_A4;
-  int field_A8;
-  char gap_AC[24];
-  int paused;
-  int field_C8;
-  char gap_CC[152];
-  int field_164;
-  int field_168;
-  char gap_16C[4];
-  int field_170;
-  char gap_174[4];
-  int num_frames_keep;
-  char gap_17C[184];
-} CriManaPlayerObj_t;
 
 typedef struct {
   signed int field_0;
@@ -244,23 +83,17 @@ typedef struct {
   int field_C50;
   char gap_C54[124];
   int field_CD0;
-  CriManaPlayerObj_t* criManaPlayer;
+  void* criManaPlayer;
   int criManaPlayerStatus;
   char gap_CDC[4];
   CriManaFrameInfo criManaFrameInfo;
-  CriManaMovieInfo criManaMovieInfo;
-  char gap_D9C[2100];
+  char gap_D9C[3020];
 } MgsMoviePlayerObj_t;
-
-static const size_t alignment =
-    32;  // for fast memcpy, sizeof __m256, dunno if this *actually* matters but
-         // since we only use it for giant framebuffers, might as well
 
 typedef struct {
   bool playing = false;
-  uint32_t destwidth = 0;
-  uint32_t destheight = 0;
   uint32_t lastFrameNum = 0;
+  bool keepLastFrame = false;
   double time = 0;
   csri_inst* csri = NULL;
 } CriManaModState_t;
@@ -268,17 +101,19 @@ typedef struct {
 static std::unordered_map<MgsMoviePlayerObj_t*, CriManaModState_t*> stateMap;
 
 static __m128i MaskFF000000 = _mm_set1_epi32(0xFF000000);
+uint32_t RENDER_TARGET_SURF_ID = 199;
+uint32_t SUBS_LAYER_SURF_ID = 312;
 
-// video insertion
-
-static char** videoNameTable;
-
-typedef int(__thiscall* MgsMovieCPlayerPlayProc)(void* pThis, int a2, int a3, 
+typedef int(__thiscall* MgsMovieCPlayerPlayProc)(MgsMoviePlayerObj_t* pThis, int a2, int a3,
                                                  char* movieFileName);
 static MgsMovieCPlayerPlayProc gameExeMgsMovieCPlayerPlay = NULL;
 static MgsMovieCPlayerPlayProc gameExeMgsMovieCPlayerPlayReal = NULL;
 
-typedef int(__thiscall* MgsMovieCPlayerRenderProc)(void* pThis);
+typedef int(__thiscall* MgsMovieCPlayerStopProc)(MgsMoviePlayerObj_t* pThis);
+static MgsMovieCPlayerStopProc gameExeMgsMovieCPlayerStop = NULL;
+static MgsMovieCPlayerStopProc gameExeMgsMovieCPlayerStopReal = NULL;
+
+typedef int(__thiscall* MgsMovieCPlayerRenderProc)(MgsMoviePlayerObj_t* pThis);
 static MgsMovieCPlayerRenderProc gameExeMgsMovieCPlayerRender = NULL;
 static MgsMovieCPlayerRenderProc gameExeMgsMovieCPlayerRenderReal = NULL;
 
@@ -294,9 +129,9 @@ typedef int (__cdecl* GslDrawSpriteProc)(int textureId, float spriteX,
 static GslDrawSpriteProc gameExeGslDrawSprite = NULL;
 static GslDrawSpriteProc gameExeGslDrawSpriteReal = NULL;
 
-typedef void(__cdecl* DrawAllThreadsProc)();
-static DrawAllThreadsProc gameExeDrawAllThreads = NULL;
-static DrawAllThreadsProc gameExeDrawAllThreadsReal = NULL;
+typedef int(__cdecl* DrawMovieFrameProc)(int tint, int opacity);
+static DrawMovieFrameProc gameExeDrawMovieFrame = NULL;
+static DrawMovieFrameProc gameExeDrawMovieFrameReal = NULL;
 
 typedef int(__cdecl* gslFillHookProc)(int id, int a1, int a2, int a3, int a4, int r, int g, int b, int a);
 static gslFillHookProc gameExegslFill = NULL;
@@ -307,10 +142,11 @@ int __cdecl gslCreateSurfaceHook(int id, int width, int height, int format);
 int __cdecl gslDrawSpriteHook(int textureId, float spriteX, float spriteY,
                       float spriteWidth, float spriteHeight, float displayX,
                       float displayY, int color, int opacity, int shaderId);
-int __fastcall mgsMovieCPlayerPlayHook(void* pThis, void* dummy, int a2,
+int __fastcall mgsMovieCPlayerPlayHook(MgsMoviePlayerObj_t* pThis, void* dummy, int a2,
                                        int a3, char* movieFileName);
-int __fastcall mgsMovieCPlayerRenderHook(void* pThis);
-void __cdecl drawAllThreadsHook();
+int __fastcall mgsMovieCPlayerStopHook(MgsMoviePlayerObj_t* pThis);
+int __fastcall mgsMovieCPlayerRenderHook(MgsMoviePlayerObj_t* pThis);
+int __cdecl drawMovieFrameHook(int tint, int opacity);
 int __cdecl gslFillHook(int id, int a1, int a2, int a3, int a4, int r, int g, int b, int a);
 
 bool criManaModInit() {
@@ -320,12 +156,12 @@ bool criManaModInit() {
     return true;
   }
 
-  if (config["gamedef"]["signatures"]["game"].count("useOfCSurfaceObjects") == 1)
-      gameExeCSurfaceObjects = (CSurface*)sigScan("game", "useOfCSurfaceObjects");
-
   if (!scanCreateEnableHook("game", "mgsMovieCPlayerPlay", (uintptr_t*)&gameExeMgsMovieCPlayerPlay,
                             (LPVOID)&mgsMovieCPlayerPlayHook,
                             (LPVOID*)&gameExeMgsMovieCPlayerPlayReal) ||
+      !scanCreateEnableHook("game", "mgsMovieCPlayerStop", (uintptr_t*)&gameExeMgsMovieCPlayerStop,
+                            (LPVOID)&mgsMovieCPlayerStopHook,
+                            (LPVOID*)&gameExeMgsMovieCPlayerStopReal) ||
       !scanCreateEnableHook("game", "mgsMovieCPlayerRender", (uintptr_t*)&gameExeMgsMovieCPlayerRender,
                             (LPVOID)&mgsMovieCPlayerRenderHook,
                             (LPVOID*)&gameExeMgsMovieCPlayerRenderReal) ||
@@ -335,9 +171,9 @@ bool criManaModInit() {
       !scanCreateEnableHook("game", "gslDrawSprite", (uintptr_t*)&gameExeGslDrawSprite,
                             (LPVOID)&gslDrawSpriteHook,
                             (LPVOID*)&gameExeGslDrawSpriteReal) ||
-      !scanCreateEnableHook("game", "drawAllThreads", (uintptr_t*)&gameExeDrawAllThreads,
-                            (LPVOID)&drawAllThreadsHook,
-                            (LPVOID*)&gameExeDrawAllThreadsReal) ||
+      !scanCreateEnableHook("game", "drawMovieFrame", (uintptr_t*)&gameExeDrawMovieFrame,
+                            (LPVOID)&drawMovieFrameHook,
+                            (LPVOID*)&gameExeDrawMovieFrameReal) ||
       !scanCreateEnableHook("game", "gslFill", (uintptr_t*)&gameExegslFill,
                             (LPVOID)&gslFillHook,
                             (LPVOID*)&gameExegslFillReal))
@@ -355,48 +191,64 @@ bool criManaModInit() {
   return true;
 }
 
-void drawAllThreadsHook() {
-  gameExeDrawAllThreadsReal();
+int __cdecl drawMovieFrameHook(int tint, int opacity) {
+  int ret = gameExeDrawMovieFrameReal(tint, opacity);
 
-  if (stateMap.size() > 0 && stateMap.begin()->second->playing)
-  {
-      auto state = stateMap.begin()->second;
-      gameExeCSurfaceObjects[191].vftable->mapTex(&gameExeCSurfaceObjects[191], 0, 0, 0);
-      ID3D11Texture2D* help = gameExeCSurfaceObjects[191].dx11Texture[0];
-      ID3D11ShaderResourceView* help1 = gameExeCSurfaceObjects[191].shaderRscView;
-      gameExeCSurfaceObjects[191].dx11Texture[0] = gameExeCSurfaceObjects[191].dx11ReplaceTexture[0];
-      csri_frame frame;
-      frame.planes[0] = (uint8_t*)gameExeCSurfaceObjects[191].textureData;
-      frame.strides[0] = 720;
-      frame.pixfmt = CSRI_F_BGR_;
-      csri_fmt format = { frame.pixfmt, gameExeCSurfaceObjects[191].textureWidth, gameExeCSurfaceObjects[191].textureHeight };
-      if (csri_request_fmt(state->csri, &format) == 0) {
-          csri_render(state->csri, &frame, state->time);
+  for (const auto& kv : stateMap) {
+    if (kv.second->playing) {
+      if (!kv.second->keepLastFrame) {      
+        DirectX::ScratchImage image;
+        HRESULT hr = CaptureTexture(gameExePMgsD3D11State->pid3d11deviceC, gameExePMgsD3D11State->pid3d11devicecontext18, surfaceArray[RENDER_TARGET_SURF_ID].texPtr[0], image);
+        
+        if (surfaceArray[SUBS_LAYER_SURF_ID].texPtr[0]) {
+            surfaceArray[SUBS_LAYER_SURF_ID].shaderRscView->Release();
+            surfaceArray[SUBS_LAYER_SURF_ID].texPtr[0]->Release();
+        }
+        
+        auto state = stateMap.begin()->second;
+        uint8_t* imagePtr = image.GetPixels();
+        csri_frame frame;
+        frame.planes[0] = imagePtr;
+        frame.strides[0] = image.GetImages()[0].rowPitch;
+        frame.pixfmt = CSRI_F_BGR_;
+        csri_fmt format = { frame.pixfmt, image.GetMetadata().width, image.GetMetadata().height };
+        if (csri_request_fmt(state->csri, &format) == 0) {
+            csri_render(state->csri, &frame, state->time);
+        }
+        
+        // xy-VSFilter apparently doesn't support drawing onto BGRA directly and will
+        // set the alpha of everything it touches to 0. So let's just pretend
+        // everything's opaque and set it to FF. (Note it does alpha-blend onto the
+        // BGR32 background though). We could save video alpha and reapply it, but we
+        // don't need that for now since all our videos are 100% opaque.
+        size_t i, imax;
+        for (i = 0, imax = image.GetMetadata().width * image.GetMetadata().height; i < imax; i += 4) {
+            __m128i* vec = (__m128i*)((uint32_t*)image.GetPixels() + i);
+            *vec = _mm_or_si128(*vec, MaskFF000000);
+        }
+        for (; i < imax; i++) {
+            ((uint32_t*)imagePtr)[i] |= 0xFF000000;
+        }
+        
+        D3D11_SHADER_RESOURCE_VIEW_DESC rscViewDesc;
+        memset(&rscViewDesc, 0, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
+        auto result = DirectX::CreateTexture(gameExePMgsD3D11State->pid3d11deviceC, image.GetImages(),
+            image.GetImageCount(), image.GetMetadata(),
+            (ID3D11Resource**)&surfaceArray[SUBS_LAYER_SURF_ID].texPtr[0]);
+        rscViewDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        rscViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        rscViewDesc.Buffer.NumElements = 1;
+        rscViewDesc.Texture2D.MipLevels = image.GetMetadata().mipLevels;
+        result = gameExePMgsD3D11State->pid3d11deviceC->
+            CreateShaderResourceView(surfaceArray[SUBS_LAYER_SURF_ID].texPtr[0],
+                &rscViewDesc, &surfaceArray[SUBS_LAYER_SURF_ID].shaderRscView);
       }
-      
-      size_t i, imax;
-      for (i = 0, imax = gameExeCSurfaceObjects[191].textureWidth * gameExeCSurfaceObjects[191].textureHeight; i < imax; i += 4) {
-          __m128i* vec = (__m128i*)((uint32_t*)gameExeCSurfaceObjects[191].textureData + i);
-          *vec = _mm_or_si128(*vec, MaskFF000000);
-      }
-      for (; i < imax; i++) {
-          ((uint32_t*)gameExeCSurfaceObjects[191].textureData)[i] |= 0xFF000000;
-      }
-      
-      D3D11_SHADER_RESOURCE_VIEW_DESC rscViewDesc;
-      memset(&rscViewDesc, 0, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
-      rscViewDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-      rscViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-      rscViewDesc.Buffer.NumElements = 1;
-      rscViewDesc.Texture2D.MipLevels = 1;
-      gameExePMgsD3D11State->pid3d11deviceC->CreateShaderResourceView(gameExeCSurfaceObjects[191].dx11Texture[0], &rscViewDesc, &gameExeCSurfaceObjects[191].shaderRscView);
 
-      gameExeCSurfaceObjects[191].vftable->unmapTex(&gameExeCSurfaceObjects[191], 0);
-
-      gslDrawSpriteHook(191, 0.0f, 0.0f, 1920.0f, 1080.0f, 0.0f, 0.0f, 0xFFFF00, 255, 1);
-      gameExeCSurfaceObjects[191].dx11Texture[0] = help;
-      gameExeCSurfaceObjects[191].shaderRscView = help1;
+      gslDrawSpriteHook(SUBS_LAYER_SURF_ID, 0.0f, 0.0f, 1920.0f, 1080.0f, 0.0f, 0.0f, 0xFFFFFF, 256, 1);
+    }
   }
+
+  return ret;
 }
 
 int gslCreateSurfaceHook(int id, int width, int height, int format) {
@@ -415,10 +267,8 @@ int __cdecl gslFillHook(int id, int a1, int a2, int a3, int a4, int r, int g, in
   return gameExegslFillReal(id, a1, a2, a3, a4, r, g, b, a);
 }
 
-int __fastcall mgsMovieCPlayerPlayHook(void* pThis, void* dummy, int a2,
+int __fastcall mgsMovieCPlayerPlayHook(MgsMoviePlayerObj_t* pThis, void* dummy, int a2,
                                        int a3, char* movieFileName) {
-  MgsMoviePlayerObj_t* obj = (MgsMoviePlayerObj_t*)pThis;
-
   std::string subFileName;
   // note: case sensitive
   if (config["patch"]["fmv"].count("subs") == 1 &&
@@ -441,10 +291,10 @@ int __fastcall mgsMovieCPlayerPlayHook(void* pThis, void* dummy, int a2,
       in.read(&sub[0], sub.size());
 
       CriManaModState_t* state = new CriManaModState_t;
-      stateMap.emplace(obj, state);
+      stateMap.emplace(pThis, state);
 
-      gslCreateSurfaceHook(312, 1920, 1080, 32);
-      gslFillHook(312, 0, 0, 0, 0, 255, 0, 0, 255);
+      gslCreateSurfaceHook(SUBS_LAYER_SURF_ID, 1920, 1080, 32);
+      gslFillHook(SUBS_LAYER_SURF_ID, 0, 0, 0, 0, 0, 0, 0, 255);
 
       state->csri =
           csri_open_mem(csri_renderer_default(), &sub[0], sub.size(), NULL);
@@ -456,14 +306,26 @@ int __fastcall mgsMovieCPlayerPlayHook(void* pThis, void* dummy, int a2,
   return gameExeMgsMovieCPlayerPlayReal(pThis, a2, a3, movieFileName);
 }
 
-int __fastcall mgsMovieCPlayerRenderHook(void* pThis) {
-  MgsMoviePlayerObj_t* obj = (MgsMoviePlayerObj_t*)pThis;
+int __fastcall mgsMovieCPlayerStopHook(MgsMoviePlayerObj_t* pThis) {
+  if (stateMap.count(pThis) == 0) return gameExeMgsMovieCPlayerStopReal(pThis);
+  
+  CriManaModState_t* state = stateMap[pThis];
 
-  if (stateMap.count(obj) == 0)
+  if (state->csri) {
+      csri_close(state->csri);
+  }
+  delete state;
+  stateMap.erase(pThis);
+
+  return gameExeMgsMovieCPlayerStopReal(pThis);
+}
+
+int __fastcall mgsMovieCPlayerRenderHook(MgsMoviePlayerObj_t* pThis) {
+  if (stateMap.count(pThis) == 0)
     return gameExeMgsMovieCPlayerRenderReal(pThis);
 
-  CriManaModState_t* state = stateMap[obj];
-  CriManaFrameInfo* frameInfo = &obj->criManaFrameInfo;
+  CriManaModState_t* state = stateMap[pThis];
+  CriManaFrameInfo* frameInfo = &pThis->criManaFrameInfo;
 
   if (state->csri == NULL)
     return gameExeMgsMovieCPlayerRenderReal(pThis);
@@ -471,10 +333,11 @@ int __fastcall mgsMovieCPlayerRenderHook(void* pThis) {
   double time = ((double)frameInfo->framerate_d * (double)frameInfo->frame_no) /
                  (double)frameInfo->framerate_n;
 
+  state->keepLastFrame = frameInfo->frame_no == state->lastFrameNum;
+
   state->lastFrameNum = frameInfo->frame_no;
   state->time = time;
 
-  int res = gameExeMgsMovieCPlayerRenderReal(pThis);
-  return res;
+  return gameExeMgsMovieCPlayerRenderReal(pThis);
 }
 }  // namespace lb
