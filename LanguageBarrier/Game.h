@@ -19,9 +19,19 @@ struct mpkObject {
 };
 
 struct mgsVFSObject {
-  char gap0[8];
-  char archiveName[16];
-  char gap1[10664];
+	char gap0[8];
+	char archiveName[16];
+	char gap1[10664];
+};
+
+struct mgsFileLoader {
+	uint32_t unk01;
+	uint32_t unk02;
+	uint32_t fileId;
+	uint32_t loadMode;
+	char fileName[64];
+	char gap0[228];
+	mgsVFSObject* vfsObject;
 };
 
 struct MgsD3D11State
@@ -86,6 +96,7 @@ struct __declspec(align(4)) SurfaceStruct
 typedef BOOL(__cdecl* GetFlagProc)(int flagId);
 typedef void(__cdecl* SetFlagProc)(int flagId, BOOL value);
 typedef BOOL(__cdecl* ChkViewDicProc)(int tipId, int unknown);
+extern int* gameExeScrWork;
 extern SurfaceStruct* surfaceArray;
 
 namespace lb {
