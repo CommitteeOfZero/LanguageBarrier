@@ -22,8 +22,10 @@ struct fontOut
 	GlyphInfo* infoPtr;
 };
 
+#define MAXFONTSIZE 128
+
 struct FontGlyph {
-	uint8_t data[64][64];
+	uint8_t data[MAXFONTSIZE][MAXFONTSIZE];
 
 	uint16_t advance;
 	int32_t top;
@@ -126,7 +128,7 @@ struct TextRendering
 	FT_Library ftLibrary;
 	FT_Face ftFace;
 	FT_Stroker stroker;
-	const int FONT_CELL_SIZE = 64;
+	const int FONT_CELL_SIZE = 80;
 	const int GLYPHS_PER_ROW = 64;
 	const int NUM_GLYPHS = 351;
 

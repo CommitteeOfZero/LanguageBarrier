@@ -125,6 +125,7 @@ endlocal</Command>
     <ClInclude Include="BinkMod.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="contrib\include\stb_vorbis.h" />
+    <ClInclude Include="CriManaMod.h" />
     <ClInclude Include="DialogueWordwrap.h" />
     <ClInclude Include="TextRendering.h" />
     <ClInclude Include="Game.h" />
@@ -144,6 +145,7 @@ endlocal</Command>
     <ClCompile Include="Config.cpp" />
     <ClCompile Include="contrib\speexdsp\resample.c" />
     <ClCompile Include="contrib\stb_vorbis.c" />
+    <ClCompile Include="CriManaMod.cpp" />
     <ClCompile Include="DialogueWordwrap.cpp" />
     <ClCompile Include="dinput8.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>

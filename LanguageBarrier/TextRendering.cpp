@@ -70,8 +70,8 @@ void TextRendering::buildFont(int fontSize)
 	this->fontData[fontSize] = FontData();
 	auto  fontData = &this->fontData[fontSize];
 
-	fontData->fontTexture.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, FONT_CELL_SIZE * GLYPHS_PER_ROW, GLYPHS_PER_ROW * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW), 1, 1);
-	fontData->outlineTexture.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, FONT_CELL_SIZE * GLYPHS_PER_ROW, GLYPHS_PER_ROW * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW), 1, 1);
+	fontData->fontTexture.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, FONT_CELL_SIZE * GLYPHS_PER_ROW, FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW), 1, 1);
+	fontData->outlineTexture.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, FONT_CELL_SIZE * GLYPHS_PER_ROW, FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW), 1, 1);
 	int num = 1;
 	int mipIndex = 0;
 	/*while (fontSize / num > 1) {
@@ -175,13 +175,13 @@ void TextRendering::buildFont(int fontSize)
 		if (glyph.rows > cellSize || glyph.width > cellSize) {
 
 		}
-		int x = (i * cellSize) % (cellSize * 64) / cellSize;
-		int y = i * cellSize / (cellSize * 64);
+		int x = (i * cellSize) % (cellSize * GLYPHS_PER_ROW) / cellSize;
+		int y = i * cellSize / (cellSize * GLYPHS_PER_ROW);
 
 
-		for (int k = 0; k < 64 / num; k++) {
-			for (int j = 0; j < 64 / num; j++) {
-				rgbaPixels[64 * cellSize * (j + y * cellSize) + cellSize * x + k] = 0x0 | glyphData[j][k] << 24;
+		for (int k = 0; k < GLYPHS_PER_ROW / num; k++) {
+			for (int j = 0; j < GLYPHS_PER_ROW / num; j++) {
+				rgbaPixels[GLYPHS_PER_ROW * cellSize * (j + y * cellSize) + cellSize * x + k] = 0x0 | glyphData[j][k] << 24;
 
 			}
 		}
@@ -197,12 +197,12 @@ void TextRendering::buildFont(int fontSize)
 		if (glyph->rows > cellSize || glyph->width > cellSize) {
 
 		}
-		int x = (i * cellSize) % (cellSize * FONT_CELL_SIZE) / cellSize;
-		int y = i * cellSize / (cellSize * FONT_CELL_SIZE);
+		int x = (i * cellSize) % (cellSize * GLYPHS_PER_ROW) / cellSize;
+		int y = i * cellSize / (cellSize * GLYPHS_PER_ROW);
 
 		for (int k = 0; k < FONT_CELL_SIZE / num; k++) {
 			for (int j = 0; j < FONT_CELL_SIZE / num; j++) {
-				rgbaPixels[FONT_CELL_SIZE * cellSize * (j + y * cellSize) + cellSize * x + k] = 0xFFFFFF | glyph->data[j][k] << 24;
+				rgbaPixels[GLYPHS_PER_ROW * cellSize * (j + y * cellSize) + cellSize * x + k] = 0xFFFFFF | glyph->data[j][k] << 24;
 			}
 		}
 
@@ -278,13 +278,13 @@ void TextRendering::renderGlyph(FontData* fontData, uint16_t n)
 
 
 	fontData->glyphData.glyphMap[n] = FontGlyph();
-	memset(fontData->glyphData.glyphMap[n].data, 0, 4096);
+	memset(fontData->glyphData.glyphMap[n].data, 0, FONT_CELL_SIZE* FONT_CELL_SIZE);
 
 	fontData->glyphData.glyphMap[n].advance = face->glyph->advance.x / 64;
 	fontData->glyphData.glyphMap[n].rows = face->glyph->bitmap.rows;
 	fontData->glyphData.glyphMap[n].width = face->glyph->bitmap.width;
 	fontData->glyphData.glyphMap[n].left = face->glyph->bitmap_left;
-	fontData->glyphData.glyphMap[n].top = face->glyph->bitmap_top;
+	fontData->glyphData.glyphMap[n].top = face->glyph->bitmap_top ;
 
 	for (int i = 0; i < face->glyph->bitmap.width; i++) {
 		for (int j = 0; j < face->glyph->bitmap.rows; j++) {
