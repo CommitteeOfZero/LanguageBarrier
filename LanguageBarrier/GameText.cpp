@@ -115,6 +115,13 @@ struct MultiplierData {
 	float textureWidth = 1.0f;
 };
 
+typedef int(__cdecl* gslFillHookProc)(int id, int a1, int a2, int a3, int a4, int r, int g, int b, int a);
+static gslFillHookProc gameExegslFill = NULL;
+static gslFillHookProc gameExegslFillReal = NULL;
+int __cdecl gslFillHook(int id, int a1, int a2, int a3, int a4, int r, int g, int b, int a);
+
+
+
 typedef int(__cdecl* drawTwipoContentHookProc)(int textureId, int a2, int a3, unsigned int a4, int a5, unsigned int a6, char* sc3, int a8, int a9, uint32_t opacity, int a11, int a12, int a13, int a14
 	);
 static drawTwipoContentHookProc rnDrawTwipoContent = NULL;
@@ -456,6 +463,12 @@ namespace lb {
 	void __cdecl DrawBacklogContentHook(int textureId, int maskTextureId, int startX, int startY, unsigned int maskY, int maskHeight, int opacity, int index);
 	int __cdecl drawTwipoContentHook(int textureId, int a2, int a3, unsigned int a4, int a5, unsigned int a6, char* sc3, int a8, int a9, uint32_t opacity, int a11, int a12, int a13, int a14);
 
+
+
+	int __cdecl gslFillHook(int id, int a1, int a2, int a3, int a4, int r, int g, int b, int a) {
+		return gameExegslFillReal(id, a1, a2, a3, a4, r, g, b, a);
+	}
+
 	// There are a bunch more functions like these but I haven't seen them get hit
 	// during debugging and the original code *mostly* works okay if it recognises
 	// western text as variable-width
@@ -568,6 +581,12 @@ namespace lb {
 		gameExeGlyphWidthsFont1 = (uint8_t*)sigScan("game", "useOfGlyphWidthsFont1");
 		gameExeGlyphWidthsFont2 = (uint8_t*)sigScan("game", "useOfGlyphWidthsFont2");
 		gameExeColors = (int*)sigScan("game", "useOfColors");
+
+	
+		scanCreateEnableHook("game", "gslFill", (uintptr_t*)&gameExegslFill,
+			(LPVOID)&gslFillHook,
+			(LPVOID*)&gameExegslFillReal);
+
 
 		scanCreateEnableHook(
 			"game", "drawTwipoContent", (uintptr_t*)&rnDrawTwipoContent,
@@ -778,6 +797,9 @@ namespace lb {
 			scanCreateEnableHook("game", "drawBacklogContent", (uintptr_t*)&gameExeDrawBacklogContent,
 				(LPVOID)DrawBacklogContentHook,
 				(LPVOID*)&gameExeDrawBacklogContentReal);
+			scanCreateEnableHook("game", "drawSprite", (uintptr_t*)&gameExeDrawSprite,
+				(LPVOID)drawSpriteHook,
+				(LPVOID*)&gameExeDrawSpriteReal);
 		}
 
 		if (CC_BACKLOG_HIGHLIGHT) {
@@ -888,6 +910,9 @@ namespace lb {
 			lineHeight + DIALOGUE_REDESIGN_LINEHEIGHT_SHIFT);
 	}
 
+
+
+
 #define DEF_DRAW_DIALOGUE_HOOK(funcName, pageType)               \
                                          \
   void __cdecl funcName(int fontNumber, int pageNumber, uint32_t opacity,    \
@@ -956,13 +981,30 @@ namespace lb {
 		if (!TextRendering::Instance().enabled)
 			return gameExeDrawDialogueReal(fontNumber, pageNumber, opacity, xOffset, yOffset);
 
-
+		bool newline = true;
+		float displayStartX =
+			(page->charDisplayX[0] + xOffset) * COORDS_MULTIPLIER;
+		float displayStartY =
+			(page->charDisplayY[0] + yOffset) * COORDS_MULTIPLIER;
 		for (int i = 0; i < page->pageLength; i++) {
 			if (fontNumber == page->fontNumber[i]) {
-				int displayStartX =
-					(page->charDisplayX[i] + xOffset) * COORDS_MULTIPLIER;
-				int displayStartY =
-					(page->charDisplayY[i] + yOffset) * COORDS_MULTIPLIER;
+
+				int glyphSize = page->glyphDisplayHeight[i];
+				if (i == 0 || i > 0 && page->charDisplayY[i] != page->charDisplayY[i - 1]) {
+					newline = true;
+				}
+				else newline = false;
+
+				if (newline == false) {
+					uint32_t currentChar = page->glyphCol[i - 1] + page->glyphRow[i - 1] * TextRendering::Instance().GLYPHS_PER_ROW;
+					auto glyphInfo = TextRendering::Instance().getFont(glyphSize)->getGlyphInfo(currentChar, Regular);
+					displayStartX += glyphInfo->advance * 1.5f;
+				}
+				else {
+					displayStartX = (page->charDisplayX[i] + xOffset) * COORDS_MULTIPLIER;
+				}
+
+
 
 				uint32_t _opacity = (page->charDisplayOpacity[i] * opacity) >> 8;
 
@@ -972,11 +1014,9 @@ namespace lb {
 						uint32_t currentChar = page->glyphCol[i] + page->glyphRow[i] * TextRendering::Instance().GLYPHS_PER_ROW;
 						wchar_t cChar = TextRendering::Instance().charMap[currentChar];
 						const auto glyphInfo = TextRendering::Instance().getFont(page->glyphDisplayHeight[i] * 1.5f)->getGlyphInfo(currentChar, FontType::Outline);
-
-						displayStartX =
-							(page->charDisplayX[i]  + xOffset + glyphInfo->left) * 1.5f;
 						displayStartY =
-							(page->charDisplayY[i]  + yOffset) * 1.5f;
+							(page->charDisplayY[i] + yOffset) * 1.5f;
+
 
 						__int16 fontSize = page->glyphDisplayHeight[i] * 1.5f;
 						TextRendering::Instance().replaceFontSurface(fontSize);
@@ -986,9 +1026,9 @@ namespace lb {
 							TextRendering::Instance().FONT_CELL_SIZE * page->glyphCol[i],
 							TextRendering::Instance().FONT_CELL_SIZE * page->glyphRow[i],
 							glyphInfo->width,
-							glyphInfo->rows, displayStartX,
+							glyphInfo->rows, displayStartX + glyphInfo->left,
 							displayStartY + fontSize - glyphInfo->top,
-							displayStartX + (glyphInfo->width),
+							displayStartX + (glyphInfo->left + glyphInfo->width),
 							displayStartY + fontSize - glyphInfo->top + glyphInfo->rows,
 							page->charColor[i], _opacity);
 					}
@@ -1002,8 +1042,7 @@ namespace lb {
 					//   if (page->charDisplayX[i + 1] > page->charDisplayX[i] && (i + 1) < page->pageLength) {
 					 //    page->charDisplayX[i + 1] = page->charDisplayX[i]+ glyphInfo.advance  /3.0f;
 					//}
-					displayStartX =
-						(page->charDisplayX[i]  + xOffset + glyphInfo->left) * 1.5f;
+
 					displayStartY =
 						(page->charDisplayY[i] + yOffset) * 1.5f;
 					float xRatio = ((float)page->glyphDisplayWidth[i] / (float)page->glyphOrigWidth[i]);
@@ -1016,9 +1055,9 @@ namespace lb {
 						TextRendering::Instance().FONT_CELL_SIZE * page->glyphCol[i],
 						TextRendering::Instance().FONT_CELL_SIZE * page->glyphRow[i],
 						glyphInfo->width,
-						glyphInfo->rows, displayStartX,
+						glyphInfo->rows, displayStartX + glyphInfo->left,
 						displayStartY + fontSize - glyphInfo->top,
-						displayStartX + (glyphInfo->width),
+						displayStartX + (glyphInfo->left + glyphInfo->width),
 						displayStartY + fontSize - glyphInfo->top + glyphInfo->rows,
 						page->charColor[i], _opacity);
 				}
@@ -1150,27 +1189,33 @@ namespace lb {
 	unsigned int __cdecl sub_4BB760(int textureId, int maskTextureId, int textureStartX, int textureStartY, float textureSizeX, float textureSizeY, float startPosX, float startPosY, float EndPosX, float EndPosY, float color, float opacity)
 	{
 		float a3[4]; // [esp+14h] [ebp-7Ch]
-		int a1; // [esp+24h] [ebp-6Ch]
-		SurfaceStruct* v15; // [esp+28h] [ebp-68h]
+		SurfaceStruct* a1[2]; // [esp+24h] [ebp-6Ch]
 		CColor colorStruct; // [esp+2Ch] [ebp-64h]
 		float a4[8]; // [esp+6Ch] [ebp-24h]
+
+
 
 		a3[0] = startPosX * 2;
 		a3[1] = startPosY * 2;
 		a3[2] = EndPosX * 2 - startPosX * 2;
 		a3[3] = EndPosY * 2 - startPosY * 2;
-		a4[0] = (textureStartX % 32) + 48 * (textureStartX / 32);
+		a4[0] = textureStartX;
 		a4[2] = (textureSizeX);
 		a4[4] = startPosX * 2;
 		a4[6] = EndPosX * 2 - startPosX * 2;
 		a4[5] = startPosY * 2;
 		a4[7] = EndPosY * 2 - (startPosY * 2);
-		a4[1] = (textureStartY % 32 + 48 * (textureStartY / 32));
+		a4[1] = textureStartY;
 		a4[3] = (textureSizeY);
 		initColor(&colorStruct, color);
 		GameExeGetShader(40);
-		a1 = (int)&surfaceArray[textureId];
-		v15 = &surfaceArray[maskTextureId];
+		a1[0] = &surfaceArray[textureId];
+		a1[1] = &surfaceArray[maskTextureId];
+
+		int shaderPtr = *(int*)0x099DEDC;
+		int blendMode = *(int*)0x099DEE8;
+		int renderMode = *(int*)0x099DEEC;
+
 		return GameExeDrawSpriteMaskInternal(
 			(float*)&a1,
 			2,
@@ -1178,12 +1223,13 @@ namespace lb {
 			a4,
 			&colorStruct,
 			(float)opacity / 255.0,
-			0,
-			0,
-			(unsigned __int16)0,
+			renderMode,
+			shaderPtr,
+			(unsigned __int16)blendMode,
 			0);
 	}
 
+#pragma comment( lib, "dxguid.lib") 
 
 
 
@@ -1194,35 +1240,32 @@ namespace lb {
 		unsigned int v10; // esi
 		int v11; // edx
 		unsigned int v12; // ebx
-		int v13; // eax
+		int linePos; // eax
 		int v14; // ebx
-		int v15; // esi
-		unsigned int v16; // edx
+		int strIndex; // esi
+		unsigned int charIndex; // edx
 		__int16 v17; // dx
 		int v18; // eax
-		int v19; // ecx
+		int   colorIndex; // ecx
 		unsigned int v20; // edx
-		int v21; // edi
+		float xPosition; // edi
 		int v22; // eax
 		int v23; // eax
 		unsigned int v24; // edx
 		unsigned int v25; // ebx
 		unsigned int v26; // ecx
-		int v27; // eax
-		int v28; // esi
 		unsigned int v29; // ecx
 		int v30; // ebx
 		unsigned int v31; // ecx
-		int v32; // edi
+		int color; // edi
 		int v33; // eax
 		int v34; // eax
 		int v35; // [esp+0h] [ebp-34h]
-		int color; // [esp+10h] [ebp-24h]
-		int v37; // [esp+14h] [ebp-20h]
+		int yPosition; // [esp+14h] [ebp-20h]
 		int v38; // [esp+18h] [ebp-1Ch]
 		int v39; // [esp+18h] [ebp-1Ch]
 		int v40; // [esp+1Ch] [ebp-18h]
-		int v41; // [esp+20h] [ebp-14h]
+		int endP; // [esp+20h] [ebp-14h]
 		int v42; // [esp+24h] [ebp-10h]
 		int v43; // [esp+24h] [ebp-10h]
 		int startPosY; // [esp+28h] [ebp-Ch]
@@ -1252,12 +1295,14 @@ namespace lb {
 		int* MESrevDispLineSize = (int*)0x09479A8;
 		int* MESrevDispLinePosY = (int*)0x0947FE8;
 		int* MesFontColor = (int*)0x6DF598;
-
+		int* dword_948628 = (int*)0x948628;
 
 		if (!TextRendering::Instance().enabled)
 		{
 			return gameExeDrawBacklogContentReal(textureId, maskTextureId, startX, startY, maskY, maskHeight, opacity, index);
 		}
+
+
 
 
 
@@ -1277,41 +1322,60 @@ namespace lb {
 					v12 = startY + MESrevDispLinePosY[v9] - MESrevDispPos;
 					v45 = 0xFFFF;
 					v42 = 0xFFFF;
-					v37 = startY + MESrevDispLinePosY[v9] - MESrevDispPos;
+					yPosition = startY + MESrevDispLinePosY[v9] - MESrevDispPos;
 					v38 = 0;
 					if (v12 + MESrevDispLineSize[v9] > v10 && v12 < v10 + maskHeight)
 					{
-						v13 = MESrevDispLinePos[v9];
+						linePos = MESrevDispLinePos[v9];
 						v14 = 0;
-						v15 = MESrevLineBufSize[v13];
-						v41 = MESrevLineBufEndp[v13];
-						if (v41)
+						strIndex = MESrevLineBufSize[linePos];
+						endP = MESrevLineBufEndp[linePos];
+						int xOffset = MesRevTextPos[2 * strIndex];
+						if (endP)
 						{
+							xPosition = startX;
+
 							do
 							{
-								v16 = MesRevText[v15];
-								if ((v16 & 0x8000u) == 0)
+								charIndex = MesRevText[strIndex];
+								int xOffset = 0;
+								bool newline = true;
+								if ((charIndex & 0x8000u) == 0)
 								{
-									v19 = MESrevTextCo[v15];
-									v20 = v16 >> 6;
-									color = MesFontColor[2 * v19 + 1];
-									v47 = v37 + MesRevTextPos[2 * v15 + 1];
-									v21 = startX + MesRevTextPos[2 * v15];
-									v43 = MESrevTextSize[4 * v15 + 2];
-									v22 = v37 + MesRevTextPos[2 * v15 + 1];
-									if (MesFontColor[2 * v19] != 0xFFFFFF || (v9 = startPosY, startPosY != index))
+									colorIndex = MESrevTextCo[strIndex];
+									color = MesFontColor[2 * colorIndex + 1];
+									auto glyphSize = MESrevTextSize[4 * strIndex + 3] * 1.5f;
+
+									if (strIndex == 0 || strIndex > 0 && MesRevTextPos[2 * (strIndex)+1] != MesRevTextPos[2 * (strIndex - 1) + 1]) {
+										newline = true;
+									}
+									else newline = false;
+
+									if (newline == false) {
+										auto glyphInfo = TextRendering::Instance().getFont(glyphSize)->getGlyphInfo(MesRevText[strIndex - 1], Regular);
+										xPosition += glyphInfo->advance / 2.0f;
+									}
+									else {
+										xPosition = startX + MesRevTextPos[2 * strIndex];
+									}
+									v47 = yPosition + MesRevTextPos[2 * strIndex + 1];
+									v43 = MESrevTextSize[4 * strIndex + 2];
+									v22 = yPosition + MesRevTextPos[2 * strIndex + 1];
+									if (MesFontColor[2 * colorIndex] != 0xFFFFFF || (v9 = startPosY, startPosY != index))
 									{
-										gameExeSg0DrawGlyph3(
-											textureId,
+										TextRendering::Instance().replaceFontSurface(glyphSize);
+										auto glyphInfo = TextRendering::Instance().getFont(glyphSize)->getGlyphInfo(MesRevText[strIndex], Regular);
+										sub_4BB760(
+											400,
 											maskTextureId,
-											32 * (MesRevText[v15] - (v20 << 6)),
-											32 * v20,
-											MESrevTextSize[4 * v15],
-											MESrevTextSize[4 * v15 + 1],
-											v21 + 1,
-											v47 + 1,
-											v21 + v43 + 1,
-											MESrevTextSize[4 * v15 + 3] + 1 + v47,
+											TextRendering::Instance().FONT_CELL_SIZE * (MesRevText[strIndex] % TextRendering::Instance().GLYPHS_PER_ROW),
+											TextRendering::Instance().FONT_CELL_SIZE * (MesRevText[strIndex] / TextRendering::Instance().GLYPHS_PER_ROW),
+											glyphInfo->width * 2,
+											glyphInfo->rows * 2,
+											xPosition + glyphInfo->left / 2.0f + 1,
+											v47 + glyphSize / 2.0f - glyphInfo->top / 2.0f + 1,
+											xPosition + glyphInfo->left / 2.0f + glyphInfo->width + 1,
+											glyphInfo->rows + glyphSize / 2.0f - glyphInfo->top / 2.0f + 1 + v47,
 											color,
 											opacity);
 										v9 = startPosY;
@@ -1319,14 +1383,14 @@ namespace lb {
 									}
 									if (!v14 && v45 == 0xFFFF)
 									{
-										v45 = v21;
+										v45 = xPosition;
 										v40 = v22;
 									}
-									v42 = v21 + v43;
+									v42 = xPosition + v43;
 								}
 								else
 								{
-									v17 = v16 & 0x7FFF;
+									v17 = charIndex & 0x7FFF;
 									if (v17 == 1)
 									{
 										v14 = 1;
@@ -1337,12 +1401,12 @@ namespace lb {
 										v18 = v14;
 									v14 = v18;
 								}
-								v23 = v15 + 1;
-								v15 = 0;
+								v23 = strIndex + 1;
+								strIndex = 0;
 								if (v23 != 50000)
-									v15 = v23;
-								--v41;
-							} while (v41);
+									strIndex = v23;
+								--endP;
+							} while (endP);
 							v8 = MESrevLineBufUse;
 							v11 = v45;
 						}
@@ -1352,8 +1416,7 @@ namespace lb {
 					MESrevDispCurPosSY[v9] = v42;
 					MESrevDispCurPosEX[v9] = v47;
 					MESrevDispCurPosEY[v9] = v11;
-					//dword_948628[v9++] = v38;
-					v9++;
+					dword_948628[v9++] = v38;
 					startPosY = v9;
 				} while (v9 < v8);
 			}
@@ -1368,44 +1431,70 @@ namespace lb {
 					v35 = startY + MESrevDispLinePosY[v24] - MESrevDispPos;
 					if (v26 + MESrevDispLineSize[v24] > v25 && v26 < v25 + maskHeight)
 					{
-						v27 = MESrevDispLinePos[v24];
-						v28 = MESrevLineBufSize[v27];
-						v39 = MESrevLineBufEndp[v27];
+						linePos = MESrevDispLinePos[v24];
+						strIndex = MESrevLineBufSize[linePos];
+						v39 = MESrevLineBufEndp[linePos];
 						if (v39)
 						{
+							xPosition = startX;
+							bool newline = true;
 							do
 							{
-								v29 = MesRevText[v28];
+								v29 = MesRevText[strIndex];
 								if ((v29 & 0x8000u) == 0)
 								{
-									v31 = v29 >> 6;
-									v32 = MesFontColor[2 * MESrevTextCo[v28]];
-									v33 = v35 + MesRevTextPos[2 * v28 + 1];
-									if (v32 == 0xFFFFFF)
+
+									colorIndex = MESrevTextCo[strIndex];
+									color = MesFontColor[2 * colorIndex + 1];
+									auto glyphSize = MESrevTextSize[4 * strIndex + 3] * 1.5f;
+
+									if (strIndex == 0 || strIndex > 0 && MesRevTextPos[2 * (strIndex)+1] != MesRevTextPos[2 * (strIndex - 1) + 1]) {
+										newline = true;
+									}
+									else newline = false;
+
+									if (newline == false) {
+										auto glyphInfo = TextRendering::Instance().getFont(glyphSize)->getGlyphInfo(MesRevText[strIndex - 1], Regular);
+										xPosition += glyphInfo->advance / 2.0f;
+									}
+									else {
+										xPosition = startX + MesRevTextPos[2 * strIndex];
+									}
+
+
+									color = MesFontColor[2 * MESrevTextCo[strIndex]];
+									v33 = v35 + MesRevTextPos[2 * strIndex + 1];
+									if (color == 0xFFFFFF)
 									{
 										if (v46 == index)
-											v32 = 0x323232;
-										v33 = v35 + MesRevTextPos[2 * v28 + 1];
+											color = 0x323232;
+										v33 = v35 + MesRevTextPos[2 * strIndex + 1];
 									}
-									v30 = startX + MesRevTextPos[2 * v28];
-									gameExeSg0DrawGlyph3(
-										textureId,
+									glyphSize = MESrevTextSize[4 * strIndex + 3] * 1.5f;
+
+									TextRendering::Instance().replaceFontSurface(glyphSize);
+									auto glyphInfo = TextRendering::Instance().getFont(glyphSize)->getGlyphInfo(MesRevText[strIndex], Regular);
+									sub_4BB760(
+										400,
 										maskTextureId,
-										32 * (MesRevText[v28] - (v31 << 6)),
-										32 * v31,
-										MESrevTextSize[4 * v28],
-										MESrevTextSize[4 * v28 + 1],
-										v30,
-										v35 + MesRevTextPos[2 * v28 + 1],
-										v30 + MESrevTextSize[4 * v28 + 2],
-										MESrevTextSize[4 * v28 + 3] + v33,
-										v32,
+										TextRendering::Instance().FONT_CELL_SIZE * (MesRevText[strIndex] % TextRendering::Instance().GLYPHS_PER_ROW),
+										TextRendering::Instance().FONT_CELL_SIZE * (MesRevText[strIndex] / TextRendering::Instance().GLYPHS_PER_ROW),
+										glyphInfo->width * 2,
+										glyphInfo->rows * 2,
+										xPosition + glyphInfo->left / 2.0f,
+										MesRevTextPos[2 * strIndex + 1] + v35 + glyphSize / 2.0f - glyphInfo->top / 2.0f,
+										xPosition + glyphInfo->left / 2.0f + glyphInfo->width,
+										MesRevTextPos[2 * strIndex + 1] + glyphInfo->rows + glyphSize / 2.0f - glyphInfo->top / 2.0f + v35,
+										color,
 										opacity);
+
+
+
 								}
-								v34 = v28 + 1;
-								v28 = 0;
+								v34 = strIndex + 1;
+								strIndex = 0;
 								if (v34 != 0xC350)
-									v28 = v34;
+									strIndex = v34;
 								--v39;
 							} while (v39);
 							v8 = MESrevLineBufUse;
@@ -1440,25 +1529,60 @@ namespace lb {
 		int lineSkipCount = 1;
 		int lineDisplayCount = 0;
 		lineLength = a4;
-		const int glyphSize = 56;
+		const int glyphSize = a9 * 1.5;
 
 		ProcessedSc3String_t str;
 		MultiplierData mData;
 		mData.xOffset = 1.5f;
 		mData.yOffset = 1.5f;
 
+
+
 		processSc3TokenList(a2, a3, lineLength, words, a5, color,
-			glyphSize, &str, false, COORDS_MULTIPLIER, -1,
+			glyphSize, &str, true, COORDS_MULTIPLIER, -1,
 			NOT_A_LINK, color, glyphSize, &mData);
+
+		processSc3TokenList(a2, a3, lineLength, words, a5,
+			color, glyphSize, &str, false, COORDS_MULTIPLIER,
+			str.linkCount - 1, str.curLinkNumber, str.curColor, glyphSize, &mData);
+
+
 		TextRendering::Instance().replaceFontSurface(glyphSize);
 
 		for (int i = 0; i < str.length; i++) {
 			int curColor = str.color[i];
 			auto glyphInfo = TextRendering::Instance().getFont(glyphSize)->getGlyphInfo(str.glyph[i], Regular);
-			gameExeDrawGlyph(400, str.textureStartX[i], str.textureStartY[i],
+
+			if (str.linkNumber[i] != NOT_A_LINK) {
+
+				auto linkGlyphInfo = TextRendering::Instance().getFont(glyphSize)->getGlyphInfo(77, Regular);
+
+
+				if (str.linkNumber[i] == a12)
+					curColor = a8;
+				else
+					curColor = a11;
+
+				float endUnderScoreX = str.displayStartX[i] + glyphInfo->advance;
+
+
+				if (i + 1 < str.length && str.displayStartY[i] == str.displayStartY[i + 1]) {
+					endUnderScoreX = str.displayStartX[i + 1];
+				}
+
+				const int underScoreIndex = 77;
+				gameExeDrawGlyph(TextRendering::Instance().FONT_TEXTURE_ID, underScoreIndex % TextRendering::Instance().GLYPHS_PER_ROW * TextRendering::Instance().FONT_CELL_SIZE,
+					underScoreIndex / TextRendering::Instance().GLYPHS_PER_ROW * TextRendering::Instance().FONT_CELL_SIZE, linkGlyphInfo->width,
+					linkGlyphInfo->rows, str.displayStartX[i],
+					str.displayStartY[i] + glyphSize - linkGlyphInfo->top, endUnderScoreX,
+					str.displayStartY[i] + glyphSize + linkGlyphInfo->rows * 2 - linkGlyphInfo->top, curColor, opacity);
+			}
+
+
+			gameExeDrawGlyph(TextRendering::Instance().FONT_TEXTURE_ID, str.textureStartX[i], str.textureStartY[i],
 				str.textureWidth[i], str.textureHeight[i],
-				str.displayStartX[i], str.displayStartY[i] + glyphSize / 2 - glyphInfo->top,
-				str.displayEndX[i], str.displayEndY[i] + glyphSize / 2 - glyphInfo->top, curColor, opacity);
+				str.displayStartX[i], str.displayStartY[i] + glyphSize - glyphInfo->top,
+				str.displayEndX[i], str.displayEndY[i] + glyphSize - glyphInfo->top, curColor, opacity);
 		}
 		return 1;
 	}
@@ -1910,7 +2034,6 @@ namespace lb {
 
 		}
 
-		D3DPERF_SetMarker(0, L"rnDrawGlyphHook");
 		return gameExeDrawGlyphReal(textureId, glyphInTextureStartX,
 			glyphInTextureStartY, glyphInTextureWidth,
 			glyphInTextureHeight, displayStartX,
@@ -1929,7 +2052,6 @@ namespace lb {
 		int sc3Index = 0;
 		std::vector<uint16_t> v;
 		std::vector<wchar_t> v2;
-		D3DPERF_SetMarker(0, L"drawText");
 		if (GetAsyncKeyState(VK_RBUTTON)) {
 			TextRendering::Instance().enableReplacement();
 		}
@@ -1967,9 +2089,7 @@ namespace lb {
 				int column = currentChar % TextRendering::Instance().GLYPHS_PER_ROW;
 				int row = currentChar / TextRendering::Instance().GLYPHS_PER_ROW;
 
-
 				int displayStartY = startY * 1.5f;
-
 				TextRendering::Instance().replaceFontSurface(height * 1.5f);
 				gameExeDrawGlyphReal(
 					400, TextRendering::Instance().FONT_CELL_SIZE * column, TextRendering::Instance().FONT_CELL_SIZE * row,
@@ -2014,7 +2134,6 @@ namespace lb {
 				++textureId;
 			}
 		}
-		D3DPERF_SetMarker(0, L"GlyphHook2");
 
 		if (TextRendering::Instance().enabled)
 			return gameExeSg0DrawGlyph2Real(TextRendering::Instance().FONT_TEXTURE_ID, a2, glyphInTextureStartX / 1.5f,
@@ -2045,7 +2164,15 @@ namespace lb {
 
 		int dummy1;
 		int dummy2;
+		char name[256];
 
+		for (int i = 0; i < 512; i++) {
+
+			if (surfaceArray[i].texPtr[0] != nullptr) {
+				sprintf(name, "Surface texture %i-0", i);
+				surfaceArray[i].texPtr[0]->SetPrivateData(WKPDID_D3DDebugObjectName, strlen(name), name);
+			}
+		}
 		if (!TextRendering::Instance().enabled) {
 			gameExeDrawTipContentReal(textureId, maskId, startX, startY, maskStartY, maskHeight, a7, color, shadowColor, opacity);
 			return;
@@ -2115,8 +2242,20 @@ namespace lb {
 			displayX += it->second.dx;
 			displayY += it->second.dy;
 		}
-		return gameExeDrawSpriteReal(textureId, spriteX, spriteY, spriteWidth,
-			spriteHeight, displayX, displayY, color, opacity,
+
+		if (textureId==80 && (spriteY == 1640 || spriteY==1936)) {
+			 gameExeDrawSpriteReal(textureId, spriteX, spriteY+4, spriteWidth,
+				9, displayX, displayY, color, opacity,
+				shaderId);
+			return  gameExeDrawSpriteReal(textureId, spriteX, spriteY + 4, spriteWidth,
+				 spriteHeight - 9, displayX, displayY+9, color, opacity,
+				 shaderId);
+		
+
+		}
+		return gameExeDrawSpriteReal(textureId, spriteX, spriteY , spriteWidth,
+			spriteHeight,  displayX, displayY , color, opacity,
 			shaderId);
+
 	}
 }  // namespace lb
