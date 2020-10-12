@@ -997,7 +997,7 @@ namespace lb {
 
 				if (newline == false) {
 					uint32_t currentChar = page->glyphCol[i - 1] + page->glyphRow[i - 1] * TextRendering::Instance().GLYPHS_PER_ROW;
-					auto glyphInfo = TextRendering::Instance().getFont(glyphSize)->getGlyphInfo(currentChar, Regular);
+					auto glyphInfo = TextRendering::Instance().getFont(glyphSize, false)->getGlyphInfo(currentChar, Regular);
 					displayStartX += glyphInfo->advance * 1.5f;
 				}
 				else {
@@ -1013,24 +1013,23 @@ namespace lb {
 					{
 						uint32_t currentChar = page->glyphCol[i] + page->glyphRow[i] * TextRendering::Instance().GLYPHS_PER_ROW;
 						wchar_t cChar = TextRendering::Instance().charMap[currentChar];
-						const auto glyphInfo = TextRendering::Instance().getFont(page->glyphDisplayHeight[i] * 1.5f)->getGlyphInfo(currentChar, FontType::Outline);
+						const auto glyphInfo = TextRendering::Instance().getFont(page->glyphDisplayHeight[i] * 1.5f,false)->getGlyphInfo(currentChar, FontType::Outline);
 						displayStartY =
 							(page->charDisplayY[i] + yOffset) * 1.5f;
 
 
 						__int16 fontSize = page->glyphDisplayHeight[i] * 1.5f;
 						TextRendering::Instance().replaceFontSurface(fontSize);
+						if (glyphInfo->width && glyphInfo->rows)
 
-						gameExeDrawGlyph(
+						gameExeDrawSpriteReal(
 							TextRendering::Instance().OUTLINE_TEXTURE_ID,
 							TextRendering::Instance().FONT_CELL_SIZE * page->glyphCol[i],
 							TextRendering::Instance().FONT_CELL_SIZE * page->glyphRow[i],
 							glyphInfo->width,
 							glyphInfo->rows, displayStartX + glyphInfo->left,
 							displayStartY + fontSize - glyphInfo->top,
-							displayStartX + (glyphInfo->left + glyphInfo->width),
-							displayStartY + fontSize - glyphInfo->top + glyphInfo->rows,
-							page->charColor[i], _opacity);
+							page->charOutlineColor[i], _opacity,4);
 					}
 				}
 
@@ -1038,7 +1037,7 @@ namespace lb {
 
 				{
 					uint32_t currentChar = page->glyphCol[i] + page->glyphRow[i] * TextRendering::Instance().GLYPHS_PER_ROW;
-					auto glyphInfo = TextRendering::Instance().getFont(page->glyphDisplayHeight[i] * 1.5f)->getGlyphInfo(currentChar, FontType::Regular);
+					auto glyphInfo = TextRendering::Instance().getFont(page->glyphDisplayHeight[i] * 1.5f,false)->getGlyphInfo(currentChar, FontType::Regular);
 					//   if (page->charDisplayX[i + 1] > page->charDisplayX[i] && (i + 1) < page->pageLength) {
 					 //    page->charDisplayX[i + 1] = page->charDisplayX[i]+ glyphInfo.advance  /3.0f;
 					//}
@@ -1049,17 +1048,15 @@ namespace lb {
 
 					TextRendering::Instance().replaceFontSurface(page->glyphDisplayHeight[i] * 1.5);
 					__int16 fontSize = page->glyphDisplayHeight[i] * 1.5f;
-
-					gameExeDrawGlyph(
+					if(glyphInfo->width && glyphInfo->rows)
+					gameExeDrawSpriteReal(
 						TextRendering::Instance().FONT_TEXTURE_ID,
 						TextRendering::Instance().FONT_CELL_SIZE * page->glyphCol[i],
 						TextRendering::Instance().FONT_CELL_SIZE * page->glyphRow[i],
 						glyphInfo->width,
 						glyphInfo->rows, displayStartX + glyphInfo->left,
 						displayStartY + fontSize - glyphInfo->top,
-						displayStartX + (glyphInfo->left + glyphInfo->width),
-						displayStartY + fontSize - glyphInfo->top + glyphInfo->rows,
-						page->charColor[i], _opacity);
+						page->charColor[i], _opacity,4);
 				}
 
 
@@ -1124,7 +1121,7 @@ namespace lb {
 						(baseGlyphSize * widths[glyphId]) / FONT_CELL_WIDTH;
 				}
 				else {
-					const auto& fontData = TextRendering::Instance().getFont(baseGlyphSize);
+					const auto& fontData = TextRendering::Instance().getFont(baseGlyphSize, true);
 					glyphWidth =
 						fontData->glyphData.glyphMap[TextRendering::Instance().charMap[glyphId]].advance;
 				}
@@ -1352,7 +1349,7 @@ namespace lb {
 									else newline = false;
 
 									if (newline == false) {
-										auto glyphInfo = TextRendering::Instance().getFont(glyphSize)->getGlyphInfo(MesRevText[strIndex - 1], Regular);
+										auto glyphInfo = TextRendering::Instance().getFont(glyphSize, true)->getGlyphInfo(MesRevText[strIndex - 1], Regular);
 										xPosition += glyphInfo->advance / 2.0f;
 									}
 									else {
@@ -1364,7 +1361,7 @@ namespace lb {
 									if (MesFontColor[2 * colorIndex] != 0xFFFFFF || (v9 = startPosY, startPosY != index))
 									{
 										TextRendering::Instance().replaceFontSurface(glyphSize);
-										auto glyphInfo = TextRendering::Instance().getFont(glyphSize)->getGlyphInfo(MesRevText[strIndex], Regular);
+										auto glyphInfo = TextRendering::Instance().getFont(glyphSize, false)->getGlyphInfo(MesRevText[strIndex], Regular);
 										sub_4BB760(
 											400,
 											maskTextureId,
@@ -1454,7 +1451,7 @@ namespace lb {
 									else newline = false;
 
 									if (newline == false) {
-										auto glyphInfo = TextRendering::Instance().getFont(glyphSize)->getGlyphInfo(MesRevText[strIndex - 1], Regular);
+										auto glyphInfo = TextRendering::Instance().getFont(glyphSize, false)->getGlyphInfo(MesRevText[strIndex - 1], Regular);
 										xPosition += glyphInfo->advance / 2.0f;
 									}
 									else {
@@ -1473,7 +1470,7 @@ namespace lb {
 									glyphSize = MESrevTextSize[4 * strIndex + 3] * 1.5f;
 
 									TextRendering::Instance().replaceFontSurface(glyphSize);
-									auto glyphInfo = TextRendering::Instance().getFont(glyphSize)->getGlyphInfo(MesRevText[strIndex], Regular);
+									auto glyphInfo = TextRendering::Instance().getFont(glyphSize, false)->getGlyphInfo(MesRevText[strIndex], Regular);
 									sub_4BB760(
 										400,
 										maskTextureId,
@@ -1551,11 +1548,11 @@ namespace lb {
 
 		for (int i = 0; i < str.length; i++) {
 			int curColor = str.color[i];
-			auto glyphInfo = TextRendering::Instance().getFont(glyphSize)->getGlyphInfo(str.glyph[i], Regular);
+			auto glyphInfo = TextRendering::Instance().getFont(glyphSize, false)->getGlyphInfo(str.glyph[i], Regular);
 
 			if (str.linkNumber[i] != NOT_A_LINK) {
 
-				auto linkGlyphInfo = TextRendering::Instance().getFont(glyphSize)->getGlyphInfo(77, Regular);
+				auto linkGlyphInfo = TextRendering::Instance().getFont(glyphSize, false)->getGlyphInfo(77, Regular);
 
 
 				if (str.linkNumber[i] == a12)
@@ -1592,7 +1589,7 @@ namespace lb {
 		int yOffset, int currentColor, int lineHeight, const MultiplierData* mData)
 	{
 		int i = result->length;
-		const auto& fontData = TextRendering::Instance().getFont(baseGlyphSize);
+		const auto& fontData = TextRendering::Instance().getFont(baseGlyphSize, false);
 		char character = TextRendering::Instance().charMap[glyphId];
 		result->text[i] = character;
 		if (curLinkNumber != NOT_A_LINK) {
@@ -1850,7 +1847,12 @@ namespace lb {
 			}
 			else if (c < 0) {
 				int glyphId = (uint8_t)sc3string[1] + ((c & 0x7f) << 8);
-				result += TextRendering::Instance().getFont(baseGlyphSize)->getGlyphInfo(glyphId, Regular)->advance;
+				if(TextRendering::Instance().enabled)
+				result += TextRendering::Instance().getFont(baseGlyphSize, true)->getGlyphInfo(glyphId, Regular)->advance;
+				else {
+					result += TextRendering::Instance().originalWidth[glyphId];
+
+				}
 				i++;
 				sc3string += 2;
 			}
@@ -2046,6 +2048,8 @@ namespace lb {
 	{
 		// if (!startX) startX = 255;
 
+	
+	
 		int length = 0;
 
 		bool finish = false;
@@ -2059,7 +2063,21 @@ namespace lb {
 			TextRendering::Instance().disableReplacement();
 
 		}
+
+
 		if (TextRendering::Instance().enabled) {
+
+			if (a4 == 0x104 && height == 0x18) {
+				a4 *= 1.33;
+				height *= 1.33;
+			}
+			int width = a4 * 1.5 + 1;
+			while (width > a4 * 1.5) {
+				width = getSc3StringDisplayWidthHook((char*)sc3, 0, height * 1.5);
+				height--;
+			}
+
+
 			while (!finish) {
 
 				if (sc3[sc3Index] == 0xFF) {
@@ -2082,7 +2100,7 @@ namespace lb {
 
 			for (int i = 0; i < v.size(); i++) {
 				uint32_t currentChar = v[i];
-				auto fontData = TextRendering::Instance().getFont(height * 1.5f);
+				auto fontData = TextRendering::Instance().getFont(height * 1.5f, false);
 
 				auto glyphInfo = fontData->getGlyphInfo(currentChar, FontType::Regular);
 
@@ -2091,10 +2109,12 @@ namespace lb {
 
 				int displayStartY = startY * 1.5f;
 				TextRendering::Instance().replaceFontSurface(height * 1.5f);
-				gameExeDrawGlyphReal(
-					400, TextRendering::Instance().FONT_CELL_SIZE * column, TextRendering::Instance().FONT_CELL_SIZE * row,
-					glyphInfo->width, glyphInfo->rows, (displayStartX + glyphInfo->left), (displayStartY + height - glyphInfo->top),
-					(displayStartX + glyphInfo->left + (glyphInfo->width)), (displayStartY + height - glyphInfo->top + (glyphInfo->rows)), color, opacity);
+				if (glyphInfo->width && glyphInfo->rows) {
+					gameExeDrawSpriteReal(
+						400, TextRendering::Instance().FONT_CELL_SIZE * column, TextRendering::Instance().FONT_CELL_SIZE * row,
+						glyphInfo->width, glyphInfo->rows, (displayStartX + glyphInfo->left), (displayStartY + height - glyphInfo->top)
+						, color, opacity, 4);
+				}
 
 				displayStartX += glyphInfo->advance;
 
@@ -2191,7 +2211,7 @@ namespace lb {
 			if (str.displayStartY[i] / COORDS_MULTIPLIER > maskStartY &&
 				str.displayEndY[i] / COORDS_MULTIPLIER < (maskStartY + maskHeight) * 1.0f) {
 				TextRendering::Instance().replaceFontSurface(TIP_REIMPL_GLYPH_SIZE);
-				auto fontData = TextRendering::Instance().getFont(TIP_REIMPL_GLYPH_SIZE);
+				auto fontData = TextRendering::Instance().getFont(TIP_REIMPL_GLYPH_SIZE, false);
 				auto glyphInfo = fontData->getGlyphInfo(str.glyph[i], FontType::Regular);
 
 				gameExeSg0DrawGlyph2(

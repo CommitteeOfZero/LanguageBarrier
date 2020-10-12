@@ -96,7 +96,7 @@ endlocal</Command>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;LANGUAGEBARRIER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>

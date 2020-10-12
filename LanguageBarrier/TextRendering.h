@@ -22,10 +22,9 @@ struct fontOut
 	GlyphInfo* infoPtr;
 };
 
-#define MAXFONTSIZE 128
 
 struct FontGlyph {
-	uint8_t data[MAXFONTSIZE][MAXFONTSIZE];
+	uint8_t * data=nullptr;
 
 	uint16_t advance;
 	int32_t top;
@@ -128,9 +127,10 @@ struct TextRendering
 	FT_Library ftLibrary;
 	FT_Face ftFace;
 	FT_Stroker stroker;
-	const int FONT_CELL_SIZE = 80;
+    int FONT_CELL_SIZE = 66;
 	const int GLYPHS_PER_ROW = 64;
-	const int NUM_GLYPHS = 351;
+	int NUM_GLYPHS = 351;
+	char* fontPath = "languagebarrier/noto.ttc";
 
 	bool enabled = true;
 
@@ -139,12 +139,12 @@ struct TextRendering
 	GlyphInfo charInfo[0x40000];
 	TextRendering();
 
-	uint8_t originalWidth[8000];
-	uint8_t originalWidth2[8000];
+	uint8_t originalWidth[32000];
+	uint8_t originalWidth2[32000];
 	uint8_t* widthData;
 	uint8_t* widthData2;
 	void Init(void* widthData, void* widthData2);
-	void buildFont(int fontSize);
+	void buildFont(int fontSize, bool measure);
 
 
 	std::map<uint16_t, FontData> fontData;
@@ -155,11 +155,11 @@ struct TextRendering
 		static TextRendering instance;
 		return instance;
 	}
-	void renderGlyph(FontData* fontData, uint16_t n);
+	void renderGlyph(FontData* fontData, uint16_t n, bool measure);
 
-	void RenderOutline(FontData* fontData, uint16_t n);
+	void RenderOutline(FontData* fontData, uint16_t n, bool measure);
 
-	FontData* getFont(int height);
+	FontData* getFont(int height, bool measure);
 
 	void replaceFontSurface(int size);
 	int SurfacePointSize[512];

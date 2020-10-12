@@ -99,7 +99,11 @@ unsigned int __fastcall ReCreateLoadTextureDDS(void* surface, void* edx, DDSFile
     texFormat = 1;
   	else texFormat = 2;
   }
-  else texFormat = height;
+  else
+  {
+      if (rawData->dds.ddspf.dwRGBBitCount == 8) 
+      texFormat = 112;
+  }
   break;
 	default:
   texFormat = height;
