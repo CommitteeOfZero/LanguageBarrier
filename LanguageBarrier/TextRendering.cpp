@@ -353,7 +353,7 @@ void TextRendering::RenderOutline(FontData* fontData, uint16_t n, bool measure)
 FontData* TextRendering::getFont(int height, bool measure)
 {
 
-	this->FONT_CELL_SIZE = 66;
+	this->FONT_CELL_SIZE = height + 4;
 	if (fontData.find(height) == fontData.end()) {
 		fontData[height] = FontData();
 		this->buildFont(height, measure);
@@ -377,6 +377,11 @@ void TextRendering::replaceFontSurface(int size)
 		lb::gameLoadTexture(OUTLINE_TEXTURE_ID, currentFontData->texture2.GetBufferPointer(), currentFontData->texture2.GetBufferSize());
 		currentFontData->texture.Release();
 	}
+
+	surfaceArray[FONT_TEXTURE_ID].width = FONT_CELL_SIZE * GLYPHS_PER_ROW;
+	surfaceArray[FONT_TEXTURE_ID].height = FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW);
+	surfaceArray[OUTLINE_TEXTURE_ID].width = FONT_CELL_SIZE * GLYPHS_PER_ROW;
+	surfaceArray[OUTLINE_TEXTURE_ID].height = FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW);
 	surfaceArray[FONT_TEXTURE_ID].texPtr[0] = currentFontData->fontTexturePtr;
 	surfaceArray[FONT_TEXTURE_ID].shaderRscView = currentFontData->fontShaderRscView;
 	surfaceArray[OUTLINE_TEXTURE_ID].texPtr[0] = currentFontData->outlineTexturePtr;

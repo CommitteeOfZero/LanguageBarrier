@@ -788,18 +788,20 @@ namespace lb {
 				(LPVOID)drawTipContentHook, (LPVOID*)&gameExeDrawTipContentReal);
 		}
 		if (CC_BACKLOG_HIGHLIGHT || !retAddrToSpriteFixes.empty()) {
-			scanCreateEnableHook("game", "drawSprite", (uintptr_t*)&gameExeDrawSprite,
+			/*scanCreateEnableHook("game", "drawSprite", (uintptr_t*)&gameExeDrawSprite,
 				(LPVOID)drawSpriteHook,
-				(LPVOID*)&gameExeDrawSpriteReal);
+				(LPVOID*)&gameExeDrawSpriteReal);*/
 		}
 
 		if (true) {
 			scanCreateEnableHook("game", "drawBacklogContent", (uintptr_t*)&gameExeDrawBacklogContent,
 				(LPVOID)DrawBacklogContentHook,
 				(LPVOID*)&gameExeDrawBacklogContentReal);
-			scanCreateEnableHook("game", "drawSprite", (uintptr_t*)&gameExeDrawSprite,
+			gameExeDrawSpriteReal = (DrawSpriteProc)sigScan("game", "drawSprite", false);
+
+		/*	scanCreateEnableHook("game", "drawSprite", (uintptr_t*)&gameExeDrawSprite,
 				(LPVOID)drawSpriteHook,
-				(LPVOID*)&gameExeDrawSpriteReal);
+				(LPVOID*)&gameExeDrawSpriteReal);*/
 		}
 
 		if (CC_BACKLOG_HIGHLIGHT) {
@@ -2241,7 +2243,7 @@ namespace lb {
 	int drawSpriteHook(int textureId, float spriteX, float spriteY,
 		float spriteWidth, float spriteHeight, float displayX,
 		float displayY, int color, int opacity, int shaderId) {
-		if (CC_BACKLOG_HIGHLIGHT &&
+			if (CC_BACKLOG_HIGHLIGHT &&
 			_ReturnAddress() == gameExeCcBacklogHighlightDrawRet) {
 			spriteHeight =
 				min((float)(gameExeCcBacklogLineHeights[*gameExeCcBacklogCurLine] +
