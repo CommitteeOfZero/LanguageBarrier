@@ -25,7 +25,7 @@ struct fontOut
 
 struct FontGlyph {
 	uint8_t * data=nullptr;
-
+	float x=-1, y=-1;
 	uint16_t advance;
 	int32_t top;
 	int32_t left;
@@ -119,6 +119,7 @@ struct FontData {
 	ID3D11ShaderResourceView* outlineShaderRscView;
 
 	FontGlyph* getGlyphInfo(int id, FontType type);
+	FontGlyph* getGlyphInfoByChar(wchar_t character, FontType type);
 
 };
 
@@ -148,9 +149,10 @@ struct TextRendering
 
 
 	std::map<uint16_t, FontData> fontData;
+	std::wstring filteredCharMap;
 
 	std::wstring charMap;
-	inline static TextRendering& Instance()
+	inline static TextRendering& Get()
 	{
 		static TextRendering instance;
 		return instance;

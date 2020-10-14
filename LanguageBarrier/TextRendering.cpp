@@ -26,8 +26,19 @@ TextRendering::TextRendering()
 	fseek(f, 0, SEEK_SET);  /* same as rewind(f); */
 
 	fread(charset, fsize, 1, f);
+	charset[fsize] = 0;
+	charset[fsize + 1] = 0;
+
 	wchar_t charset16[16000];
-	auto b = MultiByteToWideChar(CP_UTF8, 0, charset, -1, charset16, 16000);
+	auto utf16size = MultiByteToWideChar(CP_UTF8, 0, charset, fsize, charset16, 0);
+	MultiByteToWideChar(CP_UTF8, 0, charset, fsize, charset16, utf16size);
+	charset16[utf16size] = 0;
+	filteredCharMap.reserve(utf16size);
+	for (int i = 0; i < utf16size; i++) {
+		if ( !(charset16[i] >= 0x4E00 && charset16[i]<=0x9faf) && filteredCharMap.find(charset16[i])==filteredCharMap.npos)
+			filteredCharMap.push_back(charset16[i]);
+	}
+
 	charMap = std::wstring(charset16);
 	this->NUM_GLYPHS = charMap.length();
 }
@@ -69,7 +80,7 @@ void TextRendering::buildFont(int fontSize, bool measure)
 
 	this->fontData[fontSize] = FontData();
 	auto  fontData = &this->fontData[fontSize];
-
+	NUM_GLYPHS = filteredCharMap.length();
 	if (!measure) {
 		fontData->fontTexture.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_A8_UNORM, FONT_CELL_SIZE * GLYPHS_PER_ROW, FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW), 1, 1);
 		fontData->outlineTexture.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_A8_UNORM, FONT_CELL_SIZE * GLYPHS_PER_ROW, FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW), 1, 1);
@@ -173,51 +184,65 @@ void TextRendering::buildFont(int fontSize, bool measure)
 		memset(outlineMip->pixels, 0, outlineMip->rowPitch * outlineMip->height);
 		memset(fontMip->pixels, 0, outlineMip->rowPitch * outlineMip->height);
 	}
-	for (int i = 0; i < NUM_GLYPHS; i++) {
-		RenderOutline(fontData, charMap[i], measure);
-		 auto& glyph = fontData->glyphData.outlineMap[charMap[i]];
-		auto glyphData = glyph.data;
+	int characterCount = 0;
+	for (int i = 0; i < filteredCharMap.length(); i++) {
 
-		if (glyph.rows > cellSize || glyph.width > cellSize) {
 
-		}
-		int x = (i * cellSize) % (cellSize * GLYPHS_PER_ROW) / cellSize;
-		int y = i * cellSize / (cellSize * GLYPHS_PER_ROW);
+		const auto& glyph = fontData->getGlyphInfoByChar(filteredCharMap.at(i), FontType::Outline);
+		if (glyph->x == -1 && glyph->y == -1) {
+			RenderOutline(fontData, filteredCharMap.at(i), measure);
 
-		if (!measure) {
-			for (int k = 0; k < FONT_CELL_SIZE / num; k++) {
-				for (int j = 0; j < FONT_CELL_SIZE / num; j++) {
-					rgbaPixels[GLYPHS_PER_ROW * cellSize * (j + y * cellSize) + cellSize * x + k] = glyphData[j * FONT_CELL_SIZE + k];
+			auto glyphData = glyph->data;
 
-				}
+			if (glyph->rows > cellSize || glyph->width > cellSize) {
 
 			}
-			delete  glyph.data;
-		}
+			int x = (characterCount * cellSize) % (cellSize * GLYPHS_PER_ROW) / cellSize;
+			int y = characterCount * cellSize / (cellSize * GLYPHS_PER_ROW);
 
+			if (!measure && glyph->x == -1 && glyph->y == -1) {
+				glyph->x = x * FONT_CELL_SIZE;
+				glyph->y = y * FONT_CELL_SIZE;
+				for (int k = 0; k < FONT_CELL_SIZE / num; k++) {
+					for (int j = 0; j < FONT_CELL_SIZE / num; j++) {
+						rgbaPixels[GLYPHS_PER_ROW * cellSize * (j + y * cellSize) + cellSize * x + k] = glyphData[j * FONT_CELL_SIZE + k];
+
+					}
+
+				}
+				characterCount++;
+				delete  glyph->data;
+			}
+		}
 
 	}
 	if (!measure) {
 		rgbaPixels = (uint8_t*)fontMip->pixels;
 	}
-	for (int i = 0; i < NUM_GLYPHS; i++) {
-		renderGlyph(fontData, charMap[i], measure);
-		const auto& glyph = fontData->getGlyphInfo(i, FontType::Regular);
+	characterCount = 0;
+	for (int i = 0; i < filteredCharMap.length(); i++) {
+		const auto& glyph = fontData->getGlyphInfoByChar(filteredCharMap.at(i), FontType::Regular);
+		if (glyph->x == -1 && glyph->y == -1) {
 
-		if (glyph->rows > cellSize || glyph->width > cellSize) {
+			renderGlyph(fontData, filteredCharMap.at(i), measure);
 
-		}
-		int x = (i * cellSize) % (cellSize * GLYPHS_PER_ROW) / cellSize;
-		int y = i * cellSize / (cellSize * GLYPHS_PER_ROW);
-
-		if (!measure) {
-			for (int k = 0; k < FONT_CELL_SIZE / num; k++) {
-				for (int j = 0; j < FONT_CELL_SIZE / num; j++) {
-					rgbaPixels[GLYPHS_PER_ROW * cellSize * (j + y * cellSize) + cellSize * x + k] = glyph->data[j * FONT_CELL_SIZE + k];
-				}
+			if (glyph->rows > cellSize || glyph->width > cellSize) {
 
 			}
-			delete  glyph->data;
+			int x = (characterCount * cellSize) % (cellSize * GLYPHS_PER_ROW) / cellSize;
+			int y = characterCount * cellSize / (cellSize * GLYPHS_PER_ROW);
+			if (!measure && glyph->x == -1 && glyph->y == -1) {
+				glyph->x = x * FONT_CELL_SIZE;
+				glyph->y = y * FONT_CELL_SIZE;
+				for (int k = 0; k < FONT_CELL_SIZE / num; k++) {
+					for (int j = 0; j < FONT_CELL_SIZE / num; j++) {
+						rgbaPixels[GLYPHS_PER_ROW * cellSize * (j + y * cellSize) + cellSize * x + k] = glyph->data[j * FONT_CELL_SIZE + k];
+					}
+
+				}
+				characterCount++;
+				delete  glyph->data;
+			}
 		}
 
 	}
@@ -259,6 +284,8 @@ void TextRendering::buildFont(int fontSize, bool measure)
 		if (surfaceArray[OUTLINE_TEXTURE_ID].texPtr[0] == nullptr) {
 			lb::gameLoadTexture(OUTLINE_TEXTURE_ID, fontData->texture2.GetBufferPointer(), fontData->texture2.GetBufferSize());
 		}
+		fontData->fontTexture.Release();
+		fontData->outlineTexture.Release();
 
 		fontData->texture.Release();
 		fontData->texture2.Release();
@@ -286,14 +313,17 @@ void TextRendering::renderGlyph(FontData* fontData, uint16_t n, bool measure)
 		return;
 
 	}
-	if (FT_Render_Glyph(face->glyph, FT_Render_Mode::FT_RENDER_MODE_NORMAL))
-	{
-		return;
+	if (!measure) {
+		if (FT_Render_Glyph(face->glyph, FT_Render_Mode::FT_RENDER_MODE_NORMAL))
+		{
+			return;
 
-	}
-	if (FT_Glyph_To_Bitmap(&glyph, FT_Render_Mode::FT_RENDER_MODE_NORMAL, 0, 1))
-	{
-		return;
+		}
+
+		if (FT_Glyph_To_Bitmap(&glyph, FT_Render_Mode::FT_RENDER_MODE_NORMAL, 0, 1))
+		{
+			return;
+		}
 	}
 	FT_Bitmap* bitmapGlyph = &((FT_BitmapGlyph)glyph)->bitmap;
 
@@ -329,10 +359,14 @@ void TextRendering::RenderOutline(FontData* fontData, uint16_t n, bool measure)
 	FT_UInt glyphIndex = FT_Get_Char_Index(face, n);
 	FT_Load_Glyph(face, glyphIndex, FT_LOAD_DEFAULT);
 	FT_Glyph glyph;
-	FT_Get_Glyph(face->glyph, &glyph);
-	FT_Glyph_StrokeBorder(&glyph, stroker, false, true);
-	FT_Glyph_To_Bitmap(&glyph, FT_RENDER_MODE_NORMAL, nullptr, true);
+	auto b = FT_Get_Glyph(face->glyph, &glyph);
+	if (!measure)
+		FT_Glyph_StrokeBorder(&glyph, stroker, false, true);
+	{
+		FT_Glyph_To_Bitmap(&glyph, FT_RENDER_MODE_NORMAL, nullptr, true);
+	}
 	FT_BitmapGlyph bitmapGlyph = reinterpret_cast<FT_BitmapGlyph>(glyph);
+
 	const auto& glyphData = &fontData->glyphData.outlineMap[n];
 	glyphData->rows = bitmapGlyph->bitmap.rows;
 	glyphData->width = bitmapGlyph->bitmap.width;
@@ -346,14 +380,14 @@ void TextRendering::RenderOutline(FontData* fontData, uint16_t n, bool measure)
 		for (int j = 0; j < bitmapGlyph->bitmap.rows; j++) {
 			memcpy(&glyphData->data[j * FONT_CELL_SIZE], &bitmapGlyph->bitmap.buffer[bitmapGlyph->bitmap.pitch * j], bitmapGlyph->bitmap.pitch);
 		}
-		
+
 	}
 	FT_Done_Glyph(glyph);
 }
 FontData* TextRendering::getFont(int height, bool measure)
 {
 
-	this->FONT_CELL_SIZE = height + 4;
+	this->FONT_CELL_SIZE = height * 1.25;
 	if (fontData.find(height) == fontData.end()) {
 		fontData[height] = FontData();
 		this->buildFont(height, measure);
@@ -369,7 +403,7 @@ void TextRendering::replaceFontSurface(int size)
 
 	auto currentFontData = this->getFont(size, false);
 
-	if (surfaceArray[FONT_TEXTURE_ID].texPtr[0] == nullptr && currentFontData->texture.GetBufferPointer()!=nullptr)  {
+	if (surfaceArray[FONT_TEXTURE_ID].texPtr[0] == nullptr && currentFontData->texture.GetBufferPointer() != nullptr) {
 		lb::gameLoadTexture(FONT_TEXTURE_ID, currentFontData->texture.GetBufferPointer(), currentFontData->texture.GetBufferSize());
 		currentFontData->texture.Release();
 	}
@@ -380,6 +414,10 @@ void TextRendering::replaceFontSurface(int size)
 
 	surfaceArray[FONT_TEXTURE_ID].width = FONT_CELL_SIZE * GLYPHS_PER_ROW;
 	surfaceArray[FONT_TEXTURE_ID].height = FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW);
+	surfaceArray[FONT_TEXTURE_ID].field_40 = FONT_CELL_SIZE * GLYPHS_PER_ROW;
+	surfaceArray[FONT_TEXTURE_ID].field_44 = FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW);
+	surfaceArray[OUTLINE_TEXTURE_ID].field_40 = FONT_CELL_SIZE * GLYPHS_PER_ROW;
+	surfaceArray[OUTLINE_TEXTURE_ID].field_44 = FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW);
 	surfaceArray[OUTLINE_TEXTURE_ID].width = FONT_CELL_SIZE * GLYPHS_PER_ROW;
 	surfaceArray[OUTLINE_TEXTURE_ID].height = FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW);
 	surfaceArray[FONT_TEXTURE_ID].texPtr[0] = currentFontData->fontTexturePtr;
@@ -389,19 +427,37 @@ void TextRendering::replaceFontSurface(int size)
 
 }
 
+FontGlyph* FontData::getGlyphInfoByChar(wchar_t character, FontType type)
+{
+	switch (type) {
+	case Regular:
+		return &this->glyphData.glyphMap[character];
+		break;
+	case Outline:
+		return &this->glyphData.outlineMap[character];
+		break;
+	case Italics:
+		return &this->glyphData.glyphMap[character];
+		break;
+	default:
+		break;
+
+	}
+}
 
 
 FontGlyph* FontData::getGlyphInfo(int id, FontType type)
 {
+	
 	switch (type) {
 	case Regular:
-		return &this->glyphData.glyphMap[TextRendering::Instance().charMap[id]];
+		return &this->glyphData.glyphMap[TextRendering::Get().charMap[id]];
 		break;
 	case Outline:
-		return &this->glyphData.outlineMap[TextRendering::Instance().charMap[id]];
+		return &this->glyphData.outlineMap[TextRendering::Get().charMap[id]];
 		break;
 	case Italics:
-		return &this->glyphData.glyphMap[TextRendering::Instance().charMap[id]];
+		return &this->glyphData.glyphMap[TextRendering::Get().charMap[id]];
 		break;
 	default:
 		break;
