@@ -1589,41 +1589,46 @@ namespace lb {
 
 		}
 	}
-	int __cdecl drawTwipoContentHook(int textureId, int a2, int a3, unsigned int a4, int a5, unsigned int a6, char* sc3, int a8, int a9, uint32_t opacity, int a11, int a12, int a13, int a14) {
+	int __cdecl drawTwipoContentHook(int textureId, int startX, int startY, unsigned int maxLineLength, int a5, unsigned int a6, char* sc3, int color, int glyphSize, uint32_t opacity, int linkColor, int a12, int a13, int a14) {
 
 		// if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
-		int lineLength = DEFAULT_LINE_LENGTH;
+		int lineLength = maxLineLength * 1.5;
 		std::list<StringWord_t> words;
 
 
 		if (!TextRendering::Get().enabled) {
-			return  rnDrawTwipoContentReal(textureId, a2, a3, a4, a5, a6, sc3, a8, a9, opacity, a11, a12, a13, a14);
+			return  rnDrawTwipoContentReal(textureId, startX, startY, maxLineLength, a5, a6, sc3, color, glyphSize, opacity, linkColor, a12, a13, a14);
 			;
 		}
-		semiTokeniseSc3String(sc3, words, 32, lineLength);
+		semiTokeniseSc3String(sc3, words, glyphSize * 1.5, lineLength);
 		int xOffset, yOffset;
 		xOffset = 0;
 		yOffset = 0;
-		int color = a8;
+
 		int lineSkipCount = 1;
 		int lineDisplayCount = 0;
-		lineLength = a4;
-		const int glyphSize = a9 * 1.5;
+		glyphSize *= 1.5;
 
 		ProcessedSc3String_t str;
 		MultiplierData mData;
 		mData.xOffset = 1.5f;
 		mData.yOffset = 1.5f;
 
+		int lineHeight = glyphSize;
 
+		if (glyphSize == 55 && maxLineLength == 645) {
 
-		processSc3TokenList(a2, a3, lineLength, words, a5, color,
+			lineHeight = glyphSize * 1.25;
+
+		}
+
+		processSc3TokenList(startX, startY, lineLength, words, a5, color,
 			glyphSize, &str, true, COORDS_MULTIPLIER, -1,
-			NOT_A_LINK, color, glyphSize, &mData);
+			NOT_A_LINK, color, lineHeight, &mData);
 
-		processSc3TokenList(a2, a3, lineLength, words, a5,
+		processSc3TokenList(startX, startY, lineLength, words, a5,
 			color, glyphSize, &str, false, COORDS_MULTIPLIER,
-			str.linkCount - 1, str.curLinkNumber, str.curColor, glyphSize, &mData);
+			str.linkCount - 1, str.curLinkNumber, str.curColor, lineHeight, &mData);
 
 
 		TextRendering::Get().replaceFontSurface(glyphSize);
@@ -1634,13 +1639,13 @@ namespace lb {
 
 			if (str.linkNumber[i] != NOT_A_LINK) {
 
-				auto linkGlyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(77, Regular);
+				auto linkGlyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfoByChar('_', Regular);
 
 
 				if (str.linkNumber[i] == a12)
-					curColor = a8;
+					curColor = color;
 				else
-					curColor = a11;
+					curColor = linkColor;
 
 				float endUnderScoreX = str.displayStartX[i] + glyphInfo->advance;
 
@@ -1649,14 +1654,13 @@ namespace lb {
 					endUnderScoreX = str.displayStartX[i + 1];
 				}
 
-				const int underScoreIndex = 77;
 				int remaining = glyphInfo->advance;
 				int offset = 0;
 				while (remaining > 0) {
 
 
-					drawSpriteHook(TextRendering::Get().FONT_TEXTURE_ID, underScoreIndex % TextRendering::Get().GLYPHS_PER_ROW * TextRendering::Get().FONT_CELL_SIZE,
-						underScoreIndex / TextRendering::Get().GLYPHS_PER_ROW * TextRendering::Get().FONT_CELL_SIZE, linkGlyphInfo->width,
+					drawSpriteHook(TextRendering::Get().FONT_TEXTURE_ID, linkGlyphInfo->x,
+						linkGlyphInfo->y, linkGlyphInfo->width,
 						linkGlyphInfo->rows, str.displayStartX[i] + offset + linkGlyphInfo->left,
 						str.displayStartY[i] + glyphSize - linkGlyphInfo->top, curColor, opacity, 4);
 
@@ -1774,7 +1778,7 @@ namespace lb {
 		int prevLineLength = 0;
 
 		int spaceCost =
-			(widths[GLYPH_ID_FULLWIDTH_SPACE] * baseGlyphSize) / FONT_CELL_WIDTH;
+			TextRendering::Get().getFont(baseGlyphSize, true)->getGlyphInfo(GLYPH_ID_FULLWIDTH_SPACE, Regular)->advance;
 
 
 		MultiplierData multiplierData;
@@ -1786,7 +1790,7 @@ namespace lb {
 
 		for (auto it = words.begin(); it != words.end(); it++) {
 			if (result->lines >= lineCount) {
-				words.erase(words.begin(), it);
+				words.erase(it, words.end());
 				break;
 			}
 			int wordCost =
@@ -1806,7 +1810,7 @@ namespace lb {
 				for (int i = 0; i < 3; i++) {
 					addCharacter(result, baseGlyphSize, TextRendering::Get().charMap.find('.'), lineCount - 1, curLinkNumber, false, 1.0, xOffset, curLineLength, yOffset, currentColor, lineHeight, mData);
 				}
-				words.erase(words.begin(), it);
+				words.erase(++it, words.end());
 				break;
 			};
 
