@@ -33,22 +33,31 @@ TextRendering::TextRendering()
 	auto utf16size = MultiByteToWideChar(CP_UTF8, 0, charset, fsize, charset16, 0);
 	MultiByteToWideChar(CP_UTF8, 0, charset, fsize, charset16, utf16size);
 	charset16[utf16size] = 0;
+	charMap = std::wstring(charset16);
+	filteredCharMap = charMap;
+	this->buildFont(32, true);
+
 	filteredCharMap.reserve(utf16size);
+	
 	for (int i = 0; i < utf16size; i++) {
 		if ( !(charset16[i] >= 0x4E00 && charset16[i]<=0x9faf) && filteredCharMap.find(charset16[i])==filteredCharMap.npos)
 			filteredCharMap.push_back(charset16[i]);
 	}
 
-	charMap = std::wstring(charset16);
 	this->NUM_GLYPHS = charMap.length();
 }
 
 void TextRendering::Init(void* widthData, void* widthData2)
 {
-	//	memcpy(originalWidth, widthData, NUM_GLYPHS);
-	//	memcpy(originalWidth2, widthData2, NUM_GLYPHS);
+		memcpy(originalWidth, widthData, 351);
+		memcpy(originalWidth2, widthData2, 351);
 	this->widthData = (uint8_t*)widthData;
 	this->widthData2 = (uint8_t*)widthData2;
+	this->getFont(32,true);
+	for (int i = 0; i < 351; i++) {
+		this->widthData[i] = (uint8_t)fontData[32].getGlyphInfo(i, FontType::Regular)->advance;
+	}
+
 }
 
 struct TextSize {

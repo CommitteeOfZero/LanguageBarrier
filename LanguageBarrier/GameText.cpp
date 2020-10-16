@@ -127,7 +127,13 @@ typedef int(__cdecl* drawTwipoContentHookProc)(int textureId, int a2, int a3, un
 static drawTwipoContentHookProc rnDrawTwipoContent = NULL;
 static drawTwipoContentHookProc rnDrawTwipoContentReal = NULL;
 
+typedef int(__cdecl* drawTipMessageHookProc)(int textureId, int a2, int a3, char* a4, unsigned int a5, int color, unsigned int a7, uint32_t opacity);
+static drawTipMessageHookProc rnDrawTipMessage = NULL;
+static drawTipMessageHookProc rnDrawTipMessageReal = NULL;
 
+typedef int(__cdecl* drawChatMessageHookProc)(int a2, float a3, float a4, float a5, char* a6, float a7, int color, float a9, uint32_t opacity);
+static drawChatMessageHookProc rnDrawChatMessage = NULL;
+static drawChatMessageHookProc rnDrawChatMessageReal = NULL;
 
 
 typedef int(__cdecl* DialogueLayoutRelatedProc)(int unk0, int* unk1, int* unk2,
@@ -462,6 +468,8 @@ namespace lb {
 	int __cdecl rnDrawTextHook(signed int textureId, int a2, signed int startY, unsigned int a4, uint8_t* a5, signed int startX, int color, int height, int opacity);
 	void __cdecl DrawBacklogContentHook(int textureId, int maskTextureId, int startX, int startY, unsigned int maskY, int maskHeight, int opacity, int index);
 	int __cdecl drawTwipoContentHook(int textureId, int a2, int a3, unsigned int a4, int a5, unsigned int a6, char* sc3, int a8, int a9, uint32_t opacity, int a11, int a12, int a13, int a14);
+	int __cdecl drawTipMessageHook(int textureId, int a2, int a3, char* a4, unsigned int a5, int color, unsigned int a7, uint32_t opacity);
+	int __cdecl drawChatMessageHook(int a2, float a3, float a4, float a5, char* a6, float a7, int color, float a9, uint32_t opacity);
 
 
 
@@ -582,7 +590,7 @@ namespace lb {
 		gameExeGlyphWidthsFont2 = (uint8_t*)sigScan("game", "useOfGlyphWidthsFont2");
 		gameExeColors = (int*)sigScan("game", "useOfColors");
 
-	
+
 		scanCreateEnableHook("game", "gslFill", (uintptr_t*)&gameExegslFill,
 			(LPVOID)&gslFillHook,
 			(LPVOID*)&gameExegslFillReal);
@@ -591,7 +599,12 @@ namespace lb {
 		scanCreateEnableHook(
 			"game", "drawTwipoContent", (uintptr_t*)&rnDrawTwipoContent,
 			(LPVOID)drawTwipoContentHook, (LPVOID*)&rnDrawTwipoContentReal);
-
+		scanCreateEnableHook(
+			"game", "drawObtainedTipMessage", (uintptr_t*)&rnDrawTipMessage,
+			(LPVOID)drawTipMessageHook, (LPVOID*)&rnDrawTipMessageReal);
+		scanCreateEnableHook(
+			"game", "drawChatTextBox", (uintptr_t*)&rnDrawChatMessage,
+			(LPVOID)drawChatMessageHook, (LPVOID*)&rnDrawChatMessageReal);
 		if (config["gamedef"].count("dialoguePageVersion") == 1 &&
 			config["gamedef"]["dialoguePageVersion"].get<std::string>() == "cc") {
 			gameExeDialoguePages_CCDialoguePage_t =
@@ -1014,7 +1027,7 @@ namespace lb {
 					{
 						uint32_t currentChar = page->glyphCol[i] + page->glyphRow[i] * TextRendering::Get().GLYPHS_PER_ROW;
 						wchar_t cChar = TextRendering::Get().charMap[currentChar];
-						const auto glyphInfo = TextRendering::Get().getFont(page->glyphDisplayHeight[i] * 1.5f,false)->getGlyphInfo(currentChar, FontType::Outline);
+						const auto glyphInfo = TextRendering::Get().getFont(page->glyphDisplayHeight[i] * 1.5f, false)->getGlyphInfo(currentChar, FontType::Outline);
 						displayStartY =
 							(page->charDisplayY[i] + yOffset) * 1.5f;
 
@@ -1023,14 +1036,14 @@ namespace lb {
 						TextRendering::Get().replaceFontSurface(fontSize);
 						if (glyphInfo->width && glyphInfo->rows)
 
-						gameExeDrawSpriteReal(
-							TextRendering::Get().OUTLINE_TEXTURE_ID,
-							 glyphInfo->x,
-							glyphInfo->y,
-							glyphInfo->width,
-							glyphInfo->rows, displayStartX + glyphInfo->left,
-							displayStartY + fontSize - glyphInfo->top,
-							page->charOutlineColor[i], _opacity,4);
+							gameExeDrawSpriteReal(
+								TextRendering::Get().OUTLINE_TEXTURE_ID,
+								glyphInfo->x,
+								glyphInfo->y,
+								glyphInfo->width,
+								glyphInfo->rows, displayStartX + glyphInfo->left,
+								displayStartY + fontSize - glyphInfo->top,
+								page->charOutlineColor[i], _opacity, 4);
 					}
 				}
 
@@ -1038,7 +1051,7 @@ namespace lb {
 
 				{
 					uint32_t currentChar = page->glyphCol[i] + page->glyphRow[i] * TextRendering::Get().GLYPHS_PER_ROW;
-					auto glyphInfo = TextRendering::Get().getFont(page->glyphDisplayHeight[i] * 1.5f,false)->getGlyphInfo(currentChar, FontType::Regular);
+					auto glyphInfo = TextRendering::Get().getFont(page->glyphDisplayHeight[i] * 1.5f, false)->getGlyphInfo(currentChar, FontType::Regular);
 					//   if (page->charDisplayX[i + 1] > page->charDisplayX[i] && (i + 1) < page->pageLength) {
 					 //    page->charDisplayX[i + 1] = page->charDisplayX[i]+ glyphInfo.advance  /3.0f;
 					//}
@@ -1049,15 +1062,15 @@ namespace lb {
 
 					TextRendering::Get().replaceFontSurface(page->glyphDisplayHeight[i] * 1.5);
 					__int16 fontSize = page->glyphDisplayHeight[i] * 1.5f;
-					if(glyphInfo->width && glyphInfo->rows)
-					gameExeDrawSpriteReal(
-						TextRendering::Get().FONT_TEXTURE_ID,
-						glyphInfo->x,
-						glyphInfo->y,
-						glyphInfo->width,
-						glyphInfo->rows, displayStartX + glyphInfo->left,
-						displayStartY + fontSize - glyphInfo->top,
-						page->charColor[i], _opacity,4);
+					if (glyphInfo->width && glyphInfo->rows)
+						gameExeDrawSpriteReal(
+							TextRendering::Get().FONT_TEXTURE_ID,
+							glyphInfo->x,
+							glyphInfo->y,
+							glyphInfo->width,
+							glyphInfo->rows, displayStartX + glyphInfo->left,
+							displayStartY + fontSize - glyphInfo->top,
+							page->charColor[i], _opacity, 4);
 				}
 
 
@@ -1368,12 +1381,12 @@ namespace lb {
 											maskTextureId,
 											glyphInfo->x,
 											glyphInfo->y,
-											glyphInfo->width ,
-											glyphInfo->rows ,
+											glyphInfo->width,
+											glyphInfo->rows,
 											xPosition + glyphInfo->left / 2.0f + 1,
 											v47 + glyphSize / 2.0f - glyphInfo->top / 2.0f + 1,
-											xPosition + glyphInfo->left / 2.0f + glyphInfo->width/2.0f + 1,
-											glyphInfo->rows/2.0f + glyphSize / 2.0f - glyphInfo->top / 2.0f + 1 + v47,
+											xPosition + glyphInfo->left / 2.0f + glyphInfo->width / 2.0f + 1,
+											glyphInfo->rows / 2.0f + glyphSize / 2.0f - glyphInfo->top / 2.0f + 1 + v47,
 											color,
 											opacity);
 										v9 = startPosY;
@@ -1451,7 +1464,7 @@ namespace lb {
 									}
 									else newline = false;
 
-									if (newline == false && (MesRevText[strIndex - 1] & 0x8000)==0) {
+									if (newline == false && (MesRevText[strIndex - 1] & 0x8000) == 0) {
 										auto glyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(MesRevText[strIndex - 1], Regular);
 										xPosition += glyphInfo->advance / 2.0f;
 									}
@@ -1477,13 +1490,13 @@ namespace lb {
 										400,
 										maskTextureId,
 										glyphInfo->x,
-										glyphInfo->y, 
+										glyphInfo->y,
 										glyphInfo->width,
 										glyphInfo->rows,
 										xPosition + glyphInfo->left / 2.0f,
 										MesRevTextPos[2 * strIndex + 1] + v35 + glyphSize / 2.0f - glyphInfo->top / 2.0f,
-										xPosition + glyphInfo->left / 2.0f + glyphInfo->width/2.0f,
-										MesRevTextPos[2 * strIndex + 1] + glyphInfo->rows/2.0f + glyphSize / 2.0f - glyphInfo->top / 2.0f + v35,
+										xPosition + glyphInfo->left / 2.0f + glyphInfo->width / 2.0f,
+										MesRevTextPos[2 * strIndex + 1] + glyphInfo->rows / 2.0f + glyphSize / 2.0f - glyphInfo->top / 2.0f + v35,
 										color,
 										opacity);
 
@@ -1507,8 +1520,75 @@ namespace lb {
 		}
 	}
 
+	int __cdecl drawTipMessageHook(int textureId, int a2, int a3, char* sc3String, unsigned int a5, int color, unsigned int glyphSize, uint32_t opacity) {
+
+		if (!TextRendering::Get().enabled) {
+			return  rnDrawTipMessageReal(textureId, a2, a3, sc3String, a5, color, glyphSize, opacity);
+			;
+		}
+		else {
+			rnDrawTextHook(TextRendering::Get().FONT_TEXTURE_ID, a2, a3, 0, (uint8_t*)sc3String, a5, color, glyphSize, opacity);
+		}
+	}
+	int __cdecl drawChatMessageHook(int a2, float a3, float a4, float a5, char* sc3, float a7, int color, float a9, uint32_t opacity) {
+
+		int lineLength = a5;
+		std::list<StringWord_t> words;
+
+		if (GetAsyncKeyState(VK_RBUTTON)) {
+			TextRendering::Get().enableReplacement();
+		}
+		if (GetAsyncKeyState(VK_LBUTTON)) {
+			TextRendering::Get().disableReplacement();
+
+		}
 
 
+		if (!TextRendering::Get().enabled) {
+			return  rnDrawChatMessageReal(a2, a3, a4, a5, sc3, a7, color, a9, opacity);
+			;
+		}
+		else {
+			semiTokeniseSc3String(sc3, words, a9, lineLength);
+			int xOffset, yOffset;
+			xOffset = 0;
+			yOffset = 0;
+			int lineSkipCount = 1;
+			int lineDisplayCount = 0;
+			lineLength = a5 * 1.5;
+			const int glyphSize = a9 * 1.5;
+
+			ProcessedSc3String_t str;
+			MultiplierData mData;
+			mData.xOffset = 1.5f;
+			mData.yOffset = 1.5f;
+
+
+
+
+
+			processSc3TokenList(a3, a4, lineLength, words, a5,
+				color, glyphSize, &str, false, COORDS_MULTIPLIER,
+				str.linkCount - 1, str.curLinkNumber, color, glyphSize, &mData);
+
+
+			TextRendering::Get().replaceFontSurface(glyphSize);
+
+			for (int i = 0; i < str.length; i++) {
+				int curColor = str.color[i];
+				auto glyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(str.glyph[i], Regular);
+
+				if (str.textureWidth[i] > 0 && str.textureHeight[i] > 0)
+
+					drawSpriteHook(TextRendering::Get().FONT_TEXTURE_ID, str.textureStartX[i], str.textureStartY[i],
+						str.textureWidth[i], str.textureHeight[i],
+						str.displayStartX[i], str.displayStartY[i] + glyphSize - glyphInfo->top,
+						curColor, opacity, 4);
+			}
+
+
+		}
+	}
 	int __cdecl drawTwipoContentHook(int textureId, int a2, int a3, unsigned int a4, int a5, unsigned int a6, char* sc3, int a8, int a9, uint32_t opacity, int a11, int a12, int a13, int a14) {
 
 		// if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
@@ -1572,12 +1652,12 @@ namespace lb {
 				const int underScoreIndex = 77;
 				int remaining = glyphInfo->advance;
 				int offset = 0;
-				while (remaining>0) {
-				
+				while (remaining > 0) {
+
 
 					drawSpriteHook(TextRendering::Get().FONT_TEXTURE_ID, underScoreIndex % TextRendering::Get().GLYPHS_PER_ROW * TextRendering::Get().FONT_CELL_SIZE,
 						underScoreIndex / TextRendering::Get().GLYPHS_PER_ROW * TextRendering::Get().FONT_CELL_SIZE, linkGlyphInfo->width,
-						linkGlyphInfo->rows, str.displayStartX[i]+offset+linkGlyphInfo->left,
+						linkGlyphInfo->rows, str.displayStartX[i] + offset + linkGlyphInfo->left,
 						str.displayStartY[i] + glyphSize - linkGlyphInfo->top, curColor, opacity, 4);
 
 					remaining -= linkGlyphInfo->width;
@@ -1585,11 +1665,12 @@ namespace lb {
 				}
 			}
 
+			if (str.textureWidth[i] > 0 && str.textureHeight[i] > 0)
 
-			drawSpriteHook(TextRendering::Get().FONT_TEXTURE_ID, str.textureStartX[i], str.textureStartY[i],
-				str.textureWidth[i], str.textureHeight[i],
-				str.displayStartX[i], str.displayStartY[i] + glyphSize - glyphInfo->top,
-				 curColor, opacity,4);
+				drawSpriteHook(TextRendering::Get().FONT_TEXTURE_ID, str.textureStartX[i], str.textureStartY[i],
+					str.textureWidth[i], str.textureHeight[i],
+					str.displayStartX[i], str.displayStartY[i] + glyphSize - glyphInfo->top,
+					curColor, opacity, 4);
 		}
 		return 1;
 	}
@@ -1642,9 +1723,9 @@ namespace lb {
 				result->linkNumber[i] = curLinkNumber;
 				result->glyph[i] = glyphId;
 				result->textureStartX[i] =
-				  multiplier * glyphInfo->x;
+					multiplier * glyphInfo->x;
 				result->textureStartY[i] =
-					  multiplier * glyphInfo->y;
+					multiplier * glyphInfo->y;
 				result->textureWidth[i] = glyphInfo->width * multiplier;
 				result->textureHeight[i] = baseGlyphSize * multiplier;
 				result->displayStartX[i] =
@@ -1857,8 +1938,8 @@ namespace lb {
 			}
 			else if (c < 0) {
 				int glyphId = (uint8_t)sc3string[1] + ((c & 0x7f) << 8);
-				if(TextRendering::Get().enabled)
-				result += TextRendering::Get().getFont(baseGlyphSize, true)->getGlyphInfo(glyphId, Regular)->advance;
+				if (TextRendering::Get().enabled)
+					result += TextRendering::Get().getFont(baseGlyphSize, true)->getGlyphInfo(glyphId, Regular)->advance;
 				else {
 					result += TextRendering::Get().originalWidth[glyphId];
 				}
@@ -2057,8 +2138,8 @@ namespace lb {
 	{
 		// if (!startX) startX = 255;
 
-	
-	
+
+
 		int length = 0;
 
 		bool finish = false;
@@ -2081,7 +2162,7 @@ namespace lb {
 				height *= 1.33;
 			}
 			int width = a4 * 1.5 + 1;
-			while (a4!=0 && width > a4 * 1.5 && height>0) {
+			while (a4 != 0 && width > a4 * 1.5 && height > 0) {
 				width = getSc3StringDisplayWidthHook((char*)sc3, 0, height * 1.5);
 				height--;
 			}
@@ -2115,7 +2196,6 @@ namespace lb {
 
 				int column = currentChar % TextRendering::Get().GLYPHS_PER_ROW;
 				int row = currentChar / TextRendering::Get().GLYPHS_PER_ROW;
-
 				int displayStartY = startY * 1.5f;
 				TextRendering::Get().replaceFontSurface(height * 1.5f);
 				if (glyphInfo->width && glyphInfo->rows) {
@@ -2250,7 +2330,7 @@ namespace lb {
 	int drawSpriteHook(int textureId, float spriteX, float spriteY,
 		float spriteWidth, float spriteHeight, float displayX,
 		float displayY, int color, int opacity, int shaderId) {
-			if (CC_BACKLOG_HIGHLIGHT &&
+		if (CC_BACKLOG_HIGHLIGHT &&
 			_ReturnAddress() == gameExeCcBacklogHighlightDrawRet) {
 			spriteHeight =
 				min((float)(gameExeCcBacklogLineHeights[*gameExeCcBacklogCurLine] +
@@ -2272,18 +2352,18 @@ namespace lb {
 			displayY += it->second.dy;
 		}
 
-		if (textureId==80 && (spriteY == 1640 || spriteY==1936)) {
-			 gameExeDrawSpriteReal(textureId, spriteX, spriteY+4, spriteWidth,
+		if (textureId == 80 && (spriteY == 1640 || spriteY == 1936)) {
+			gameExeDrawSpriteReal(textureId, spriteX, spriteY + 4, spriteWidth,
 				9, displayX, displayY, color, opacity,
 				shaderId);
 			return  gameExeDrawSpriteReal(textureId, spriteX, spriteY + 4, spriteWidth,
-				 spriteHeight - 9, displayX, displayY+9, color, opacity,
-				 shaderId);
-		
+				spriteHeight - 9, displayX, displayY + 9, color, opacity,
+				shaderId);
+
 
 		}
-		return gameExeDrawSpriteReal(textureId, spriteX, spriteY , spriteWidth,
-			spriteHeight,  displayX, displayY , color, opacity,
+		return gameExeDrawSpriteReal(textureId, spriteX, spriteY, spriteWidth,
+			spriteHeight, displayX, displayY, color, opacity,
 			shaderId);
 
 	}
