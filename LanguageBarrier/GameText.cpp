@@ -471,6 +471,28 @@ namespace lb {
 	int __cdecl drawTipMessageHook(int textureId, int a2, int a3, char* a4, unsigned int a5, int color, unsigned int a7, uint32_t opacity);
 	int __cdecl drawChatMessageHook(int a2, float a3, float a4, float a5, char* a6, float a7, int color, float a9, uint32_t opacity);
 
+	int* BacklogLineSave;
+	int* BacklogDispLinePos;
+	int* BacklogLineBufSize;
+	uint16_t* BacklogTextPos;
+	int* BacklogLineBufUse;
+	uint16_t* BacklogText;
+	int* BacklogDispCurPosSX;
+	int* BacklogDispCurPosEY;
+	int* BacklogLineBufStartp;
+	unsigned char* BacklogTextSize;
+	int* BacklogLineBufEndp;
+	int* BacklogBufStartp;
+	int* MesFontColor;
+	int* BacklogBufUse;
+	int* BacklogDispCurPosEX;
+	int* BacklogDispLineSize;
+	int* BacklogDispPos;
+	int* dword_948628;
+	uint8_t* BacklogTextCo;
+	int* BacklogLineVoice;
+	int* BacklogDispLinePosY;
+	int* BacklogDispCurPosSY;
 
 
 	int __cdecl gslFillHook(int id, int a1, int a2, int a3, int a4, int r, int g, int b, int a) {
@@ -807,7 +829,38 @@ namespace lb {
 				(LPVOID*)&gameExeDrawSpriteReal);
 		}
 
+
+
+
 		if (true) {
+		
+			BacklogLineSave = (int*)sigScan("game", "BacklogLineSave");
+			BacklogDispLinePos = (int*)sigScan("game", "BacklogDispLinePos");
+			BacklogLineBufSize = (int*)sigScan("game", "BacklogLineBufSize");
+			BacklogTextPos = (uint16_t*)sigScan("game", "BacklogTextPos");
+			BacklogLineBufUse = (int*)sigScan("game", "BacklogLineBufUse");
+			BacklogText = (uint16_t*)sigScan("game", "BacklogText");
+			BacklogDispCurPosSX = (int*)sigScan("game", "BacklogDispCurPosSX");
+			BacklogDispCurPosEY = (int*)sigScan("game", "BacklogDispCurPosEY");
+			BacklogLineBufStartp = (int*)sigScan("game", "BacklogLineBufStartp");
+			BacklogTextSize = (unsigned char*)sigScan("game", "BacklogTextSize");
+			BacklogLineBufEndp = (int*)sigScan("game", "BacklogLineBufEndp");
+			BacklogBufStartp = (int*)sigScan("game", "BacklogBufStartp");
+			MesFontColor = (int*)sigScan("game", "MesFontColor");
+			BacklogBufUse = (int*)sigScan("game", "BacklogBufUse");
+			BacklogDispCurPosEX = (int*)sigScan("game", "BacklogDispCurPosEX");
+			BacklogDispLineSize = (int*)sigScan("game", "BacklogDispLineSize");
+			BacklogDispPos = (int*)sigScan("game", "BacklogDispPos");
+			dword_948628 = (int*)sigScan("game", "dword_948628");
+			BacklogTextCo = (uint8_t*)sigScan("game", "BacklogTextCo");
+			BacklogLineVoice = (int*)sigScan("game", "BacklogLineVoice");
+			BacklogDispLinePosY = (int*)sigScan("game", "BacklogDispLinePosY");
+			BacklogDispCurPosSY = (int*)sigScan("game", "BacklogDispCurPosSY");
+
+
+
+			
+			
 			scanCreateEnableHook("game", "drawBacklogContent", (uintptr_t*)&gameExeDrawBacklogContent,
 				(LPVOID)DrawBacklogContentHook,
 				(LPVOID*)&gameExeDrawBacklogContentReal);
@@ -1284,29 +1337,7 @@ namespace lb {
 		unsigned int v46; // [esp+2Ch] [ebp-8h]
 		int v47; // [esp+30h] [ebp-4h]
 
-		uint16_t* MESrevTextFont = (uint16_t*)0x078CBB0;
-		int* MESrevDispCurPosEY = (int*)0x079A450;
-		int* MESrevDispCurPosSX = (int*)0x079AA90;
-		int* MESrevDispCurPosSY = (int*)0x079B0D0;
-		int* MESrevDispCurPosEX = (int*)0x079B710;
-		int* MESrevBufUse = (int*)0x079BF38;
-		int* MESrevBufStartp = (int*)0x079BF3C;
-		uint16_t* MesRevText = (uint16_t*)0x079BF40;
-		uint16_t* MesRevTextPos = (uint16_t*)0x07B45E0;
-		unsigned char* MESrevTextSize = (unsigned char*)0x07E5320;
-		uint8_t* MESrevTextCo = (uint8_t*)0x0816060;
-		int MESrevLineBufUse = *(int*)0x08223B0;
-		int* MESrevLineBufStartp = (int*)0x08223B4;
-		int* MESrevLineBufSize = (int*)0x08223C0;
-		int* MESrevLineBufEndp = (int*)0x0853100;
-		int* MESrevLineVoice = (int*)0x08B4B80;
-		int* MESrevLineSave = (int*)0x0916600;
-		int MESrevDispPos = *(int*)0x094734C;
-		int* MESrevDispLinePos = (int*)0x0947360;
-		int* MESrevDispLineSize = (int*)0x09479A8;
-		int* MESrevDispLinePosY = (int*)0x0947FE8;
-		int* MesFontColor = (int*)0x6DF598;
-		int* dword_948628 = (int*)0x948628;
+	
 
 		if (!TextRendering::Get().enabled)
 		{
@@ -1319,63 +1350,63 @@ namespace lb {
 
 		v40 = 0;
 		v47 = 0;
-		if (MESrevLineBufUse)
+		if (*BacklogLineBufUse)
 		{
-			v8 = MESrevLineBufUse;
+			v8 =* BacklogLineBufUse;
 			v9 = 0;
 			startPosY = 0;
-			if (MESrevLineBufUse)
+			if (*BacklogLineBufUse)
 			{
 				v10 = maskY;
 				do
 				{
 					v11 = 0xFFFF;
-					v12 = startY + MESrevDispLinePosY[v9] - MESrevDispPos;
+					v12 = startY + BacklogDispLinePosY[v9] - *BacklogDispPos;
 					v45 = 0xFFFF;
 					v42 = 0xFFFF;
-					yPosition = startY + MESrevDispLinePosY[v9] - MESrevDispPos;
+					yPosition = startY + BacklogDispLinePosY[v9] - *BacklogDispPos;
 					v38 = 0;
-					if (v12 + MESrevDispLineSize[v9] > v10 && v12 < v10 + maskHeight)
+					if (v12 + BacklogDispLineSize[v9] > v10 && v12 < v10 + maskHeight)
 					{
-						linePos = MESrevDispLinePos[v9];
+						linePos = BacklogDispLinePos[v9];
 						v14 = 0;
-						strIndex = MESrevLineBufSize[linePos];
-						endP = MESrevLineBufEndp[linePos];
-						int xOffset = MesRevTextPos[2 * strIndex];
+						strIndex = BacklogLineBufSize[linePos];
+						endP = BacklogLineBufEndp[linePos];
+						int xOffset = BacklogTextPos[2 * strIndex];
 						if (endP)
 						{
 							xPosition = startX;
 
 							do
 							{
-								charIndex = MesRevText[strIndex];
+								charIndex = BacklogText[strIndex];
 								int xOffset = 0;
 								bool newline = true;
 								if ((charIndex & 0x8000u) == 0)
 								{
-									colorIndex = MESrevTextCo[strIndex];
+									colorIndex = BacklogTextCo[strIndex];
 									color = MesFontColor[2 * colorIndex + 1];
-									auto glyphSize = MESrevTextSize[4 * strIndex + 3] * 1.5f;
+									auto glyphSize = BacklogTextSize[4 * strIndex + 3] * 1.5f;
 
-									if (strIndex == 0 || strIndex > 0 && MesRevTextPos[2 * (strIndex)+1] != MesRevTextPos[2 * (strIndex - 1) + 1]) {
+									if (strIndex == 0 || strIndex > 0 && BacklogTextPos[2 * (strIndex)+1] != BacklogTextPos[2 * (strIndex - 1) + 1]) {
 										newline = true;
 									}
 									else newline = false;
 
-									if (newline == false && (MesRevText[strIndex - 1] & 0x8000) == 0) {
-										auto glyphInfo = TextRendering::Get().getFont(glyphSize, true)->getGlyphInfo(MesRevText[strIndex - 1], Regular);
+									if (newline == false && (BacklogText[strIndex - 1] & 0x8000) == 0) {
+										auto glyphInfo = TextRendering::Get().getFont(glyphSize, true)->getGlyphInfo(BacklogText[strIndex - 1], Regular);
 										xPosition += glyphInfo->advance / 2.0f;
 									}
 									else {
-										xPosition = startX + MesRevTextPos[2 * strIndex];
+										xPosition = startX + BacklogTextPos[2 * strIndex];
 									}
-									v47 = yPosition + MesRevTextPos[2 * strIndex + 1];
-									v43 = MESrevTextSize[4 * strIndex + 2];
-									v22 = yPosition + MesRevTextPos[2 * strIndex + 1];
+									v47 = yPosition + BacklogTextPos[2 * strIndex + 1];
+									v43 = BacklogTextSize[4 * strIndex + 2];
+									v22 = yPosition + BacklogTextPos[2 * strIndex + 1];
 									if (MesFontColor[2 * colorIndex] != 0xFFFFFF || (v9 = startPosY, startPosY != index))
 									{
 										TextRendering::Get().replaceFontSurface(glyphSize);
-										auto glyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(MesRevText[strIndex], Regular);
+										auto glyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(BacklogText[strIndex], Regular);
 										sub_4BB760(
 											400,
 											maskTextureId,
@@ -1418,15 +1449,15 @@ namespace lb {
 									strIndex = v23;
 								--endP;
 							} while (endP);
-							v8 = MESrevLineBufUse;
+							v8 = *BacklogLineBufUse;
 							v11 = v45;
 						}
 						v10 = maskY;
 					}
-					MESrevDispCurPosSX[v9] = v40;
-					MESrevDispCurPosSY[v9] = v42;
-					MESrevDispCurPosEX[v9] = v47;
-					MESrevDispCurPosEY[v9] = v11;
+					BacklogDispCurPosSX[v9] = v40;
+					BacklogDispCurPosSY[v9] = v42;
+					BacklogDispCurPosEX[v9] = v47;
+					BacklogDispCurPosEY[v9] = v11;
 					dword_948628[v9++] = v38;
 					startPosY = v9;
 				} while (v9 < v8);
@@ -1438,53 +1469,53 @@ namespace lb {
 				v25 = maskY;
 				do
 				{
-					v26 = startY + MESrevDispLinePosY[v24] - MESrevDispPos;
-					v35 = startY + MESrevDispLinePosY[v24] - MESrevDispPos;
-					if (v26 + MESrevDispLineSize[v24] > v25 && v26 < v25 + maskHeight)
+					v26 = startY + BacklogDispLinePosY[v24] - *BacklogDispPos;
+					v35 = startY + BacklogDispLinePosY[v24] - *BacklogDispPos;
+					if (v26 + BacklogDispLineSize[v24] > v25 && v26 < v25 + maskHeight)
 					{
-						linePos = MESrevDispLinePos[v24];
-						strIndex = MESrevLineBufSize[linePos];
-						v39 = MESrevLineBufEndp[linePos];
+						linePos = BacklogDispLinePos[v24];
+						strIndex = BacklogLineBufSize[linePos];
+						v39 = BacklogLineBufEndp[linePos];
 						if (v39)
 						{
 							xPosition = startX;
 							bool newline = true;
 							do
 							{
-								v29 = MesRevText[strIndex];
+								v29 = BacklogText[strIndex];
 								if ((v29 & 0x8000u) == 0)
 								{
 
-									colorIndex = MESrevTextCo[strIndex];
+									colorIndex = BacklogTextCo[strIndex];
 									color = MesFontColor[2 * colorIndex + 1];
-									auto glyphSize = MESrevTextSize[4 * strIndex + 3] * 1.5f;
+									auto glyphSize = BacklogTextSize[4 * strIndex + 3] * 1.5f;
 
-									if (strIndex == 0 || strIndex > 0 && MesRevTextPos[2 * (strIndex)+1] != MesRevTextPos[2 * (strIndex - 1) + 1]) {
+									if (strIndex == 0 || strIndex > 0 && BacklogTextPos[2 * (strIndex)+1] != BacklogTextPos[2 * (strIndex - 1) + 1]) {
 										newline = true;
 									}
 									else newline = false;
 
-									if (newline == false && (MesRevText[strIndex - 1] & 0x8000) == 0) {
-										auto glyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(MesRevText[strIndex - 1], Regular);
+									if (newline == false && (BacklogText[strIndex - 1] & 0x8000) == 0) {
+										auto glyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(BacklogText[strIndex - 1], Regular);
 										xPosition += glyphInfo->advance / 2.0f;
 									}
 									else {
-										xPosition = startX + MesRevTextPos[2 * strIndex];
+										xPosition = startX + BacklogTextPos[2 * strIndex];
 									}
 
 
-									color = MesFontColor[2 * MESrevTextCo[strIndex]];
-									v33 = v35 + MesRevTextPos[2 * strIndex + 1];
+									color = MesFontColor[2 * BacklogTextCo[strIndex]];
+									v33 = v35 + BacklogTextPos[2 * strIndex + 1];
 									if (color == 0xFFFFFF)
 									{
 										if (v46 == index)
 											color = 0x323232;
-										v33 = v35 + MesRevTextPos[2 * strIndex + 1];
+										v33 = v35 + BacklogTextPos[2 * strIndex + 1];
 									}
-									glyphSize = MESrevTextSize[4 * strIndex + 3] * 1.5f;
+									glyphSize = BacklogTextSize[4 * strIndex + 3] * 1.5f;
 
 									TextRendering::Get().replaceFontSurface(glyphSize);
-									auto glyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(MesRevText[strIndex], Regular);
+									auto glyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(BacklogText[strIndex], Regular);
 
 									sub_4BB760(
 										400,
@@ -1494,9 +1525,9 @@ namespace lb {
 										glyphInfo->width,
 										glyphInfo->rows,
 										xPosition + glyphInfo->left / 2.0f,
-										MesRevTextPos[2 * strIndex + 1] + v35 + glyphSize / 2.0f - glyphInfo->top / 2.0f,
+										BacklogTextPos[2 * strIndex + 1] + v35 + glyphSize / 2.0f - glyphInfo->top / 2.0f,
 										xPosition + glyphInfo->left / 2.0f + glyphInfo->width / 2.0f,
-										MesRevTextPos[2 * strIndex + 1] + glyphInfo->rows / 2.0f + glyphSize / 2.0f - glyphInfo->top / 2.0f + v35,
+										BacklogTextPos[2 * strIndex + 1] + glyphInfo->rows / 2.0f + glyphSize / 2.0f - glyphInfo->top / 2.0f + v35,
 										color,
 										opacity);
 
@@ -1509,7 +1540,7 @@ namespace lb {
 									strIndex = v34;
 								--v39;
 							} while (v39);
-							v8 = MESrevLineBufUse;
+							v8 = *BacklogLineBufUse;
 							v24 = v46;
 							v25 = maskY;
 						}

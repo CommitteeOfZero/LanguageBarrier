@@ -310,6 +310,9 @@ namespace lb {
   int __cdecl SNDgetPlayLevelHook(int a1);
   int __cdecl PadUpdateDeviceHook();
 
+
+
+
 void gameInit() {
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
   	std::ios::in | std::ios::binary);
