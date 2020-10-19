@@ -341,6 +341,15 @@ void TextRendering::saveCache()
 	std::ofstream os("LanguageBarrier/fontData.bin", std::ios::binary);
 	cereal::BinaryOutputArchive archive(os);
 
+	for (auto it = this->fontData.begin(); it != this->fontData.end();) {
+
+		if (it->second.fontTexturePtr == nullptr) {
+			it = this->fontData.erase(it);
+		}
+		else ++it;
+
+	}
+
 	archive(this->fontData);
 
 	return;
@@ -359,9 +368,17 @@ void TextRendering::loadCache()
 			int size = it->first;
 			wsprintf(fileName, L"languagebarrier/font_%02d.dds", it->first);
 			auto g = DirectX::LoadFromDDSFile(fileName, DirectX::DDS_FLAGS::DDS_FLAGS_NONE, nullptr, this->fontData[size].fontTexture);
+			if (g != S_OK) {
+				this->fontData.clear();
+				return;
+			}
 			wsprintf(fileName, L"languagebarrier/outline_%02d.dds", it->first);
 			g = DirectX::LoadFromDDSFile(fileName, DirectX::DDS_FLAGS::DDS_FLAGS_NONE, nullptr, this->fontData[size].outlineTexture);
+			if (g != S_OK) {
+				this->fontData.clear();
 
+				return;
+			}
 			const auto fontData = &this->fontData[size];
 			loadTexture(size);
 			DirectX::ScratchImage dummy;

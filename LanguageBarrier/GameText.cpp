@@ -867,6 +867,8 @@ namespace lb {
 			scanCreateEnableHook("game", "drawSprite", (uintptr_t*)&gameExeDrawSprite,
 				(LPVOID)drawSpriteHook,
 				(LPVOID*)&gameExeDrawSpriteReal);
+
+
 		}
 
 		if (CC_BACKLOG_HIGHLIGHT) {

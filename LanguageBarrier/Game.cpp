@@ -403,12 +403,6 @@ namespace lb {
 				(LPVOID*)&gameExeSetSamplerStateWrapperReal);
 		}
 
-		if (config["patch"]["exitBlackScreenFix"].get<bool>() == true) {
-			if (!scanCreateEnableHook("game", "closeAllSystems", (uintptr_t*)&gameExeCloseAllSystems,
-				(LPVOID)closeAllSystemsHook, (LPVOID*)&gameExeCloseAllSystemsReal))
-				return;
-		}
-
 		if (config["gamedef"]["hasAutoSkipHide"].get<bool>() == true &&
 			config["patch"]["shouldHideAutoSkip"].get<bool>() == true) {
 			LanguageBarrierLog("Hiding auto/skip buttons");
@@ -486,13 +480,11 @@ namespace lb {
 					(**(MgsD3D11State***)sigScan("game", "useOfMgsD3D11State"));
 			}
 
-			auto sizes = config["patch"]["glyphSizePreload"].get<std::vector<uint8_t>>();
 
+			if (!scanCreateEnableHook("game", "exitApplication", (uintptr_t*)&gameExeCloseAllSystems,
+				(LPVOID)closeAllSystemsHook, (LPVOID*)&gameExeCloseAllSystemsReal))
+				return retval;
 			TextRendering::Get().loadCache();
-			for (auto size : sizes) {
-				TextRendering::Get().getFont(size, false);
-			}
-			TextRendering::Get().saveCache();
 
 
 			//	gameLoadTexture(400, FreeType::Instance().texture.GetBufferPointer(), FreeType::Instance().texture.GetBufferSize());
@@ -662,6 +654,8 @@ namespace lb {
 		// IDA thinks this is thiscall
 		// I'm not so sure it actually takes a parameter, but better safe than sorry,
 		// right?
+
+		TextRendering::Get().saveCache();
 
 		int retval = gameExeCloseAllSystemsReal(pThis);
 
