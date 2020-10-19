@@ -1,7 +1,7 @@
 #ifndef __LBJSON_H__
 #define __LBJSON_H__
 
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace lb {

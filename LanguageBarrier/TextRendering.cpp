@@ -4,6 +4,27 @@
 #include "Game.h"
 #include <d3d11.h>
 #include <directxtex.h>
+#include <nlohmann/json.hpp>
+#include <fstream>
+
+void to_json(nlohmann::json& j, const FontGlyph& p) {
+	j = nlohmann::json{ {"a", p.advance}, {"x", p.x}, {"y", p.y},
+	{"t", p.top}, {"l", p.left}, {"r", p.rows},{"w", p.width} };
+}
+
+void from_json(const nlohmann::json& j, FontGlyph& p) {
+	j.at("x").get_to(p.x);
+	j.at("y").get_to(p.y);
+	j.at("t").get_to(p.top);
+	j.at("l").get_to(p.left);
+	j.at("r").get_to(p.rows);
+	j.at("w").get_to(p.width);
+	j.at("a").get_to(p.advance);
+
+}
+
+
+
 void TextRendering::disableReplacement()
 {
 	this->enabled = false;
@@ -33,31 +54,33 @@ TextRendering::TextRendering()
 	auto utf16size = MultiByteToWideChar(CP_UTF8, 0, charset, fsize, charset16, 0);
 	MultiByteToWideChar(CP_UTF8, 0, charset, fsize, charset16, utf16size);
 	charset16[utf16size] = 0;
-	charMap = std::wstring(charset16);
-	filteredCharMap = charMap;
+	fullCharMap = std::wstring(charset16);
+
+	currentCharMap = &fullCharMap;
 	this->buildFont(32, true);
 
 	filteredCharMap.reserve(utf16size);
-	
+
 	for (int i = 0; i < utf16size; i++) {
-		if ( !(charset16[i] >= 0x4E00 && charset16[i]<=0x9faf) && filteredCharMap.find(charset16[i])==filteredCharMap.npos)
+		if (!(charset16[i] >= 0x4E00 && charset16[i] <= 0x9faf) && filteredCharMap.find(charset16[i]) == currentCharMap->npos)
 			filteredCharMap.push_back(charset16[i]);
 	}
+	currentCharMap = &filteredCharMap;
 
-	this->NUM_GLYPHS = charMap.length();
+	this->NUM_GLYPHS = filteredCharMap.length();
 }
 
 void TextRendering::Init(void* widthData, void* widthData2)
 {
-		memcpy(originalWidth, widthData, 351);
-		memcpy(originalWidth2, widthData2, 351);
+	memcpy(originalWidth, widthData, 351);
+	memcpy(originalWidth2, widthData2, 351);
 	this->widthData = (uint8_t*)widthData;
 	this->widthData2 = (uint8_t*)widthData2;
-	this->getFont(32,true);
+	this->getFont(32, true);
 	for (int i = 0; i < 351; i++) {
 		this->widthData[i] = (uint8_t)fontData[32].getGlyphInfo(i, FontType::Regular)->advance;
 	}
-
+	this->fontData.erase(32);
 }
 
 struct TextSize {
@@ -67,6 +90,7 @@ struct TextSize {
 };
 void TextRendering::buildFont(int fontSize, bool measure)
 {
+	this->FONT_CELL_SIZE = fontSize * 1.33;
 
 	if (this->ftLibrary == nullptr) {
 
@@ -89,7 +113,7 @@ void TextRendering::buildFont(int fontSize, bool measure)
 
 	this->fontData[fontSize] = FontData();
 	auto  fontData = &this->fontData[fontSize];
-	NUM_GLYPHS = filteredCharMap.length();
+	NUM_GLYPHS = currentCharMap->length();
 	if (!measure) {
 		fontData->fontTexture.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_A8_UNORM, FONT_CELL_SIZE * GLYPHS_PER_ROW, FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW), 1, 1);
 		fontData->outlineTexture.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_A8_UNORM, FONT_CELL_SIZE * GLYPHS_PER_ROW, FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW), 1, 1);
@@ -194,12 +218,12 @@ void TextRendering::buildFont(int fontSize, bool measure)
 		memset(fontMip->pixels, 0, outlineMip->rowPitch * outlineMip->height);
 	}
 	int characterCount = 0;
-	for (int i = 0; i < filteredCharMap.length(); i++) {
+	for (int i = 0; i < currentCharMap->length(); i++) {
 
 
-		const auto& glyph = fontData->getGlyphInfoByChar(filteredCharMap.at(i), FontType::Outline);
+		const auto& glyph = fontData->getGlyphInfoByChar(currentCharMap->at(i), FontType::Outline);
 		if (glyph->x == -1 && glyph->y == -1) {
-			RenderOutline(fontData, filteredCharMap.at(i), measure);
+			RenderOutline(fontData, currentCharMap->at(i), measure);
 
 			auto glyphData = glyph->data;
 
@@ -212,15 +236,15 @@ void TextRendering::buildFont(int fontSize, bool measure)
 			if (!measure && glyph->x == -1 && glyph->y == -1) {
 				glyph->x = x * FONT_CELL_SIZE;
 				glyph->y = y * FONT_CELL_SIZE;
-				for (int k = 0; k < FONT_CELL_SIZE / num; k++) {
-					for (int j = 0; j < FONT_CELL_SIZE / num; j++) {
-						rgbaPixels[GLYPHS_PER_ROW * cellSize * (j + y * cellSize) + cellSize * x + k] = glyphData[j * FONT_CELL_SIZE + k];
+				for (int j = 0; j < FONT_CELL_SIZE / num; j++) {
+					memcpy(&rgbaPixels[GLYPHS_PER_ROW * cellSize * (j + y * cellSize) + cellSize * x], &glyphData[j * FONT_CELL_SIZE], glyph->width);
 
-					}
 
 				}
 				characterCount++;
-				delete  glyph->data;
+				if (glyph->data != nullptr)
+					delete  glyph->data;
+				glyph->data = nullptr;
 			}
 		}
 
@@ -229,11 +253,11 @@ void TextRendering::buildFont(int fontSize, bool measure)
 		rgbaPixels = (uint8_t*)fontMip->pixels;
 	}
 	characterCount = 0;
-	for (int i = 0; i < filteredCharMap.length(); i++) {
-		const auto& glyph = fontData->getGlyphInfoByChar(filteredCharMap.at(i), FontType::Regular);
+	for (int i = 0; i < currentCharMap->length(); i++) {
+		const auto& glyph = fontData->getGlyphInfoByChar(currentCharMap->at(i), FontType::Regular);
 		if (glyph->x == -1 && glyph->y == -1) {
 
-			renderGlyph(fontData, filteredCharMap.at(i), measure);
+			renderGlyph(fontData, currentCharMap->at(i), measure);
 
 			if (glyph->rows > cellSize || glyph->width > cellSize) {
 
@@ -243,14 +267,13 @@ void TextRendering::buildFont(int fontSize, bool measure)
 			if (!measure && glyph->x == -1 && glyph->y == -1) {
 				glyph->x = x * FONT_CELL_SIZE;
 				glyph->y = y * FONT_CELL_SIZE;
-				for (int k = 0; k < FONT_CELL_SIZE / num; k++) {
-					for (int j = 0; j < FONT_CELL_SIZE / num; j++) {
-						rgbaPixels[GLYPHS_PER_ROW * cellSize * (j + y * cellSize) + cellSize * x + k] = glyph->data[j * FONT_CELL_SIZE + k];
-					}
-
+				for (int j = 0; j < FONT_CELL_SIZE / num; j++) {
+					memcpy(&rgbaPixels[GLYPHS_PER_ROW * cellSize * (j + y * cellSize) + cellSize * x], &glyph->data[j * FONT_CELL_SIZE], glyph->width);
 				}
 				characterCount++;
 				delete  glyph->data;
+				glyph->data = nullptr;
+
 			}
 		}
 
@@ -267,24 +290,15 @@ void TextRendering::buildFont(int fontSize, bool measure)
 
 
 
-		D3D11_SHADER_RESOURCE_VIEW_DESC rscViewDesc;
-
-
-
-		memset(&rscViewDesc, 0, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
-		auto result = DirectX::CreateTexture(gameExePMgsD3D11State->pid3d11deviceC, this->fontData[fontSize].fontTexture.GetImages(),
-			this->fontData[fontSize].fontTexture.GetImageCount(), this->fontData[fontSize].fontTexture.GetMetadata(), (ID3D11Resource**)&this->fontData[fontSize].fontTexturePtr);
-		result = DirectX::CreateTexture(gameExePMgsD3D11State->pid3d11deviceC, this->fontData[fontSize].outlineTexture.GetImages(),
-			this->fontData[fontSize].outlineTexture.GetImageCount(), this->fontData[fontSize].outlineTexture.GetMetadata(), (ID3D11Resource**)&this->fontData[fontSize].outlineTexturePtr);
-		rscViewDesc.Format = DXGI_FORMAT_A8_UNORM;
-		rscViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		rscViewDesc.Buffer.NumElements = 1;
-		rscViewDesc.Texture2D.MipLevels = this->fontData[fontSize].fontTexture.GetMetadata().mipLevels;
-		result = gameExePMgsD3D11State->pid3d11deviceC->CreateShaderResourceView(this->fontData[fontSize].fontTexturePtr, &rscViewDesc, &this->fontData[fontSize].fontShaderRscView);
-		result = gameExePMgsD3D11State->pid3d11deviceC->CreateShaderResourceView(this->fontData[fontSize].outlineTexturePtr, &rscViewDesc, &this->fontData[fontSize].outlineShaderRscView);
+		loadTexture(fontSize);
 
 		SaveToDDSMemory(fontData->fontTexture.GetImages(), fontData->fontTexture.GetImageCount(), fontData->fontTexture.GetMetadata(), DirectX::DDS_FLAGS_NONE, fontData->texture);
 		SaveToDDSMemory(fontData->outlineTexture.GetImages(), fontData->outlineTexture.GetImageCount(), fontData->outlineTexture.GetMetadata(), DirectX::DDS_FLAGS_NONE, fontData->texture2);
+		wchar_t fileName[260];
+		wsprintf(fileName, L"LanguageBarrier/font_%02d.dds", fontSize);
+		SaveToDDSFile(fontData->fontTexture.GetImages(), fontData->fontTexture.GetImageCount(), fontData->fontTexture.GetMetadata(), DirectX::DDS_FLAGS_NONE, fileName);
+		wsprintf(fileName, L"LanguageBarrier/outline_%02d.dds", fontSize);
+		SaveToDDSFile(fontData->outlineTexture.GetImages(), fontData->outlineTexture.GetImageCount(), fontData->outlineTexture.GetMetadata(), DirectX::DDS_FLAGS_NONE, fileName);
 
 
 		if (surfaceArray[FONT_TEXTURE_ID].texPtr[0] == nullptr) {
@@ -298,6 +312,76 @@ void TextRendering::buildFont(int fontSize, bool measure)
 
 		fontData->texture.Release();
 		fontData->texture2.Release();
+	}
+	return;
+
+}
+
+void TextRendering::loadTexture(int fontSize)
+{
+	D3D11_SHADER_RESOURCE_VIEW_DESC rscViewDesc;
+
+
+
+	memset(&rscViewDesc, 0, sizeof(D3D11_SHADER_RESOURCE_VIEW_DESC));
+	auto result = DirectX::CreateTexture(gameExePMgsD3D11State->pid3d11deviceC, this->fontData[fontSize].fontTexture.GetImages(),
+		this->fontData[fontSize].fontTexture.GetImageCount(), this->fontData[fontSize].fontTexture.GetMetadata(), (ID3D11Resource**)&this->fontData[fontSize].fontTexturePtr);
+	result = DirectX::CreateTexture(gameExePMgsD3D11State->pid3d11deviceC, this->fontData[fontSize].outlineTexture.GetImages(),
+		this->fontData[fontSize].outlineTexture.GetImageCount(), this->fontData[fontSize].outlineTexture.GetMetadata(), (ID3D11Resource**)&this->fontData[fontSize].outlineTexturePtr);
+	rscViewDesc.Format = DXGI_FORMAT_A8_UNORM;
+	rscViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	rscViewDesc.Buffer.NumElements = 1;
+	rscViewDesc.Texture2D.MipLevels = this->fontData[fontSize].fontTexture.GetMetadata().mipLevels;
+	result = gameExePMgsD3D11State->pid3d11deviceC->CreateShaderResourceView(this->fontData[fontSize].fontTexturePtr, &rscViewDesc, &this->fontData[fontSize].fontShaderRscView);
+	result = gameExePMgsD3D11State->pid3d11deviceC->CreateShaderResourceView(this->fontData[fontSize].outlineTexturePtr, &rscViewDesc, &this->fontData[fontSize].outlineShaderRscView);
+}
+
+void TextRendering::saveCache()
+{
+	std::ofstream os("LanguageBarrier/fontData.bin", std::ios::binary);
+	cereal::BinaryOutputArchive archive(os);
+
+	archive(this->fontData);
+
+	return;
+}
+
+void TextRendering::loadCache()
+{
+
+	std::ifstream os("LanguageBarrier/fontData.bin", std::ios::binary);
+	if (!os.fail()) {
+		cereal::BinaryInputArchive archive(os);
+		archive(this->fontData);
+		for (auto it = fontData.begin(); it != fontData.end(); it++) {
+
+			wchar_t fileName[260];
+			int size = it->first;
+			wsprintf(fileName, L"languagebarrier/font_%02d.dds", it->first);
+			auto g = DirectX::LoadFromDDSFile(fileName, DirectX::DDS_FLAGS::DDS_FLAGS_NONE, nullptr, this->fontData[size].fontTexture);
+			wsprintf(fileName, L"languagebarrier/outline_%02d.dds", it->first);
+			g = DirectX::LoadFromDDSFile(fileName, DirectX::DDS_FLAGS::DDS_FLAGS_NONE, nullptr, this->fontData[size].outlineTexture);
+
+			const auto fontData = &this->fontData[size];
+			loadTexture(size);
+			DirectX::ScratchImage dummy;
+			if (surfaceArray[FONT_TEXTURE_ID].texPtr[0] == nullptr) {
+				dummy.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_A8_UNORM, 1, 1, 1, 1);
+
+				SaveToDDSMemory(dummy.GetImages(), dummy.GetImageCount(), dummy.GetMetadata(), DirectX::DDS_FLAGS_NONE, fontData->texture);
+
+
+				lb::gameLoadTexture(FONT_TEXTURE_ID, fontData->texture.GetBufferPointer(), fontData->texture.GetBufferSize());
+			}
+			if (surfaceArray[OUTLINE_TEXTURE_ID].texPtr[0] == nullptr) {
+				dummy.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_A8_UNORM, 1, 1, 1, 1);
+				SaveToDDSMemory(dummy.GetImages(), dummy.GetImageCount(), dummy.GetMetadata(), DirectX::DDS_FLAGS_NONE, fontData->texture2);
+				lb::gameLoadTexture(OUTLINE_TEXTURE_ID, fontData->texture2.GetBufferPointer(), fontData->texture2.GetBufferSize());
+			}
+			fontData->fontTexture.Release();
+			fontData->outlineTexture.Release();
+
+		}
 	}
 	return;
 
@@ -384,6 +468,9 @@ void TextRendering::RenderOutline(FontData* fontData, uint16_t n, bool measure)
 	uint8_t* glyphBuffer = (uint8_t*)fontData->glyphData.outlineMap[n].data;
 	if (!measure) {
 		glyphData->data = new uint8_t[FONT_CELL_SIZE * FONT_CELL_SIZE];
+		if (glyphData->data == nullptr) {
+			return;
+		}
 		memset(glyphData->data, 0, FONT_CELL_SIZE * FONT_CELL_SIZE);
 
 		for (int j = 0; j < bitmapGlyph->bitmap.rows; j++) {
@@ -396,7 +483,7 @@ void TextRendering::RenderOutline(FontData* fontData, uint16_t n, bool measure)
 FontData* TextRendering::getFont(int height, bool measure)
 {
 
-	this->FONT_CELL_SIZE = height * 1.25;
+	this->FONT_CELL_SIZE = height * 1.33;
 	if (fontData.find(height) == fontData.end()) {
 		fontData[height] = FontData();
 		this->buildFont(height, measure);
@@ -457,16 +544,16 @@ FontGlyph* FontData::getGlyphInfoByChar(wchar_t character, FontType type)
 
 FontGlyph* FontData::getGlyphInfo(int id, FontType type)
 {
-	
+
 	switch (type) {
 	case Regular:
-		return &this->glyphData.glyphMap[TextRendering::Get().charMap[id]];
+		return &this->glyphData.glyphMap[TextRendering::Get().fullCharMap[id]];
 		break;
 	case Outline:
-		return &this->glyphData.outlineMap[TextRendering::Get().charMap[id]];
+		return &this->glyphData.outlineMap[TextRendering::Get().fullCharMap[id]];
 		break;
 	case Italics:
-		return &this->glyphData.glyphMap[TextRendering::Get().charMap[id]];
+		return &this->glyphData.glyphMap[TextRendering::Get().fullCharMap[id]];
 		break;
 	default:
 		break;

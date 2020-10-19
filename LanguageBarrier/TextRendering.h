@@ -8,7 +8,14 @@
 #include <map>
 #include <DirectXTex.h>
 #include <string>
-#pragma comment(lib,"freetype.lib")
+#include <nlohmann/json.hpp>
+
+#include <cereal/types/unordered_map.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/string.hpp>
+
+#include <cereal/archives/binary.hpp>
+
 struct GlyphInfo
 {
 	__int8 bmp_top;
@@ -24,13 +31,21 @@ struct fontOut
 
 
 struct FontGlyph {
-	uint8_t * data=nullptr;
-	float x=-1, y=-1;
+	uint8_t* data = nullptr;
+	float x = -1, y = -1;
 	uint16_t advance;
 	int32_t top;
 	int32_t left;
 	uint16_t rows;
 	uint16_t width;
+	template <class Archive>
+	void serialize(Archive& ar)
+	{
+		ar(x, y, advance,top,left,rows,width);
+	}
+
+
+
 };
 
 struct DDS_PIXELFORMAT {
@@ -66,8 +81,14 @@ struct GlyphMap {
 
 
 
-	std::map<wchar_t, FontGlyph> glyphMap;
-	std::map<wchar_t, FontGlyph> outlineMap;
+	std::unordered_map<uint16_t, FontGlyph> glyphMap;
+	std::unordered_map<uint16_t, FontGlyph> outlineMap;
+	template <class Archive>
+	void serialize(Archive& ar)
+	{
+		ar(glyphMap,outlineMap);
+	}
+
 
 };
 
@@ -120,6 +141,13 @@ struct FontData {
 
 	FontGlyph* getGlyphInfo(int id, FontType type);
 	FontGlyph* getGlyphInfoByChar(wchar_t character, FontType type);
+	template <class Archive>
+	void serialize(Archive& ar)
+	{
+		ar(glyphData);
+	}
+
+
 
 };
 
@@ -128,7 +156,7 @@ struct TextRendering
 	FT_Library ftLibrary;
 	FT_Face ftFace;
 	FT_Stroker stroker;
-    int FONT_CELL_SIZE = 66;
+	int FONT_CELL_SIZE = 66;
 	const int GLYPHS_PER_ROW = 64;
 	int NUM_GLYPHS = 351;
 	char* fontPath = "languagebarrier/noto.ttc";
@@ -147,11 +175,18 @@ struct TextRendering
 	void Init(void* widthData, void* widthData2);
 	void buildFont(int fontSize, bool measure);
 
+	void loadTexture(int fontSize);
 
-	std::map<uint16_t, FontData> fontData;
+	void saveCache();
+
+	void loadCache();
+
+	std::unordered_map<uint16_t, FontData> fontData;
 	std::wstring filteredCharMap;
+	std::wstring fullCharMap;
+	std::wstring* currentCharMap;
 
-	std::wstring charMap;
+
 	inline static TextRendering& Get()
 	{
 		static TextRendering instance;
@@ -169,4 +204,17 @@ struct TextRendering
 	static const uint16_t FONT_TEXTURE_ID = 400;
 	static const uint16_t OUTLINE_TEXTURE_ID = 401;
 
+	template <class Archive>
+
+	void serialize(Archive& ar) const
+	{
+		ar(fontData);
+	}
+
+
+
 };
+
+
+
+

@@ -958,6 +958,7 @@ namespace lb {
 		memcpy(gameExeGlyphWidthsFont2, widths, GLYPH_RANGE_FULLWIDTH_START);*/
 		TextRendering::Get().Init(gameExeGlyphWidthsFont1, gameExeGlyphWidthsFont2);
 
+
 	}
 
 	int __cdecl dialogueLayoutRelatedHook(int unk0, int* unk1, int* unk2, int unk3,
@@ -1079,7 +1080,7 @@ namespace lb {
 
 					{
 						uint32_t currentChar = page->glyphCol[i] + page->glyphRow[i] * TextRendering::Get().GLYPHS_PER_ROW;
-						wchar_t cChar = TextRendering::Get().charMap[currentChar];
+						wchar_t cChar = TextRendering::Get().fullCharMap[currentChar];
 						const auto glyphInfo = TextRendering::Get().getFont(page->glyphDisplayHeight[i] * 1.5f, false)->getGlyphInfo(currentChar, FontType::Outline);
 						displayStartY =
 							(page->charDisplayY[i] + yOffset) * 1.5f;
@@ -1190,7 +1191,7 @@ namespace lb {
 				else {
 					const auto& fontData = TextRendering::Get().getFont(baseGlyphSize, true);
 					glyphWidth =
-						fontData->glyphData.glyphMap[TextRendering::Get().charMap[glyphId]].advance;
+						fontData->glyphData.glyphMap[TextRendering::Get().fullCharMap[glyphId]].advance;
 				}
 				if (glyphId == GLYPH_ID_FULLWIDTH_SPACE ||
 					glyphId == GLYPH_ID_HALFWIDTH_SPACE) {
@@ -1716,7 +1717,7 @@ namespace lb {
 	{
 		int i = result->length;
 		const auto& fontData = TextRendering::Get().getFont(baseGlyphSize, false);
-		char character = TextRendering::Get().charMap[glyphId];
+		char character = TextRendering::Get().fullCharMap[glyphId];
 		result->text[i] = character;
 		if (curLinkNumber != NOT_A_LINK) {
 			result->linkCharCount++;
@@ -1839,7 +1840,7 @@ namespace lb {
 				curLineLength = prevLineLength;
 
 				for (int i = 0; i < 3; i++) {
-					addCharacter(result, baseGlyphSize, TextRendering::Get().charMap.find('.'), lineCount - 1, curLinkNumber, false, 1.0, xOffset, curLineLength, yOffset, currentColor, lineHeight, mData);
+					addCharacter(result, baseGlyphSize, TextRendering::Get().fullCharMap.find('.'), lineCount - 1, curLinkNumber, false, 1.0, xOffset, curLineLength, yOffset, currentColor, lineHeight, mData);
 				}
 				words.erase(++it, words.end());
 				break;
@@ -2213,7 +2214,7 @@ namespace lb {
 
 						uint16_t value = (sc3[sc3Index] >> 8 | sc3[sc3Index + 1]) & 0x7FFF;
 						v.push_back(value);
-						v2.push_back(TextRendering::Get().charMap[value]);
+						v2.push_back(TextRendering::Get().fullCharMap[value]);
 						sc3Index += 2;
 					}
 					else {

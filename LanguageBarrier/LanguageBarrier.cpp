@@ -8,7 +8,7 @@
 #include "MinHook.h"
 #include "Script.h"
 #include "SigScan.h"
-
+#include <iomanip>
 namespace lb {
 
 bool IsConfigured = false;
