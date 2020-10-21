@@ -2,6 +2,12 @@
 #include "SigScan.h"
 #include <set>
 #include <cstdint>
+#include "TextRendering.h"
+#include "Config.h"
+#include <iostream>
+#include <string>
+#include <locale>
+#include <codecvt>
 
 // Linebreaks are allowed *after* type1 punctuation
 // space (63) space (0) 、 。 ． ， ？ ！ 〜 ” ー ） 〕 ］ ｝ 〉 》 」 』 】 ☆ ★ ♪ 々 ぁ ぃ ぅ ぇ ぉ っ
@@ -59,6 +65,26 @@ void dialogueWordwrapInit() {
                        (uintptr_t *)&gameExeDlgWordwrapGenerateMask,
                        (LPVOID)dlgWordwrapGenerateMaskHook,
                        (LPVOID *)gameExeDlgWordwrapGenerateMaskReal);
+
+  type1_punctuation.clear();
+  auto input = config["patch"]["type1Punctuation"].get<std::string>();
+  auto input2 = config["patch"]["type2Punctuation"].get<std::string>();
+
+  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+  std::wstring type1_punct = converter.from_bytes(input);
+  std::wstring type2_punct = converter.from_bytes(input2);
+
+  for (auto character : type1_punct) {
+      auto index=TextRendering::Get().fullCharMap.find(character);
+      type1_punctuation.insert(index);
+  }
+  type1_punctuation.insert(0x3F);
+  type2_punctuation.clear();
+  for (auto character : type2_punct) {
+	  auto index = TextRendering::Get().fullCharMap.find(character);
+	  type2_punctuation.insert(index);
+  }
+
 }
 
 void dlgWordwrapGenerateMaskHook(int unk0) {

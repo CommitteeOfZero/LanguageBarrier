@@ -487,6 +487,9 @@ namespace lb {
 			TextRendering::Get().loadCache();
 
 
+			if (config["patch"]["redoDialogueWordwrap"].get<bool>() == true) {
+				dialogueWordwrapInit();
+			}
 			//	gameLoadTexture(400, FreeType::Instance().texture.GetBufferPointer(), FreeType::Instance().texture.GetBufferSize());
 			//	gameLoadTexture(401, FreeType::Instance().texture2.GetBufferPointer(), FreeType::Instance().texture2.GetBufferSize());
 
@@ -527,9 +530,6 @@ namespace lb {
 					return retval;
 			}
 
-			if (config["patch"]["redoDialogueWordwrap"].get<bool>() == true) {
-				dialogueWordwrapInit();
-			}
 
 			if (config["patch"]["hookText"].get<bool>() == true) {
 				gameTextInit();
