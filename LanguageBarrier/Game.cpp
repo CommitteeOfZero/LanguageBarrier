@@ -66,10 +66,6 @@ struct DDSFile {
 	uint8_t dataStart;
 };
 
-
-
-
-
 unsigned int __fastcall ReCreateLoadTextureDDS(void* surface, void* edx, DDSFile* rawData, int a3)
 {
 	unsigned int fourCC; // eax
@@ -118,9 +114,6 @@ unsigned int __fastcall ReCreateLoadTextureDDS(void* surface, void* edx, DDSFile
 		result = ((RnGslLoadTextureClutProc)gameExeGslCreateTextureCLUT)(surface, &rawData->dataStart, width, height, width, height, texFormat, 0, 0);
 	return result;
 }
-
-
-
 
 typedef void(__cdecl* SetSamplerStateWrapperProc)(int sampler, int flags);
 static SetSamplerStateWrapperProc gameExeSetSamplerStateWrapper = NULL;
@@ -262,10 +255,6 @@ typedef int(__thiscall* ReadOggMetadataProc)(CPlayer* pThis);
 static ReadOggMetadataProc gameExeReadOggMetadata = NULL;
 static ReadOggMetadataProc gameExeReadOggMetadataReal = NULL;
 
-
-
-
-
 struct __declspec(align(4)) MgsD3D9State {
 	IDirect3DSurface9* backbuffer;
 	int field_4;
@@ -309,9 +298,6 @@ namespace lb {
 	BOOL __cdecl openMyGamesHook(char* outPath);
 	int __cdecl SNDgetPlayLevelHook(int a1);
 	int __cdecl PadUpdateDeviceHook();
-
-
-
 
 	void gameInit() {
 		std::ifstream in("languagebarrier\\stringReplacementTable.bin",
@@ -411,9 +397,6 @@ namespace lb {
 				memset_perms(branch, INST_JMP_SHORT, 1);
 			}
 		}
-		scanCreateEnableHook(
-			"game", "mgsFileOpen", (uintptr_t*)&gameExeMgsFileOpen,
-			(LPVOID)&mgsFileOpenHook, (LPVOID*)&gameExeMgsFileOpenReal);
 		if (config["patch"].count("overrideLoopMetadata") == 1 &&
 			config["patch"]["overrideLoopMetadata"].get<bool>() == true) {
 			scanCreateEnableHook(
@@ -503,18 +486,6 @@ namespace lb {
 				if (!scanCreateEnableHook(
 					"game", "mpkFopenById", (uintptr_t*)&gameExeMpkFopenById,
 					(LPVOID)&mpkFopenByIdHook, (LPVOID*)&gameExeMpkFopenByIdReal))
-					return retval;
-			}
-			else if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "cri") {
-				// 15 is just a random ID, let's hope it won't ever get used
-				int ret = gameExeMountArchive(C0DATA_MOUNT_ID, "C0DATA", "languagebarrier\\C0DATA", 0);
-				LanguageBarrierLog("c0data mounted");
-
-				c0dataCpk = &gameExeFileObjects[C0DATA_MOUNT_ID];
-
-				if (!scanCreateEnableHook(
-					"game", "mgsFileOpen", (uintptr_t*)&gameExeMgsFileOpen,
-					(LPVOID)&mgsFileOpenHook, (LPVOID*)&gameExeMgsFileOpenReal))
 					return retval;
 			}
 			else if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "cri") {
