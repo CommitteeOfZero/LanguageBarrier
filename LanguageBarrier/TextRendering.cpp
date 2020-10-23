@@ -79,6 +79,8 @@ void TextRendering::Init(void* widthData, void* widthData2)
 	this->getFont(32, true);
 	for (int i = 0; i < 351; i++) {
 		this->widthData[i] = (uint8_t)fontData[32].getGlyphInfo(i, FontType::Regular)->advance;
+		this->widthData2[i] = (uint8_t)fontData[32].getGlyphInfo(i, FontType::Regular)->advance;
+
 	}
 	this->fontData.erase(32);
 }

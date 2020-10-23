@@ -502,10 +502,7 @@ namespace lb {
 			}
 
 
-			if (config["patch"]["hookText"].get<bool>() == true) {
-				gameTextInit();
-
-			}
+	
 		}
 		catch (std::exception& e) {
 			MessageBoxA(NULL, e.what(), "LanguageBarrier exception", MB_ICONSTOP);

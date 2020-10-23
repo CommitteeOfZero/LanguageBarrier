@@ -274,6 +274,12 @@ static DrawTipContentProc gameExeDrawTipContent =
 NULL;  // = (DrawTipContentProc)0x44FB70;
 static DrawTipContentProc gameExeDrawTipContentReal = NULL;
 
+
+typedef void(__cdecl* DrawReportContentProc)(int a1, int a2, int a3, int a4, int a5, unsigned int a6, unsigned int a7, unsigned int a8, unsigned int a9, char* a10, unsigned int a11, unsigned int a12, int a13, int a14, int a15, float a16);
+static DrawReportContentProc gameExeDrawReportContent =
+NULL;  // = (DrawTipContentProc)0x44FB70;
+static DrawReportContentProc gameExeDrawReportContentReal = NULL;
+
 static uintptr_t gameExeDialogueLayoutWidthLookup1 = NULL;
 static uintptr_t gameExeDialogueLayoutWidthLookup1Return = NULL;
 static uintptr_t gameExeDialogueLayoutWidthLookup2 = NULL;
@@ -464,7 +470,7 @@ namespace lb {
 		float spriteWidth, float spriteHeight,
 		float displayX, float displayY, int color,
 		int opacity, int shaderId);
-
+	void drawReportContentHook(int textureId, int maskId, int a3, int a4, int startX, int startY, unsigned int maskWidth, unsigned int a8, unsigned int a9, char* a10, unsigned int a11, unsigned int a12, int opacity, int a14, int a15, float a16);
 	int __cdecl rnDrawTextHook(signed int textureId, int a2, signed int startY, unsigned int a4, uint8_t* a5, signed int startX, int color, int height, int opacity);
 	void __cdecl DrawBacklogContentHook(int textureId, int maskTextureId, int startX, int startY, unsigned int maskY, int maskHeight, int opacity, int index);
 	int __cdecl drawTwipoContentHook(int textureId, int a2, int a3, unsigned int a4, int a5, unsigned int a6, char* sc3, int a8, int a9, uint32_t opacity, int a11, int a12, int a13, int a14);
@@ -698,42 +704,42 @@ namespace lb {
 				arr = json::array();
 			arr.insert(arr.end(), clearlistConfig.begin(), clearlistConfig.end());
 		}
-		const auto& singleTextLineFixes = config["patch"].find("singleTextLineFixes");
-		if (singleTextLineFixes != config["patch"].end() && singleTextLineFixes->is_array()) {
-			scanCreateEnableHook("game", "drawSingleTextLine",
-				(uintptr_t*)&gameExeDrawSingleTextLine,
-				(LPVOID)drawSingleTextLineHook,
-				(LPVOID*)&gameExeDrawSingleTextLineReal);
-			for (const json& item : *singleTextLineFixes) {
-				if (!item.is_object())
-					continue;
-				auto sigNameIter = item.find("sigName");
-				if (sigNameIter == item.end())
-					continue;
-				if (!sigNameIter->is_string())
-					continue;
-				const std::string& sigName = sigNameIter->get<std::string>();
-				uintptr_t targetPtr = sigScan("game", sigName.c_str());
-				if (!targetPtr)
-					continue;
-				SingleLineOffset_t& fix = retAddrToSingleLineFixes[targetPtr];
-				auto iter = item.find("dx");
-				if (iter != item.end() && iter->is_number_integer())
-					fix.dx = iter->get<int>();
-				else
-					fix.dx = 0;
-				iter = item.find("dy");
-				if (iter != item.end() && iter->is_number_integer())
-					fix.dy = iter->get<int>();
-				else
-					fix.dy = 0;
-				iter = item.find("fontSize");
-				if (iter != item.end() && iter->is_number_integer())
-					fix.fontSize = iter->get<int>();
-				else
-					fix.fontSize = 0;
-			}
-		}
+		/*	const auto& singleTextLineFixes = config["patch"].find("singleTextLineFixes");
+			if (singleTextLineFixes != config["patch"].end() && singleTextLineFixes->is_array()) {
+				scanCreateEnableHook("game", "drawSingleTextLine",
+					(uintptr_t*)&gameExeDrawSingleTextLine,
+					(LPVOID)drawSingleTextLineHook,
+					(LPVOID*)&gameExeDrawSingleTextLineReal);
+				for (const json& item : *singleTextLineFixes) {
+					if (!item.is_object())
+						continue;
+					auto sigNameIter = item.find("sigName");
+					if (sigNameIter == item.end())
+						continue;
+					if (!sigNameIter->is_string())
+						continue;
+					const std::string& sigName = sigNameIter->get<std::string>();
+					uintptr_t targetPtr = sigScan("game", sigName.c_str());
+					if (!targetPtr)
+						continue;
+					SingleLineOffset_t& fix = retAddrToSingleLineFixes[targetPtr];
+					auto iter = item.find("dx");
+					if (iter != item.end() && iter->is_number_integer())
+						fix.dx = iter->get<int>();
+					else
+						fix.dx = 0;
+					iter = item.find("dy");
+					if (iter != item.end() && iter->is_number_integer())
+						fix.dy = iter->get<int>();
+					else
+						fix.dy = 0;
+					iter = item.find("fontSize");
+					if (iter != item.end() && iter->is_number_integer())
+						fix.fontSize = iter->get<int>();
+					else
+						fix.fontSize = 0;
+				}
+			}*/
 		const auto& spriteFixes = config["patch"].find("spriteFixes");
 		if (spriteFixes != config["patch"].end() && spriteFixes->is_array()) {
 			for (const json& item : *spriteFixes) {
@@ -833,7 +839,7 @@ namespace lb {
 
 
 		if (true) {
-		
+
 			BacklogLineSave = (int*)sigScan("game", "BacklogLineSave");
 			BacklogDispLinePos = (int*)sigScan("game", "BacklogDispLinePos");
 			BacklogLineBufSize = (int*)sigScan("game", "BacklogLineBufSize");
@@ -859,8 +865,10 @@ namespace lb {
 
 
 
-			
-			
+			scanCreateEnableHook(
+				"game", "drawReportContent", (uintptr_t*)&gameExeDrawReportContent,
+				(LPVOID)drawReportContentHook, (LPVOID*)&gameExeDrawReportContentReal);
+
 			scanCreateEnableHook("game", "drawBacklogContent", (uintptr_t*)&gameExeDrawBacklogContent,
 				(LPVOID)DrawBacklogContentHook,
 				(LPVOID*)&gameExeDrawBacklogContentReal);
@@ -1340,7 +1348,7 @@ namespace lb {
 		unsigned int v46; // [esp+2Ch] [ebp-8h]
 		int v47; // [esp+30h] [ebp-4h]
 
-	
+
 
 		if (!TextRendering::Get().enabled)
 		{
@@ -1355,7 +1363,7 @@ namespace lb {
 		v47 = 0;
 		if (*BacklogLineBufUse)
 		{
-			v8 =* BacklogLineBufUse;
+			v8 = *BacklogLineBufUse;
 			v9 = 0;
 			startPosY = 0;
 			if (*BacklogLineBufUse)
@@ -1979,7 +1987,7 @@ namespace lb {
 				if (TextRendering::Get().enabled)
 					result += TextRendering::Get().getFont(baseGlyphSize, true)->getGlyphInfo(glyphId, Regular)->advance;
 				else {
-					result += TextRendering::Get().originalWidth[glyphId];
+					result += TextRendering::Get().widthData[glyphId];
 				}
 				i++;
 				sc3string += 2;
@@ -2304,6 +2312,87 @@ namespace lb {
 
 		return gameExeSetTipContentReal(sc3string);
 	}
+
+	void drawReportContentHook(int textureId, int maskId, int a3, int a4, int startX, int startY, unsigned int maskWidth, unsigned int a8, unsigned int a9, char* a10, unsigned int a11, unsigned int a12, int opacity, int a14, int a15, float a16) {
+		ProcessedSc3String_t str;
+
+		int dummy1;
+		int dummy2;
+		char name[256];
+		std::list<StringWord_t> words;
+		MultiplierData mData;
+		mData.xOffset = 2.0f;
+		mData.yOffset = 2.0f;
+		semiTokeniseSc3String(a10, words, 64,
+			TIP_REIMPL_LINE_LENGTH);
+		processSc3TokenList(startX, startY, a3, words, 255, a11,
+			64, &str, false, COORDS_MULTIPLIER, -1,
+			NOT_A_LINK, a11, 64 * 1.25f, &mData);
+
+		if (!TextRendering::Get().enabled) {
+			gameExeDrawReportContentReal(textureId, maskId, a3, a4, startX, startY, maskWidth, a8, a9, a10, a11, a12, opacity, a14, a15, a16);
+			return;
+		}
+		if (a8 <= startY + a12 && a9 >= startY) {
+
+			for (int i = 0; i < str.length; i++) {
+				if (str.displayStartY[i] / COORDS_MULTIPLIER > a8 / 1.5f &&
+					str.displayEndY[i] / COORDS_MULTIPLIER < (a8 + a9 * 1.5f) * 1.0f) {
+					TextRendering::Get().replaceFontSurface(64);
+					auto fontData = TextRendering::Get().getFont(64, false);
+					auto glyphInfo = fontData->getGlyphInfo(str.glyph[i], FontType::Regular);
+
+					int maskY;
+					int maskYf;
+
+					maskY = a4 + 44;
+					if (a8 + 12 <= startY)
+					{
+						if (a9 - 12 >= startY + a12) {
+							goto LABEL_35;
+						}
+
+
+						else {
+							maskYf = a4 - a9 + 88;
+						}
+					}
+					else
+					{
+						maskYf = a4 - a8 + 32;
+					}
+					maskY = startY + maskYf;
+				LABEL_35:
+
+					gameExeSg0DrawGlyph2(
+						TextRendering::Get().FONT_TEXTURE_ID, maskId, str.textureStartX[i], str.textureStartY[i],
+						str.textureWidth[i], str.textureHeight[i],
+						a3 * 2,
+						(maskY) * 2 + 64 - glyphInfo->top,
+						((float)str.displayStartX[i] + (1.0f * COORDS_MULTIPLIER)),
+						((float)str.displayStartY[i] - glyphInfo->top + 64 +
+							((1.0f + (float)0) * COORDS_MULTIPLIER)),
+						((float)str.displayEndX[i] + (1.0f * COORDS_MULTIPLIER)),
+						((float)str.displayEndY[i] - glyphInfo->top + 64 +
+							((1.0f + (float)0) * COORDS_MULTIPLIER)),
+						str.color[i], opacity, &dummy1, &dummy2);
+
+					gameExeSg0DrawGlyph2(
+						TextRendering::Get().FONT_TEXTURE_ID, maskId, str.textureStartX[i], str.textureStartY[i],
+						str.textureWidth[i], str.textureHeight[i],
+						a3 * 2,
+						(maskY) * 2 + 64 - glyphInfo->top,
+						(float)str.displayStartX[i],
+						(float)str.displayStartY[i] - glyphInfo->top + 64,
+						(float)str.displayEndX[i],
+						(float)str.displayEndY[i] - glyphInfo->top + 64,
+						str.color[i], opacity, &dummy1, &dummy2);
+				}
+			}
+		}
+	}
+
+
 	void drawTipContentHook(int textureId, int maskId, int startX, int startY,
 		int maskStartY, int maskHeight, int a7, int color,
 		int shadowColor, int opacity) {
