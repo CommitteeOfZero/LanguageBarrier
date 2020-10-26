@@ -113,6 +113,7 @@ struct MultiplierData {
 	float yOffset = 1.0f;
 	float textureHeight = 1.0f;
 	float textureWidth = 1.0f;
+	float displayYOffset = 0.0f;
 };
 
 typedef int(__cdecl* gslFillHookProc)(int id, int a1, int a2, int a3, int a4, int r, int g, int b, int a);
@@ -1086,6 +1087,7 @@ namespace lb {
 
 				uint32_t _opacity = (page->charDisplayOpacity[i] * opacity) >> 8;
 
+
 				if (page->charOutlineColor[i] != -1) {
 
 					{
@@ -1097,6 +1099,8 @@ namespace lb {
 
 
 						__int16 fontSize = page->glyphDisplayHeight[i] * 1.5f;
+						float yOffset = -6.0f * fontSize / 48.0f;
+
 						TextRendering::Get().replaceFontSurface(fontSize);
 						if (glyphInfo->width && glyphInfo->rows)
 
@@ -1106,7 +1110,7 @@ namespace lb {
 								glyphInfo->y,
 								glyphInfo->width,
 								glyphInfo->rows, displayStartX + glyphInfo->left,
-								displayStartY + fontSize - glyphInfo->top,
+								yOffset + displayStartY + fontSize - glyphInfo->top,
 								page->charOutlineColor[i], _opacity, 4);
 					}
 				}
@@ -1126,6 +1130,8 @@ namespace lb {
 
 					TextRendering::Get().replaceFontSurface(page->glyphDisplayHeight[i] * 1.5);
 					__int16 fontSize = page->glyphDisplayHeight[i] * 1.5f;
+					float yOffset = -6.0f * fontSize / 48.0f;
+
 					if (glyphInfo->width && glyphInfo->rows)
 						gameExeDrawSpriteReal(
 							TextRendering::Get().FONT_TEXTURE_ID,
@@ -1133,7 +1139,7 @@ namespace lb {
 							glyphInfo->y,
 							glyphInfo->width,
 							glyphInfo->rows, displayStartX + glyphInfo->left,
-							displayStartY + fontSize - glyphInfo->top,
+							yOffset+displayStartY + fontSize - glyphInfo->top,
 							page->charColor[i], _opacity, 4);
 				}
 
@@ -1655,7 +1661,7 @@ namespace lb {
 		MultiplierData mData;
 		mData.xOffset = 1.5f;
 		mData.yOffset = 1.5f;
-
+		mData.displayYOffset = -6.0f * glyphSize / 48.0f;
 		int lineHeight = glyphSize;
 
 		if (glyphSize == 55 && maxLineLength == 645) {
@@ -1755,12 +1761,12 @@ namespace lb {
 				result->textureWidth[i] = widths[glyphId] * multiplier;
 				result->textureHeight[i] = FONT_CELL_HEIGHT * multiplier;
 				result->displayStartX[i] =
-					(xOffset + (curLineLength - glyphWidth)) * multiplier;
+					(xOffset + (curLineLength - glyphWidth)) * multiplier ;
 				result->displayStartY[i] =
 					(yOffset + (result->lines * baseGlyphSize)) * multiplier;
 				result->displayEndX[i] = (xOffset + curLineLength) * multiplier;
 				result->displayEndY[i] =
-					(yOffset + ((result->lines + 1) * baseGlyphSize)) * multiplier;
+					(yOffset + ((result->lines + 1) * baseGlyphSize)) * multiplier ;
 				result->color[i] = currentColor;
 			}
 			else {
@@ -1777,10 +1783,10 @@ namespace lb {
 				result->displayStartX[i] =
 					(xOffset * mData->xOffset + (curLineLength)+glyphInfo->left) * multiplier;
 				result->displayStartY[i] =
-					(yOffset * mData->yOffset + (result->lines * lineHeight)) * multiplier;
+					(yOffset * mData->yOffset + (result->lines * lineHeight)) * multiplier + mData->displayYOffset;
 				result->displayEndX[i] = (xOffset * mData->xOffset + curLineLength + glyphInfo->width + glyphInfo->left) * multiplier;
 				result->displayEndY[i] =
-					(yOffset * mData->yOffset + (result->lines) * lineHeight + baseGlyphSize) * multiplier;
+					(yOffset * mData->yOffset + (result->lines) * lineHeight + baseGlyphSize) * multiplier + mData->displayYOffset;
 				result->color[i] = currentColor;
 			}
 		}
@@ -2212,9 +2218,44 @@ namespace lb {
 				width = getSc3StringDisplayWidthHook((char*)sc3, 0, height * 1.5);
 				height--;
 			}
+			std::list<StringWord_t> words;
+
+			semiTokeniseSc3String((char*)sc3, words, height, a4*1.5);
+			int xOffset, yOffset;
+			xOffset = 0;
+			yOffset = 0;
+			int lineSkipCount = 1;
+			int lineDisplayCount = 0;
+			int lineLength = a4 * 1.5;
+			const int glyphSize = height * 1.5;
+
+			ProcessedSc3String_t str;
+			MultiplierData mData;
+			mData.xOffset = 1.5f;
+			mData.yOffset = 1.5f;
+			mData.displayYOffset = -6.0f * glyphSize/48.0f;
+			if (a4 == 0) a4 = 10000;
+			processSc3TokenList(a2, startY, a4*2.5f, words, 1,
+				color, glyphSize, &str, false, COORDS_MULTIPLIER,
+				str.linkCount - 1, str.curLinkNumber, color, glyphSize, &mData);
 
 
-			while (!finish) {
+			TextRendering::Get().replaceFontSurface(glyphSize);
+
+			for (int i = 0; i < str.length; i++) {
+				int curColor = str.color[i];
+				auto glyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(str.glyph[i], Regular);
+
+				if (str.textureWidth[i] > 0 && str.textureHeight[i] > 0)
+
+					drawSpriteHook(TextRendering::Get().FONT_TEXTURE_ID, str.textureStartX[i], str.textureStartY[i],
+						str.textureWidth[i], str.textureHeight[i],
+						str.displayStartX[i], str.displayStartY[i] + glyphSize - glyphInfo->top,
+						curColor, opacity, 4);
+			}
+
+
+		/*	while (!finish) {
 
 				if (sc3[sc3Index] == 0xFF) {
 					finish = true;
@@ -2253,7 +2294,7 @@ namespace lb {
 
 				displayStartX += glyphInfo->advance;
 
-			}
+			}*/
 		}
 		else {
 			rnDrawTextReal(textureId, a2, startY, a4, sc3, startX, color, height, opacity);
