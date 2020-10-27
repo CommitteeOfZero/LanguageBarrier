@@ -160,12 +160,10 @@ struct TextRendering
 	const int GLYPHS_PER_ROW = 64;
 	int NUM_GLYPHS = 351;
 	char* fontPath = "languagebarrier/noto.ttc";
-
 	bool enabled = true;
 
 	void disableReplacement();
 	void enableReplacement();
-	GlyphInfo charInfo[0x40000];
 	TextRendering();
 
 	uint8_t originalWidth[32000];
