@@ -48,8 +48,8 @@
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)contrib\include;$(DXSDK_DIR)Include;$(ProjectDir)contrib\freetype\include</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86;$(ProjectDir)contrib\lib\Debug;$(ProjectDir)contrib\lib\xy-vsfilter</LibraryPath>
     <ExecutablePath>$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);$(ProjectDir)contrib\bin</ExecutablePath>
-    <OutDir>C:\Program Files %28x86%29\Steam\steamapps\common\ROBOTICS%3bNOTES ELITE\NOTES ELITE</OutDir>
     <Linkage-freetype>static</Linkage-freetype>
+    <OutDir>C:\Program Files %28x86%29\Steam\steamapps\common\ROBOTICS%3bNOTES ELITE\NOTES ELITE</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>

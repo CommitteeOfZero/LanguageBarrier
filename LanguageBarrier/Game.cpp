@@ -455,26 +455,32 @@ namespace lb {
 		int retval = gameExeEarlyInitReal(unk0, unk1);
 
 		try {
+
 			gameTextInit();
-			//	FreeType::Instance().buildFont();
-		//  gameLoadTexture(400, FreeType::Instance().texture.GetBufferPointer(), FreeType::Instance().texture.GetBufferSize());
 			if (config["gamedef"]["gameDxVersion"].get<std::string>() == "dx11") {
 				gameExePMgsD3D11State =
 					(**(MgsD3D11State***)sigScan("game", "useOfMgsD3D11State"));
 			}
 
+			if (config["patch"]["useNewTextSystem"])
+			{
+				TextRendering::Get().loadCache();
+				TextRendering::Get().enableReplacement();
+
+			}
+			else {
+				TextRendering::Get().disableReplacement();
+			}
+	
 
 			if (!scanCreateEnableHook("game", "exitApplication", (uintptr_t*)&gameExeCloseAllSystems,
 				(LPVOID)closeAllSystemsHook, (LPVOID*)&gameExeCloseAllSystemsReal))
 				return retval;
-			TextRendering::Get().loadCache();
 
 
 			if (config["patch"]["redoDialogueWordwrap"].get<bool>() == true) {
 				dialogueWordwrapInit();
 			}
-			//	gameLoadTexture(400, FreeType::Instance().texture.GetBufferPointer(), FreeType::Instance().texture.GetBufferSize());
-			//	gameLoadTexture(401, FreeType::Instance().texture2.GetBufferPointer(), FreeType::Instance().texture2.GetBufferSize());
 
 			std::string lbDir =
 				WideTo8BitPath(GetGameDirectoryPath() + L"\\languagebarrier");
@@ -502,7 +508,7 @@ namespace lb {
 			}
 
 
-	
+
 		}
 		catch (std::exception& e) {
 			MessageBoxA(NULL, e.what(), "LanguageBarrier exception", MB_ICONSTOP);
@@ -545,7 +551,7 @@ namespace lb {
 					return gameExeMpkFopenByIdReal(pThis, &gameExeMpkObjects[archiveId],
 						newFileId, unk3);
 				}
-			}
+				}
 		}
 
 		return gameExeMpkFopenByIdReal(pThis, mpk, fileId, unk3);
@@ -612,8 +618,8 @@ namespace lb {
 					uint32_t repId = targets[sFileId][sStringId].get<uint32_t>();
 					uint32_t offset = ((uint32_t*)stringReplacementTable.c_str())[repId];
 					result = &(stringReplacementTable.c_str()[offset]);
+				}
 			}
-		}
 	}
 		return processTextReplacements(result, fileId, stringId);
 }

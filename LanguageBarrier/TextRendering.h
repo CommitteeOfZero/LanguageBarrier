@@ -15,7 +15,7 @@
 #include <cereal/types/string.hpp>
 
 #include <cereal/archives/binary.hpp>
-
+#include "Config.h"
 struct GlyphInfo
 {
 	__int8 bmp_top;
@@ -159,9 +159,8 @@ struct TextRendering
 	int FONT_CELL_SIZE = 66;
 	const int GLYPHS_PER_ROW = 64;
 	int NUM_GLYPHS = 351;
-	char* fontPath = "languagebarrier/noto.ttc";
-	bool enabled = true;
-
+	std::string fontPath;
+	bool enabled = false;
 	void disableReplacement();
 	void enableReplacement();
 	TextRendering();
@@ -172,6 +171,8 @@ struct TextRendering
 	uint8_t* widthData2;
 	void Init(void* widthData, void* widthData2);
 	void buildFont(int fontSize, bool measure);
+
+	void initFT(int fontSize);
 
 	void loadTexture(int fontSize);
 

@@ -657,7 +657,7 @@ namespace lb {
 			config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
 			gameExeDialoguePages_RNDialoguePage_t =
 				(RNDialoguePage_t*)sigScan("game", "useOfDialoguePages");
-			if (IMPROVE_DIALOGUE_OUTLINES) {
+			if (true) {
 				scanCreateEnableHook(
 					"game", "drawDialogue", (uintptr_t*)&gameExeDrawDialogue,
 					(LPVOID)rnDrawDialogueHook, (LPVOID*)&gameExeDrawDialogueReal);
@@ -1088,7 +1088,7 @@ namespace lb {
 				else {
 					displayStartX = (page->charDisplayX[i] + xOffset) * COORDS_MULTIPLIER;
 				}
-
+				
 
 
 				uint32_t _opacity = (page->charDisplayOpacity[i] * opacity) >> 8;
@@ -1115,8 +1115,8 @@ namespace lb {
 								glyphInfo->x,
 								glyphInfo->y,
 								glyphInfo->width,
-								glyphInfo->rows, displayStartX + glyphInfo->left,
-								yOffset + displayStartY + fontSize - glyphInfo->top,
+								glyphInfo->rows, round(displayStartX + glyphInfo->left),
+								round(yOffset + displayStartY + fontSize - glyphInfo->top),
 								page->charOutlineColor[i], _opacity, 4);
 					}
 				}
@@ -1144,8 +1144,8 @@ namespace lb {
 							glyphInfo->x,
 							glyphInfo->y,
 							glyphInfo->width,
-							glyphInfo->rows, displayStartX + glyphInfo->left,
-							yOffset + displayStartY + fontSize - glyphInfo->top,
+							glyphInfo->rows, round(displayStartX + glyphInfo->left),
+							round(yOffset + displayStartY + fontSize - glyphInfo->top),
 							page->charColor[i], _opacity, 4);
 				}
 
@@ -1369,8 +1369,6 @@ namespace lb {
 
 
 
-
-
 		v40 = 0;
 		v47 = 0;
 		if (*BacklogLineBufUse)
@@ -1437,10 +1435,10 @@ namespace lb {
 											glyphInfo->y,
 											glyphInfo->width,
 											glyphInfo->rows,
-											xPosition + glyphInfo->left / 2.0f + 1,
-											v47 + glyphSize / 2.0f - glyphInfo->top / 2.0f + 1,
-											xPosition + glyphInfo->left / 2.0f + glyphInfo->width / 2.0f + 1,
-											glyphInfo->rows / 2.0f + glyphSize / 2.0f - glyphInfo->top / 2.0f + 1 + v47,
+											round(xPosition + glyphInfo->left / 2.0f + 1),
+											round(v47 + glyphSize / 2.0f - glyphInfo->top / 2.0f + 1),
+											round(xPosition + glyphInfo->left / 2.0f + glyphInfo->width / 2.0f + 1),
+											round(glyphInfo->rows / 2.0f + glyphSize / 2.0f - glyphInfo->top / 2.0f + 1 + v47),
 											color,
 											opacity);
 										v9 = startPosY;
@@ -1547,10 +1545,10 @@ namespace lb {
 										glyphInfo->y,
 										glyphInfo->width,
 										glyphInfo->rows,
-										xPosition + glyphInfo->left / 2.0f,
-										BacklogTextPos[2 * strIndex + 1] + v35 + glyphSize / 2.0f - glyphInfo->top / 2.0f,
-										xPosition + glyphInfo->left / 2.0f + glyphInfo->width / 2.0f,
-										BacklogTextPos[2 * strIndex + 1] + glyphInfo->rows / 2.0f + glyphSize / 2.0f - glyphInfo->top / 2.0f + v35,
+										round(xPosition + glyphInfo->left / 2.0f),
+										round(BacklogTextPos[2 * strIndex + 1] + v35 + glyphSize / 2.0f - glyphInfo->top / 2.0f),
+										round(xPosition + glyphInfo->left / 2.0f + glyphInfo->width / 2.0f),
+										round(BacklogTextPos[2 * strIndex + 1] + glyphInfo->rows / 2.0f + glyphSize / 2.0f - glyphInfo->top / 2.0f + v35),
 										color,
 										opacity);
 
@@ -1698,7 +1696,6 @@ namespace lb {
 
 				auto linkGlyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfoByChar('_', Regular);
 
-
 				if (str.linkNumber[i] == a12)
 					curColor = color;
 				else
@@ -1707,22 +1704,22 @@ namespace lb {
 				float endUnderScoreX = str.displayStartX[i] + glyphInfo->advance;
 
 
-				if (i + 1 < str.length && str.displayStartY[i] == str.displayStartY[i + 1]) {
+	    		if (i + 1 < str.length && str.displayStartY[i] == str.displayStartY[i + 1]) {
 					endUnderScoreX = str.displayStartX[i + 1];
 				}
 
-				int remaining = glyphInfo->advance;
+				int remaining = endUnderScoreX - str.displayStartX[i];
 				int offset = 0;
 				while (remaining > 0) {
+					if (glyphInfo->width > 0 && str.textureHeight[i] > 0)
 
-
-					drawSpriteHook(TextRendering::Get().FONT_TEXTURE_ID, linkGlyphInfo->x,
-						linkGlyphInfo->y, linkGlyphInfo->width,
-						linkGlyphInfo->rows, str.displayStartX[i] + offset + linkGlyphInfo->left,
-						str.displayStartY[i] + glyphSize - linkGlyphInfo->top, curColor, opacity, 4);
-
-					remaining -= linkGlyphInfo->width;
-					offset += linkGlyphInfo->width;
+					/*	drawSpriteHook(TextRendering::Get().FONT_TEXTURE_ID, linkGlyphInfo->x+1,
+							linkGlyphInfo->y, min(linkGlyphInfo->width-2, remaining),
+							linkGlyphInfo->rows, round(str.displayStartX[i] + offset ),
+							round(str.displayStartY[i] + glyphSize+2 - linkGlyphInfo->top), curColor, opacity, 4);
+							*/
+					remaining -= linkGlyphInfo->width-2;
+					offset += linkGlyphInfo->width-2;
 				}
 			}
 
@@ -1730,7 +1727,7 @@ namespace lb {
 
 				drawSpriteHook(TextRendering::Get().FONT_TEXTURE_ID, str.textureStartX[i], str.textureStartY[i],
 					str.textureWidth[i], str.textureHeight[i],
-					str.displayStartX[i], str.displayStartY[i] + glyphSize - glyphInfo->top,
+					round(str.displayStartX[i]), round(str.displayStartY[i] + glyphSize - glyphInfo->top),
 					curColor, opacity, 4);
 		}
 		return 1;
@@ -1999,10 +1996,12 @@ namespace lb {
 			}
 			else if (c < 0) {
 				int glyphId = (uint8_t)sc3string[1] + ((c & 0x7f) << 8);
-				if (TextRendering::Get().enabled)
-					result += TextRendering::Get().getFont(baseGlyphSize, true)->getGlyphInfo(glyphId, Regular)->advance;
+				if (TextRendering::Get().enabled) {
+					int adv=TextRendering::Get().getFont(baseGlyphSize, true)->getGlyphInfo(glyphId, Regular)->advance;
+					result += adv;
+				}
 				else {
-					result += TextRendering::Get().widthData[glyphId];
+					result += TextRendering::Get().originalWidth[glyphId];
 				}
 				i++;
 				sc3string += 2;
@@ -2197,9 +2196,6 @@ namespace lb {
 
 	int __cdecl rnDrawTextHook(signed int textureId, int a2, signed int startY, unsigned int a4, uint8_t* sc3, signed int startX, int color, int height, int opacity)
 	{
-		// if (!startX) startX = 255;
-
-
 
 		int length = 0;
 
@@ -2229,7 +2225,7 @@ namespace lb {
 			}
 			std::list<StringWord_t> words;
 
-			semiTokeniseSc3String((char*)sc3, words, height, a4 * 1.5);
+			semiTokeniseSc3String((char*)sc3, words, height*1.5, a4 * 1.5);
 			int xOffset, yOffset;
 			xOffset = 0;
 			yOffset = 0;
@@ -2244,9 +2240,10 @@ namespace lb {
 			mData.yOffset = 1.5f;
 			mData.displayYOffset = -6.0f * glyphSize / 48.0f;
 			if (a4 == 0) a4 = 10000;
+
 			processSc3TokenList(a2, startY, a4 * 2.5f, words, 1,
 				color, glyphSize, &str, false, COORDS_MULTIPLIER,
-				str.linkCount - 1, str.curLinkNumber, color, glyphSize, &mData);
+				0, 0, color, glyphSize, &mData);
 
 
 			TextRendering::Get().replaceFontSurface(glyphSize);
@@ -2475,7 +2472,7 @@ namespace lb {
 				gameExeSg0DrawGlyph2(
 					TextRendering::Get().FONT_TEXTURE_ID, maskId, str.textureStartX[i], str.textureStartY[i],
 					str.textureWidth[i], str.textureHeight[i],
-					str.displayStartX[i]+a5*2,
+					str.displayStartX[i] + a5 * 2,
 					(a4 + a6) * 2 + 64 - glyphInfo->top,
 					((float)str.displayStartX[i] + (1.0f * COORDS_MULTIPLIER)),
 					((float)str.displayStartY[i] - glyphInfo->top + 64 +
