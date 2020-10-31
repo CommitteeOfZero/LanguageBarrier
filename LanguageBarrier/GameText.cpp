@@ -1692,36 +1692,36 @@ namespace lb {
 			int curColor = str.color[i];
 			auto glyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(str.glyph[i], Regular);
 
-			//if (str.linkNumber[i] != NOT_A_LINK) {
+			if (str.linkNumber[i] != NOT_A_LINK) {
 
-			//	auto linkGlyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfoByChar('_', Regular);
+				auto linkGlyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfoByChar('_', Regular);
 
-			//	if (str.linkNumber[i] == a12)
-			//		curColor = color;
-			//	else
-			//		curColor = linkColor;
+				if (str.linkNumber[i] == a12)
+					curColor = color;
+				else
+					curColor = linkColor;
 
-			//	float endUnderScoreX = str.displayStartX[i] + glyphInfo->advance;
+				float endUnderScoreX = str.displayStartX[i] + glyphInfo->advance;
 
 
-	  //  		if (i + 1 < str.length && str.displayStartY[i] == str.displayStartY[i + 1]) {
-			//		endUnderScoreX = str.displayStartX[i + 1];
-			//	}
+	    		if (i + 1 < str.length && str.displayStartY[i] == str.displayStartY[i + 1]) {
+					endUnderScoreX = str.displayStartX[i + 1];
+				}
 
-			//	int remaining = endUnderScoreX - str.displayStartX[i];
-			//	int offset = 0;
-			//	while (remaining > 0) {
-			//	if (glyphInfo->width > 0 && str.textureHeight[i] > 0)
+				int remaining = endUnderScoreX - str.displayStartX[i];
+				int offset = 0;
+			/*	while (remaining > 0) {
+				if (glyphInfo->width > 0 && str.textureHeight[i] > 0)
 
-			//		/*	drawSpriteHook(TextRendering::Get().FONT_TEXTURE_ID, linkGlyphInfo->x+1,
-			//				linkGlyphInfo->y, min(linkGlyphInfo->width-2, remaining),
-			//				linkGlyphInfo->rows, round(str.displayStartX[i] + offset ),
-			//				round(str.displayStartY[i] + glyphSize+2 - linkGlyphInfo->top), curColor, opacity, 4);
-			//				*/
-			//		remaining -= linkGlyphInfo->width-2;
-			//		offset += linkGlyphInfo->width-2;
-			//	}
-			//}
+					/*	drawSpriteHook(TextRendering::Get().FONT_TEXTURE_ID, linkGlyphInfo->x+1,
+							linkGlyphInfo->y, min(linkGlyphInfo->width-2, remaining),
+							linkGlyphInfo->rows, round(str.displayStartX[i] + offset ),
+							round(str.displayStartY[i] + glyphSize+2 - linkGlyphInfo->top), curColor, opacity, 4);
+							
+					remaining -= linkGlyphInfo->width-2;
+					offset += linkGlyphInfo->width-2;
+				}*/
+			}
 
 			if (str.textureWidth[i] > 0 && str.textureHeight[i] > 0)
 
