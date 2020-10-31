@@ -1622,7 +1622,7 @@ namespace lb {
 
 			processSc3TokenList(a3, a4, lineLength, words, a5,
 				color, glyphSize, &str, false, COORDS_MULTIPLIER,
-				str.linkCount - 1, str.curLinkNumber, color, glyphSize, &mData);
+				0, 0, color, glyphSize, &mData);
 
 
 			TextRendering::Get().replaceFontSurface(glyphSize);
