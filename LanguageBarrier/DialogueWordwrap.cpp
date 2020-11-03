@@ -75,14 +75,21 @@ void dialogueWordwrapInit() {
   std::wstring type2_punct = converter.from_bytes(input2);
 
   for (auto character : type1_punct) {
-      auto index=TextRendering::Get().fullCharMap.find(character);
-      type1_punctuation.insert(index);
+
+      for (int i = 0; i < TextRendering::Get().fullCharMap.length(); i++) {
+          if(TextRendering::Get().fullCharMap[i]==character)
+              type1_punctuation.insert(i);
+
+      }
   }
   type1_punctuation.insert(0x3F);
   type2_punctuation.clear();
   for (auto character : type2_punct) {
-	  auto index = TextRendering::Get().fullCharMap.find(character);
-	  type2_punctuation.insert(index);
+      for (int i = 0; i < TextRendering::Get().fullCharMap.length(); i++) {
+          if (TextRendering::Get().fullCharMap[i] == character)
+              type2_punctuation.insert(i);
+
+      }
   }
 
 }
@@ -158,6 +165,8 @@ void dlgWordwrapGenerateMaskHook(int unk0) {
       next_word(pos);
     }
   }
+  return;
+
 }
 
 void next_word(int &pos) {

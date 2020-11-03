@@ -1081,14 +1081,17 @@ namespace lb {
 				else newline = false;
 
 				if (newline == false) {
+					__int16 fontSize = page->glyphDisplayHeight[i] * 1.5f;
+
 					uint32_t currentChar = page->glyphCol[i - 1] + page->glyphRow[i - 1] * TextRendering::Get().GLYPHS_PER_ROW;
-					auto glyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(currentChar, Regular);
-					displayStartX += glyphInfo->advance * 1.5f;
+					auto glyphInfo = TextRendering::Get().getFont(fontSize, false)->getGlyphInfo(currentChar, Regular);
+					displayStartX += glyphInfo->advance ;
 				}
 				else {
 					displayStartX = (page->charDisplayX[i] + xOffset) * COORDS_MULTIPLIER;
 				}
 				
+					//				displayStartX = (page->charDisplayX[i] + xOffset) * COORDS_MULTIPLIER;
 
 
 				uint32_t _opacity = (page->charDisplayOpacity[i] * opacity) >> 8;
@@ -1147,8 +1150,9 @@ namespace lb {
 							glyphInfo->rows, round(displayStartX + glyphInfo->left),
 							round(yOffset + displayStartY + fontSize - glyphInfo->top),
 							page->charColor[i], _opacity, 4);
-				}
+					page->field_20 = (displayStartX + glyphInfo->advance) / 1.5f;
 
+				}
 
 			}
 		}
@@ -1669,6 +1673,7 @@ namespace lb {
 		mData.xOffset = 1.5f;
 		mData.yOffset = 1.5f;
 		mData.displayYOffset = -6.0f * glyphSize / 48.0f;
+		str.curLinkNumber = 0xFF;
 		int lineHeight = glyphSize;
 
 		if (glyphSize == 55 && maxLineLength == 645) {
@@ -1681,7 +1686,7 @@ namespace lb {
 			glyphSize, &str, true, COORDS_MULTIPLIER, -1,
 			NOT_A_LINK, color, lineHeight, &mData);
 
-		processSc3TokenList(startX, startY, lineLength, words, a5,
+			processSc3TokenList(startX, startY, lineLength, words, a5,
 			color, glyphSize, &str, false, COORDS_MULTIPLIER,
 			str.linkCount - 1, str.curLinkNumber, str.curColor, lineHeight, &mData);
 
@@ -1833,7 +1838,8 @@ namespace lb {
 
 		int spaceCost =
 			TextRendering::Get().getFont(baseGlyphSize, true)->getGlyphInfo(GLYPH_ID_FULLWIDTH_SPACE, Regular)->advance;
-
+		int ellipsisCost =
+			TextRendering::Get().getFont(baseGlyphSize, true)->getGlyphInfoByChar('.', Regular)->advance *3;
 
 		MultiplierData multiplierData;
 		if (mData != NULL) {
@@ -1860,12 +1866,14 @@ namespace lb {
 			if (result->lines >= lineCount) {
 				result->lines--;
 				curLineLength = prevLineLength;
+				curLinkNumber = NOT_A_LINK;
 
 				for (int i = 0; i < 3; i++) {
 					addCharacter(result, baseGlyphSize, TextRendering::Get().fullCharMap.find('.'), lineCount - 1, curLinkNumber, false, 1.0, xOffset, curLineLength, yOffset, currentColor, lineHeight, mData);
 				}
 				words.erase(++it, words.end());
 				break;
+
 			};
 
 			char c;

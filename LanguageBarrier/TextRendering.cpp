@@ -45,6 +45,7 @@ void TextRendering::enableReplacement()
 		this->widthData2[i] = this->getFont(32, true)->getGlyphInfo(i, FontType::Regular)->advance;
 		
 	}
+	this->widthData[0] = lb::config["patch"]["spaceWidthPixels"].get<uint16_t>();
 	this->widthData[lb::config["gamedef"]["glyphIdFullwidthSpace"].get<uint16_t>()] = lb::config["patch"]["spaceWidthPixels"].get<uint16_t>();;
 }
 
@@ -88,6 +89,9 @@ void TextRendering::Init(void* widthData, void* widthData2)
 
 	}
 	this->fontData.erase(32);
+	this->widthData[0] = lb::config["patch"]["spaceWidthPixels"].get<uint16_t>();
+	this->widthData[lb::config["gamedef"]["glyphIdFullwidthSpace"].get<uint16_t>()] = lb::config["patch"]["spaceWidthPixels"].get<uint16_t>();;
+
 }
 
 struct TextSize {
