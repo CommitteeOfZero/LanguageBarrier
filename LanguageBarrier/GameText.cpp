@@ -518,6 +518,8 @@ namespace lb {
 	void gameTextInit() {
 
 
+		fixLeadingZeroes();
+
 
 		/*	if (IMPROVE_DIALOGUE_OUTLINES) {
 			{
@@ -977,6 +979,23 @@ namespace lb {
 
 
 	}
+
+	void fixLeadingZeroes()
+	{
+		static char* dateTime = "%04d/%02d/%02d %02d:%02d:%02d";
+		static char* dateTime2 = "%010d";
+
+		int leadingZeroFixAddr1=sigScan("game", "leadingZeroFix1");
+		int leadingZeroFixAddr2=sigScan("game", "leadingZeroFix2");
+		int leadingZeroFixAddr3=sigScan("game", "leadingZeroFix3");
+
+		memcpy_perms((void*)leadingZeroFixAddr1, &dateTime2, sizeof(char*));
+		memcpy_perms((void*)leadingZeroFixAddr2, &dateTime2, sizeof(char*));
+		memcpy_perms((void*)leadingZeroFixAddr3, &dateTime, sizeof(char*));
+
+
+	}	
+
 
 	int __cdecl dialogueLayoutRelatedHook(int unk0, int* unk1, int* unk2, int unk3,
 		int unk4, int unk5, int unk6, int yOffset,

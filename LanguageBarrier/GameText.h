@@ -56,6 +56,7 @@ LB_GLOBAL float CC_BACKLOG_HIGHLIGHT_HEIGHT_SHIFT;
 LB_GLOBAL float CC_BACKLOG_HIGHLIGHT_YOFFSET_SHIFT;
 
 void gameTextInit();
+void fixLeadingZeroes();
 }  // namespace lb
 
 #endif  // !__GAMETEXT_H__
