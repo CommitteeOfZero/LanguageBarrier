@@ -389,6 +389,21 @@ __declspec(naked) void ccSteamBacklogNamePosAdjustHook() {
 	}
 }
 
+int* TextNum;
+char** viewMessageList;
+
+BOOL __cdecl skipFix(int a1, int a2)
+{
+	if (a1 == 0xFFFF)
+		return 0;
+
+	char flBit[] = { 1,2,4,8,16,32,64,128 };
+	char* MesView = *viewMessageList;
+	return  (MesView[ (a2 + TextNum[2 * a1]) >> 3] & (unsigned __int8)flBit[(a2 + TextNum[2 * a1]) & 7]) != 0;
+}
+
+
+
 namespace lb {
 	void __cdecl drawDialogueHook(int fontNumber, int pageNumber, uint32_t opacity,
 		int xOffset, int yOffset);
@@ -523,6 +538,8 @@ namespace lb {
 		gameExeRenderMode = *(uintptr_t*)sigScan("game", "renderMode");
 		gameExeBlendMode = *(uintptr_t*)sigScan("game", "blendMode");
 		gameExeShaderPtr = *(uintptr_t*)sigScan("game", "shaderPtr");
+		fixSkipRN();
+
 
 
 		/*	if (IMPROVE_DIALOGUE_OUTLINES) {
@@ -982,6 +999,16 @@ namespace lb {
 		TextRendering::Get().Init(gameExeGlyphWidthsFont1, gameExeGlyphWidthsFont2);
 
 
+	}
+
+	void fixSkipRN()
+	{
+
+		viewMessageList = *(char***)sigScan("game", "ViewedMsgArray");
+		uintptr_t dummy;
+		TextNum = *(int**)sigScan("game", "TextNum");
+
+		auto checkTextSkip = scanCreateEnableHook("game", "checkViewText", &dummy, skipFix, 0);
 	}
 
 	void fixLeadingZeroes()

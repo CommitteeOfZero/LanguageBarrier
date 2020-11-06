@@ -83,6 +83,7 @@ GAMETEXT_H_IMPORT int* BacklogDispLinePosY;
 GAMETEXT_H_IMPORT int* BacklogDispCurPosSY;
 
 void gameTextInit();
+void fixSkipRN();
 void fixLeadingZeroes();
 int __cdecl getSc3StringDisplayWidthHook(char* sc3string,
   unsigned int maxCharacters,
