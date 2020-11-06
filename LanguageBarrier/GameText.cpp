@@ -121,6 +121,9 @@ static gslFillHookProc gameExegslFill = NULL;
 static gslFillHookProc gameExegslFillReal = NULL;
 int __cdecl gslFillHook(int id, int a1, int a2, int a3, int a4, int r, int g, int b, int a);
 
+static uintptr_t gameExeRenderMode = NULL;
+static uintptr_t gameExeShaderPtr = NULL;
+static uintptr_t gameExeBlendMode = NULL;
 
 
 typedef int(__cdecl* drawTwipoContentHookProc)(int textureId, int a2, int a3, unsigned int a4, int a5, unsigned int a6, char* sc3, int a8, int a9, uint32_t opacity, int a11, int a12, int a13, int a14
@@ -519,6 +522,10 @@ namespace lb {
 
 
 		fixLeadingZeroes();
+
+		gameExeRenderMode = *(uintptr_t*)sigScan("game", "renderMode");
+		gameExeBlendMode = *(uintptr_t*)sigScan("game", "blendMode");
+		gameExeShaderPtr = *(uintptr_t*)sigScan("game", "shaderPtr");
 
 
 		/*	if (IMPROVE_DIALOGUE_OUTLINES) {
@@ -1322,9 +1329,9 @@ namespace lb {
 		a1[0] = &surfaceArray[textureId];
 		a1[1] = &surfaceArray[maskTextureId];
 
-		int shaderPtr = *(int*)0x099DEDC;
-		int blendMode = *(int*)0x099DEE8;
-		int renderMode = *(int*)0x099DEEC;
+		int shaderPtr = *(int*)gameExeShaderPtr;
+		int blendMode = *(int*)gameExeBlendMode;
+		int renderMode = *(int*)gameExeRenderMode;
 
 		return GameExeDrawSpriteMaskInternal(
 			(float*)&a1,
