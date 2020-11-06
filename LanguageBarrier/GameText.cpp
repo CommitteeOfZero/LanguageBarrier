@@ -420,9 +420,6 @@ namespace lb {
 		ProcessedSc3String_t* result, bool measureOnly,
 		float multiplier, int lastLinkNumber,
 		int curLinkNumber, int currentColor, int lineHeight, const MultiplierData* mData);
-	int __cdecl getSc3StringDisplayWidthHook(char* sc3string,
-		unsigned int maxCharacters,
-		int baseGlyphSize);
 	int __cdecl sghdGetLinksFromSc3StringHook(int xOffset, int yOffset,
 		int lineLength, char* sc3string,
 		int lineSkipCount,
@@ -1074,13 +1071,13 @@ namespace lb {
 	void __cdecl rnDrawDialogueHook(int fontNumber, int pageNumber, uint32_t opacity,
 		int xOffset, int yOffset) {
 		RNDialoguePage_t* page = &gameExeDialoguePages_RNDialoguePage_t[pageNumber];
-		if (GetAsyncKeyState(VK_RBUTTON)) {
-			TextRendering::Get().enableReplacement();
+		//if (GetAsyncKeyState(VK_RBUTTON)) {
+		//	TextRendering::Get().enableReplacement();
 
-		}
-		else if (GetAsyncKeyState(VK_LBUTTON)) {
-			TextRendering::Get().disableReplacement();
-		}
+		//}
+		//else if (GetAsyncKeyState(VK_LBUTTON)) {
+		//	TextRendering::Get().disableReplacement();
+		//}
 
 		if (!TextRendering::Get().enabled)
 			return gameExeDrawDialogueReal(fontNumber, pageNumber, opacity, xOffset, yOffset);
@@ -1611,18 +1608,17 @@ namespace lb {
 		int lineLength = a5;
 		std::list<StringWord_t> words;
 
-		if (GetAsyncKeyState(VK_RBUTTON)) {
-			TextRendering::Get().enableReplacement();
-		}
-		if (GetAsyncKeyState(VK_LBUTTON)) {
-			TextRendering::Get().disableReplacement();
+		//if (GetAsyncKeyState(VK_RBUTTON)) {
+		//	TextRendering::Get().enableReplacement();
+		//}
+		//if (GetAsyncKeyState(VK_LBUTTON)) {
+		//	TextRendering::Get().disableReplacement();
 
-		}
+		//}
 
 
 		if (!TextRendering::Get().enabled) {
-			return  rnDrawChatMessageReal(a2, a3, a4, a5, sc3, a7, color, a9, opacity);
-			;
+			return rnDrawChatMessageReal(a2, a3, a4, a5, sc3, a7, color, a9, opacity);
 		}
 		else {
 			semiTokeniseSc3String(sc3, words, a9, lineLength);
@@ -1639,14 +1635,9 @@ namespace lb {
 			mData.xOffset = 1.5f;
 			mData.yOffset = 1.5f;
 
-
-
-
-
 			processSc3TokenList(a3, a4, lineLength, words, a5,
 				color, glyphSize, &str, false, COORDS_MULTIPLIER,
 				0, 0, color, glyphSize, &mData);
-
 
 			TextRendering::Get().replaceFontSurface(glyphSize);
 
@@ -2230,13 +2221,13 @@ namespace lb {
 		int sc3Index = 0;
 		std::vector<uint16_t> v;
 		std::vector<wchar_t> v2;
-		if (GetAsyncKeyState(VK_RBUTTON)) {
-			TextRendering::Get().enableReplacement();
-		}
-		if (GetAsyncKeyState(VK_LBUTTON)) {
-			TextRendering::Get().disableReplacement();
+		//if (GetAsyncKeyState(VK_RBUTTON)) {
+		//	TextRendering::Get().enableReplacement();
+		//}
+		//if (GetAsyncKeyState(VK_LBUTTON)) {
+		//	TextRendering::Get().disableReplacement();
 
-		}
+		//}
 
 
 		if (TextRendering::Get().enabled) {

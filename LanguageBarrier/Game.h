@@ -111,7 +111,7 @@ GAME_H_IMPORT GetFlagProc gameExeGetFlag;
 GAME_H_IMPORT SetFlagProc gameExeSetFlag;
 GAME_H_IMPORT ChkViewDicProc gameExeChkViewDic;
 
-
+GAME_H_IMPORT int* gameExeScrWork;
 
 void gameInit();
 void gameLoadTexture(uint16_t textureId, void* buffer, size_t sz);
