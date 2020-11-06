@@ -66,6 +66,9 @@
     <ClInclude Include="CriManaMod.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CustomInputRNE.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LanguageBarrier.cpp">
@@ -117,6 +120,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CriManaMod.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CustomInputRNE.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

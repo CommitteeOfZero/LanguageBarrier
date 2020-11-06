@@ -4,6 +4,10 @@
 #include <cstdint>
 #include "LanguageBarrier.h"
 
+#ifndef GAMETEXT_H_IMPORT
+#define GAMETEXT_H_IMPORT extern
+#endif
+
 namespace lb {
 LB_GLOBAL uint8_t FIRST_FONT_ID;
 LB_GLOBAL float COORDS_MULTIPLIER;
@@ -55,8 +59,34 @@ LB_GLOBAL float CC_BACKLOG_HIGHLIGHT_SPRITE_HEIGHT;
 LB_GLOBAL float CC_BACKLOG_HIGHLIGHT_HEIGHT_SHIFT;
 LB_GLOBAL float CC_BACKLOG_HIGHLIGHT_YOFFSET_SHIFT;
 
+GAMETEXT_H_IMPORT int* BacklogLineSave;
+GAMETEXT_H_IMPORT int* BacklogDispLinePos;
+GAMETEXT_H_IMPORT int* BacklogLineBufSize;
+GAMETEXT_H_IMPORT uint16_t* BacklogTextPos;
+GAMETEXT_H_IMPORT int* BacklogLineBufUse;
+GAMETEXT_H_IMPORT uint16_t* BacklogText;
+GAMETEXT_H_IMPORT int* BacklogDispCurPosSX;
+GAMETEXT_H_IMPORT int* BacklogDispCurPosEY;
+GAMETEXT_H_IMPORT int* BacklogLineBufStartp;
+GAMETEXT_H_IMPORT unsigned char* BacklogTextSize;
+GAMETEXT_H_IMPORT int* BacklogLineBufEndp;
+GAMETEXT_H_IMPORT int* BacklogBufStartp;
+GAMETEXT_H_IMPORT int* MesFontColor;
+GAMETEXT_H_IMPORT int* BacklogBufUse;
+GAMETEXT_H_IMPORT int* BacklogDispCurPosEX;
+GAMETEXT_H_IMPORT int* BacklogDispLineSize;
+GAMETEXT_H_IMPORT int* BacklogDispPos;
+GAMETEXT_H_IMPORT int* dword_948628;
+GAMETEXT_H_IMPORT uint8_t* BacklogTextCo;
+GAMETEXT_H_IMPORT int* BacklogLineVoice;
+GAMETEXT_H_IMPORT int* BacklogDispLinePosY;
+GAMETEXT_H_IMPORT int* BacklogDispCurPosSY;
+
 void gameTextInit();
 void fixLeadingZeroes();
+int __cdecl getSc3StringDisplayWidthHook(char* sc3string,
+  unsigned int maxCharacters,
+  int baseGlyphSize);
 }  // namespace lb
 
 #endif  // !__GAMETEXT_H__

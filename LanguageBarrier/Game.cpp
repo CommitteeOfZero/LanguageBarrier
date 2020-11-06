@@ -18,6 +18,7 @@
 #include "SigScan.h"
 #include "TextReplace.h"
 #include "TextRendering.h"
+#include "CustomInputRNE.h"
 
 typedef int(__cdecl* EarlyInitProc)(int unk0, int unk1);
 static EarlyInitProc gameExeEarlyInit = NULL;
@@ -308,7 +309,7 @@ namespace lb {
 		in.read(&stringReplacementTable[0], stringReplacementTable.size());
 		in.close();
 
-		globalTextReplacementsInit();
+		globalTextReplacementsInit();		
 
 		gameExeTextureLoadInit1 = sigScan("game", "textureLoadInit1");
 		gameExeTextureLoadInit2 = sigScan("game", "textureLoadInit2");
@@ -371,8 +372,6 @@ namespace lb {
 			gameExePPresentParameters =
 				*((D3DPRESENT_PARAMETERS**)sigScan("game", "useOfPresentParameters"));
 		}
-
-
 
 		if (config["patch"]["textureFiltering"].get<bool>() == true) {
 			/*LanguageBarrierLog("Forcing bilinear filtering");
@@ -455,29 +454,26 @@ namespace lb {
 		int retval = gameExeEarlyInitReal(unk0, unk1);
 
 		try {
+			if (config["patch"]["hookText"].get<bool>() == true) {
+				gameTextInit();
+			}
 
-			gameTextInit();
 			if (config["gamedef"]["gameDxVersion"].get<std::string>() == "dx11") {
 				gameExePMgsD3D11State =
 					(**(MgsD3D11State***)sigScan("game", "useOfMgsD3D11State"));
 			}
 
-			if (config["patch"]["useNewTextSystem"])
-			{
+			if (config["patch"]["useNewTextSystem"]) {
 				TextRendering::Get().loadCache();
 				TextRendering::Get().enableReplacement();
-
-			}
-			else {
+			}	else {
 				TextRendering::Get().disableReplacement();
 			}
 	
-
+			gameExeScrWork = (int*)sigScan("game", "useOfScrWork");
 			if (!scanCreateEnableHook("game", "exitApplication", (uintptr_t*)&gameExeCloseAllSystems,
 				(LPVOID)closeAllSystemsHook, (LPVOID*)&gameExeCloseAllSystemsReal))
 				return retval;
-
-
 			if (config["patch"]["redoDialogueWordwrap"].get<bool>() == true) {
 				dialogueWordwrapInit();
 			}
@@ -507,8 +503,28 @@ namespace lb {
 					return retval;
 			}
 
+			if (config["patch"]["redoDialogueWordwrap"].get<bool>() == true) {
+				dialogueWordwrapInit();
+			}
 
+			if (config["patch"].count("RNEMouseInput") == 1 &&
+				  config["patch"]["RNEMouseInput"].get<bool>() == true) {
+        customInputRNEInit();
+			}
 
+			//if (config["patch"].count("RNDMouseInput") == 1 &&
+			//	  config["patch"]["RNDMouseInput"].get<bool>() == true) {
+		  //  customInputRNDInit();
+			//}
+
+			if (config["patch"].count("RNENameTagFix") == 1 &&
+				config["patch"]["RNENameTagFix"].get<bool>() == true) {
+				float* dotX = (float*)sigScan("game", "useOfRNENameTagDotX");
+				DWORD oldProtect;
+				VirtualProtect(dotX, sizeof(float), PAGE_READWRITE, &oldProtect);
+				*dotX = 1638.0f;
+				VirtualProtect(dotX, sizeof(float), oldProtect, &oldProtect);
+			}
 		}
 		catch (std::exception& e) {
 			MessageBoxA(NULL, e.what(), "LanguageBarrier exception", MB_ICONSTOP);
