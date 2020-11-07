@@ -88,6 +88,10 @@ void fixLeadingZeroes();
 int __cdecl getSc3StringDisplayWidthHook(char* sc3string,
   unsigned int maxCharacters,
   int baseGlyphSize);
+int __cdecl drawSpriteHook(int textureId, float spriteX, float spriteY,
+	float spriteWidth, float spriteHeight,
+	float displayX, float displayY, int color,
+	int opacity, int shaderId);
 }  // namespace lb
 
 #endif  // !__GAMETEXT_H__
