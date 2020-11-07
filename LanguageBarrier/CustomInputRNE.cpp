@@ -1613,7 +1613,7 @@ namespace lb {
       if (InputObject->mouseButtons & MouseLeftClick) {
         if (gameExeScrWork[SW_GAMEMODE] & 1) {
           if (!mouseHitTest(InputObject->scaledMouseX, InputObject->scaledMouseY, 13, 1064, 270, 40) &&
-             (!mouseSelectHitTest(InputObject->scaledMouseX, InputObject->scaledMouseY, 1246, 153, 674, 86) && gameExeGetFlag(CALENDAR_DISP))) {
+              !(mouseSelectHitTest(InputObject->scaledMouseX, InputObject->scaledMouseY, 1246, 153, 674, 86) && gameExeGetFlag(CALENDAR_DISP))) {
             *InputMask |= PAD1A;
           }
         } else {
