@@ -484,10 +484,6 @@ namespace lb {
 		int startY, int maskStartY, int maskHeight,
 		int a7, int color, int shadowColor,
 		int opacity);
-	int __cdecl drawSpriteHook(int textureId, float spriteX, float spriteY,
-		float spriteWidth, float spriteHeight,
-		float displayX, float displayY, int color,
-		int opacity, int shaderId);
 	void drawReportContentHook(int textureId, int maskId, int a3, int a4, int startX, int startY, unsigned int maskWidth, unsigned int a8, unsigned int a9, char* a10, unsigned int a11, unsigned int a12, int opacity, int a14, int a15, float a16);
 	int __cdecl rnDrawTextHook(signed int textureId, int a2, signed int startY, unsigned int a4, uint8_t* a5, signed int startX, int color, int height, int opacity);
 	void __cdecl DrawBacklogContentHook(int textureId, int maskTextureId, int startX, int startY, unsigned int maskY, int maskHeight, int opacity, int index);

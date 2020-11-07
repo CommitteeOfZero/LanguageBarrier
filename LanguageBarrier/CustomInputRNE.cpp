@@ -24,8 +24,8 @@ typedef struct
   int32_t mouseXAxis;
   int32_t mouseYAxis;
   int32_t mouseZAxis;
-  uint32_t mouseX;
-  uint32_t mouseY;
+  int mouseX;
+  int mouseY;
   uint32_t scaledMouseX;
   uint32_t scaledMouseY;
   uint32_t dword54;
@@ -141,6 +141,22 @@ typedef int(__cdecl* PokecomARMainProc)();
 static PokecomARMainProc gameExePokecomARMain = NULL;
 static PokecomARMainProc gameExePokecomARMainReal = NULL;
 
+typedef int(__cdecl* InstOptionProc)(void*);
+static InstOptionProc gameExeInstOption = NULL;
+static InstOptionProc gameExeInstOptionReal = NULL;
+
+typedef int(__cdecl* MesDispWindowProc)(int, int, int, int, int, int, int, int);
+static MesDispWindowProc gameExeMesDispWindow = NULL;
+static MesDispWindowProc gameExeMesDispWindowReal = NULL;
+
+typedef int(__cdecl* SetScreenResProc)();
+
+typedef int(__cdecl* GeoTagHasLinkProc)(int, int, int, int);
+
+typedef int(__cdecl* PokecomViewGeotagProc)();
+static PokecomViewGeotagProc gameExePokecomViewGeotag = NULL;
+static PokecomViewGeotagProc gameExePokecomViewGeotagReal = NULL;
+
 bool PointedThisFrame = false;
 bool LockMouseControls = false;
 bool MouseExclusive = false;
@@ -192,6 +208,8 @@ int* TipsMenuSelectedIndex = NULL; //(int*)0x9525C0;
 int* TipsMenuStartIndex = NULL; //(int*)0x9525BC;
 int* TipsMenuTipTextStartOffset = NULL; //(int*)0x9525C8;
 int* TipMenuTipTextHeight = NULL; //(int*)0x9525CC;
+int* TipsMenuTipData = NULL; //(int*)0x953510;
+int* TipsMenuSelectedTip = NULL; //(int*)0x6E0AD0;
 
 int* TwipoTweepCountInTabs = NULL; //(int*)0x2706450;
 int* TwipoDataPointers = NULL; //(int*)0x2706440;
@@ -201,6 +219,8 @@ int* TwipoData2 = NULL; //(int*)0x26FD7A0;
 int* ARNumberOfGeoTags = NULL; //(int*)0x996B0C;
 float* ARGeoTagsXYZCoords = NULL; //(float*)0x998BE0;
 int* ARSelectedGeoTag = NULL; //(int*)0x74CC94;
+int* ARDisplayedGeoTags = NULL; //(int*)0x74CB94;
+int* ARNumDisplayedGeoTags = NULL; //(int*)0x74CB90;
 int* ARSomeGeoTagArr = NULL; //(int*)0x999220;
 int* ARSomeGeoTagArr2 = NULL; //(int*)0x996B10;
 int* ARSomeGeoTagArr3 = NULL; //(int*)0x9961A8;
@@ -208,12 +228,60 @@ int* ARSomeGeoTagData = NULL; //(int*)0x995CF4;
 GetScreenCoordsProc gameExeGetScreenCoords;
 CountSC3CharactersProc gameExeCountSC3Characters;
 GetSC3StringByIDProc gameExeGetSC3StringByID;
+GeoTagHasLinkProc gameExeGeoTagHasLink;
 
 BacklogRecalcMovementProc gameExeBacklogRecalcMovement;
 int* BacklogDispPosMax = NULL; //(int*)0x947358;
 int* BacklogSelectedIndex = NULL; //(int*)0x947340;
 int* BacklogFirstFullDispLine = NULL; //(int*)0x947350;
 int* BacklogLastFullDispLine = NULL; //(int*)0x947354;
+
+int* MapNumPoints = NULL; //(int*)0xC800EC;
+int* MapPointsData = NULL; //(int*)0xC800F0;
+int* MapPointsIDs = NULL; //(int*)0xC80410;
+int* MapSelectedPointIndex = NULL; //(int*)0xC804B0;
+int* MapPointIsDisplayed = NULL; //(int*)0xC80460;
+
+int* ConfigMenuCurrentPage = NULL; //(int*)0xC6D700;
+int* ConfigPage1SelectedItem = NULL; //(int*)0xC6D70C;
+int* ConfigPage2SelectedItem = NULL; //(int*)0xC6D714;
+int* ConfigPage3SelectedItem = NULL; //(int*)0xC6D71C;
+int* ConfigSwitchAnimCounter = NULL; //(int*)0xC6D73C;
+int* ConfigTipsInfo = NULL; //(int*)0x2706978;
+int* ConfigFullScreen = NULL; //(int*)0x2706990;
+int* ConfigFullScreen1 = NULL; //(int*)0x270650C;
+int* ConfigFullScreen2 = NULL; //(int*)0x27064D0;
+int* ConfigResolution = NULL; //(int*)0x2706994;
+int* ConfigResolution1 = NULL; //(int*)0x2706510;
+int* ConfigResolution2 = NULL; //(int*)0x27064D4;
+int* ConfigSkipMode = NULL; //(int*)0x2706954;
+int* ConfigSyncVoice = NULL; //(int*)0x2706950;
+int* ConfigSkipVoice = NULL; //(int*)0x2706974;
+int* ConfigTwipoNotifs = NULL; //(int*)0xC6D8CC;
+int* ConfigVoiceIDs = NULL; //(int*)0x6E3148;
+int* ConfigVoiceCharaVolume = NULL; //(int*)0x2706A20;
+int* ConfigVoiceCharaVolumeCur = NULL; //(int*)0xC6D828;
+int* ConfigVoiceEnableFlags = NULL; //(int*)0x2706998;
+int* ConfigMessageSpeed = NULL; //(int*)0x2706948;
+int* ConfigMessageSpeedCur = NULL; //(int*)0xC6D78C;
+int* ConfigAutoModeDelay = NULL; //(int*)0x270694C;
+int* ConfigAutoModeDelayCur = NULL; //(int*)0xC6D790;
+int* ConfigVoiceVolume = NULL; //(int*)0x2706934;
+int* ConfigVoiceVolumeCur = NULL; //(int*)0xC6D778;
+int* ConfigBGMVolume = NULL; //(int*)0x2706938;
+int* ConfigBGMVolumeCur = NULL; //(int*)0xC6D77C;
+int* ConfigSEVolume = NULL; //(int*)0x270693C;
+int* ConfigSEVolumeCur = NULL; //(int*)0xC6D780;
+int* ConfigMovieVolume = NULL; //(int*)0x2706944;
+int* ConfigMovieVolumeCur = NULL; //(int*)0xC6D788;
+SetScreenResProc gameExeSetScreenRes;
+
+int* CGviewModeAlpha = NULL; //(int*)0x270691C;
+int AutoSkipAlpha = 256;
+int AutoSkipAlphaStep = 0;
+
+bool SliderMoving = false;
+int MovingSliderId = -1;
 
 uint32_t* InputMask = NULL; //(uint32_t*)0xC71040;
 uint32_t* InputMask3 = NULL; //(uint32_t*)0xC71044;
@@ -239,6 +307,10 @@ namespace lb {
   int __cdecl pokecomDocMainHook();
   int __cdecl pokecomMapMainHook();
   int __cdecl pokecomARMainHook();
+  int __cdecl instOptionHook(void* thread);
+  int __cdecl mesDispWindowHook(int a1, int a2, int a3, int a4, 
+                                int a5, int a6, int a7, int a8);
+  int __cdecl pokecomViewGeotagHook();
 
   bool containsPoint(int x, int y, int bx, int by, int w, int h) {
     return x > bx && x < bx + w && y < by && y > by - h;
@@ -266,6 +338,55 @@ namespace lb {
       return true;
     }
     return false;
+  }
+
+  void mouseSlider(int mouseX, int mouseY, int bX, int bY, int w, int h, int min, int max, int& target, int id) {
+    if (MovingSliderId == -1 && mouseSelectHitTest(mouseX, mouseY, bX, bY, w, h) && (InputObject->mouseButtonsHeld & 0x1 || InputObject->mouseButtons & 0x1)) {
+      SliderMoving = true;
+      PointedThisFrame = true;
+      MovingSliderId = id;
+    }
+    if (MovingSliderId == id) {
+      if ((InputObject->mouseButtonsHeld & 0x1 || InputObject->mouseButtons & 0x1) && SliderMoving) {
+        PointedThisFrame = true;
+        if (mouseX > bX + w)
+          target = max;
+        else if (mouseX < bX)
+          target = min;
+        else {
+          target = min + (((mouseX - bX) / (float)w) * (float)(max - min));
+        }
+      }
+      else {
+        SliderMoving = false;
+        MovingSliderId = -1;
+      }
+    }
+  }
+
+  void mouseScrollBar(int mouseX, int mouseY, int bX, int bY, int w, int h, int minVal, int maxVal, int minPos, int maxPos, int& target, int id) {
+    if (MovingSliderId == -1 && mouseSelectHitTest(mouseX, mouseY, bX, bY, w, h) && InputObject->mouseButtonsHeld & 0x1) {
+      SliderMoving = true;
+      PointedThisFrame = true;
+      MovingSliderId = id;
+    }
+    if (MovingSliderId == id) {
+      if (InputObject->mouseButtonsHeld & 0x1 && SliderMoving) {
+        PointedThisFrame = true;
+        if (mouseY > maxPos + (h / 2))
+          target = maxVal;
+        else if (mouseY < (minPos + (h / 2)))
+          target = minVal;
+        else {
+          mouseY -= h / 2;
+          target = minVal + (((mouseY - minPos) / (float)(maxPos - minPos)) * (float)(maxVal - minVal));
+        }
+      }
+      else {
+        SliderMoving = false;
+        MovingSliderId = -1;
+      }
+    }
   }
 
   bool customInputRNEInit() {
@@ -322,6 +443,8 @@ namespace lb {
     TipsMenuStartIndex = (int*)sigScan("game", "useOfTipsMenuStartIndex");
     TipsMenuTipTextStartOffset = (int*)sigScan("game", "useOfTipsMenuTipTextStartOffset");
     TipMenuTipTextHeight = (int*)sigScan("game", "useOfTipMenuTipTextHeight");
+    TipsMenuTipData = (int*)sigScan("game", "useOfTipsMenuTipData");
+    TipsMenuSelectedTip = (int*)sigScan("game", "useOfTipsMenuSelectedTip");
 
     TwipoTweepCountInTabs = (int*)sigScan("game", "useOfTwipoTweepCountInTabs");
     TwipoDataPointers = (int*)sigScan("game", "useOfTwipoDataPointers");
@@ -331,6 +454,8 @@ namespace lb {
     ARNumberOfGeoTags = (int*)sigScan("game", "useOfARNumberOfGeoTags");
     ARGeoTagsXYZCoords = (float*)sigScan("game", "useOfARGeoTagsXYZCoords");
     ARSelectedGeoTag = (int*)sigScan("game", "useOfARSelectedGeoTag");
+    ARDisplayedGeoTags = (int*)sigScan("game", "useOfARDisplayedGeoTags");
+    ARNumDisplayedGeoTags = (int*)sigScan("game", "useOfARNumDisplayedGeoTags");
     ARSomeGeoTagArr = (int*)sigScan("game", "useOfARSomeGeoTagArr");
     ARSomeGeoTagArr2 = (int*)sigScan("game", "useOfARSomeGeoTagArr2");
     ARSomeGeoTagArr3 = (int*)sigScan("game", "useOfARSomeGeoTagArr3");
@@ -340,6 +465,47 @@ namespace lb {
     BacklogSelectedIndex = (int*)sigScan("game", "useOfBacklogSelectedIndex");
     BacklogFirstFullDispLine = (int*)sigScan("game", "useOfBacklogFirstFullDispLine");
     BacklogLastFullDispLine = (int*)sigScan("game", "useOfBacklogLastFullDispLine");
+
+    MapNumPoints = (int*)sigScan("game", "useOfMapNumPoints");
+    MapPointsData = (int*)sigScan("game", "useOfMapPointsData");
+    MapPointsIDs = (int*)sigScan("game", "useOfMapPointsIDs");
+    MapSelectedPointIndex = (int*)sigScan("game", "useOfMapSelectedPointIndex");
+    MapPointIsDisplayed = (int*)sigScan("game", "useOfMapPointIsDisplayed");
+
+    ConfigMenuCurrentPage = (int*)sigScan("game", "useOfConfigMenuCurrentPage");
+    ConfigPage1SelectedItem = (int*)sigScan("game", "useOfConfigPage1SelectedItem");
+    ConfigPage2SelectedItem = (int*)sigScan("game", "useOfConfigPage2SelectedItem");
+    ConfigPage3SelectedItem = (int*)sigScan("game", "useOfConfigPage3SelectedItem");
+    ConfigSwitchAnimCounter = (int*)sigScan("game", "useOfConfigSwitchAnimCounter");
+    ConfigTipsInfo = (int*)sigScan("game", "useOfConfigTipsInfo");
+    ConfigFullScreen = (int*)sigScan("game", "useOfConfigFullScreen");
+    ConfigFullScreen1 = (int*)sigScan("game", "useOfConfigFullScreen1");
+    ConfigFullScreen2 = (int*)sigScan("game", "useOfConfigFullScreen2");
+    ConfigResolution = (int*)sigScan("game", "useOfConfigResolution");
+    ConfigResolution1 = (int*)sigScan("game", "useOfConfigResolution1");
+    ConfigResolution2 = (int*)sigScan("game", "useOfConfigResolution2");
+    ConfigSkipMode = (int*)sigScan("game", "useOfConfigSkipMode");
+    ConfigSyncVoice = (int*)sigScan("game", "useOfConfigSyncVoice");
+    ConfigSkipVoice = (int*)sigScan("game", "useOfConfigSkipVoice");
+    ConfigTwipoNotifs = (int*)sigScan("game", "useOfConfigTwipoNotifs");
+    ConfigVoiceIDs = (int*)sigScan("game", "useOfConfigVoiceIDs");
+    ConfigVoiceCharaVolume = (int*)sigScan("game", "useOfConfigVoiceCharaVolume");
+    ConfigVoiceCharaVolumeCur = (int*)sigScan("game", "useOfConfigVoiceCharaVolumeCur");
+    ConfigVoiceEnableFlags = (int*)sigScan("game", "useOfConfigVoiceEnableFlags");
+    ConfigMessageSpeed = (int*)sigScan("game", "useOfConfigMessageSpeed");
+    ConfigMessageSpeedCur = (int*)sigScan("game", "useOfConfigMessageSpeedCur");
+    ConfigAutoModeDelay = (int*)sigScan("game", "useOfConfigAutoModeDelay");
+    ConfigAutoModeDelayCur = (int*)sigScan("game", "useOfConfigAutoModeDelayCur");
+    ConfigVoiceVolume = (int*)sigScan("game", "useOfConfigVoiceVolume");
+    ConfigVoiceVolumeCur = (int*)sigScan("game", "useOfConfigVoiceVolumeCur");
+    ConfigBGMVolume = (int*)sigScan("game", "useOfConfigBGMVolume");
+    ConfigBGMVolumeCur = (int*)sigScan("game", "useOfConfigBGMVolumeCur");
+    ConfigSEVolume = (int*)sigScan("game", "useOfConfigSEVolume");
+    ConfigSEVolumeCur = (int*)sigScan("game", "useOfConfigSEVolumeCur");
+    ConfigMovieVolume = (int*)sigScan("game", "useOfConfigMovieVolume");
+    ConfigMovieVolumeCur = (int*)sigScan("game", "useOfConfigMovieVolumeCur");
+
+    CGviewModeAlpha = (int*)sigScan("game", "useOfCGviewModeAlpha");
 
     InputMask = (uint32_t*)sigScan("game", "useOfInputMask");
     InputMask2 = (uint32_t*)sigScan("game", "useOfInputMask2");
@@ -401,11 +567,230 @@ namespace lb {
     scanCreateEnableHook("game", "PokecomARMain", (uintptr_t*)&gameExePokecomARMain,
                          (LPVOID)&pokecomARMainHook,
                          (LPVOID*)&gameExePokecomARMainReal);
+    scanCreateEnableHook("game", "InstOption", (uintptr_t*)&gameExeInstOption,
+                         (LPVOID)&instOptionHook,
+                         (LPVOID*)&gameExeInstOptionReal);
+    scanCreateEnableHook("game", "MesDispWindow", (uintptr_t*)&gameExeMesDispWindow,
+                         (LPVOID)&mesDispWindowHook,
+                         (LPVOID*)&gameExeMesDispWindowReal);
+    scanCreateEnableHook("game", "PokecomViewGeotag", (uintptr_t*)&gameExePokecomViewGeotag,
+                         (LPVOID)&pokecomViewGeotagHook,
+                         (LPVOID*)&gameExePokecomViewGeotagReal);
     gameExeGetScreenCoords = (GetScreenCoordsProc)sigScan("game", "GetScreenCoords");
     gameExeCountSC3Characters = (CountSC3CharactersProc)sigScan("game", "CountSC3Characters");
     gameExeGetSC3StringByID = (GetSC3StringByIDProc)sigScan("game", "GetSC3StringByID");
+    gameExeSetScreenRes = (SetScreenResProc)sigScan("game", "SetScreenRes");
+    gameExeGeoTagHasLink = (GeoTagHasLinkProc)sigScan("game", "GeoTagHasLink");
 
     return true;
+  }
+
+  int __cdecl mesDispWindowHook(int a1, int a2, int a3, int a4, 
+                                int a5, int a6, int a7, int a8) {
+    int ret = gameExeMesDispWindowReal(a1, a2, a3, a4, a5, a6, a7, a8);
+
+    AutoSkipAlpha += AutoSkipAlphaStep;
+    if (*MouseEnabled || AutoSkipAlphaStep) {
+      int mouseX = InputObject->scaledMouseX;
+      int mouseY = InputObject->scaledMouseY;
+
+      if (AutoSkipAlpha > 256) {
+        AutoSkipAlpha = 256;
+      } else if (AutoSkipAlpha < 0) {
+        AutoSkipAlpha = 0;
+      }
+  
+      int alpha = (AutoSkipAlpha * *CGviewModeAlpha) >> 8;
+
+      if (mouseSelectHitTest(mouseX, mouseY, 13, 1064, 128, 38)) {
+        drawSpriteHook(80, 3805.0f, 1937.0f, 135.0f, 45.0f, 8.0f, 1022.0f, 0xFFFFFF, alpha, 1);
+        if (InputObject->mouseButtons & 0x1) {
+          CarryInputToTheNextFrame |= 0x4000;
+        }
+      } else {
+        drawSpriteHook(80, 3805.0f, 1987.0f, 135.0f, 45.0f, 8.0f, 1022.0f, 0xFFFFFF, alpha, 1);
+      }
+
+      if (mouseSelectHitTest(mouseX, mouseY, 152, 1064, 128, 38)) {
+        drawSpriteHook(80, 3944.0f, 1937.0f, 135.0f, 45.0f, 147.0f, 1022.0f, 0xFFFFFF, alpha, 1);
+        if (InputObject->mouseButtons & 0x1) {
+          if (gameExeGetFlag(1234))
+            CarryInputToTheNextFrame |= 0x2000;
+          else
+            CarryInputToTheNextFrame |= 0x200;
+        }
+      } else {
+        drawSpriteHook(80, 3944.0f, 1987.0f, 135.0f, 45.0f, 147.0f, 1022.0f, 0xFFFFFF, alpha, 1);
+      }
+    }
+
+    return ret;
+  }
+
+  int __cdecl instOptionHook(void* thread) {
+    if (*MouseEnabled) {
+      LockMouseControls = true;
+      int mouseX = InputObject->scaledMouseX;
+      int mouseY = InputObject->scaledMouseY;
+
+      switch (*ConfigMenuCurrentPage) {
+        case 0: {
+          mouseSlider(mouseX, mouseY, 766, 399, 380, 38, 256, 4096, *ConfigMessageSpeed, 0);
+          *ConfigMessageSpeedCur = *ConfigMessageSpeed;
+          mouseSlider(mouseX, mouseY, 766, 447, 380, 38, 2048, 256, *ConfigAutoModeDelay, 1);
+          *ConfigAutoModeDelayCur = *ConfigAutoModeDelay;
+          mouseSlider(mouseX, mouseY, 766, 633, 380, 38, 0, 128, *ConfigVoiceVolume, 2);
+          *ConfigVoiceVolumeCur = *ConfigVoiceVolume;
+          mouseSlider(mouseX, mouseY, 766, 681, 380, 38, 0, 128, *ConfigBGMVolume, 3);
+          *ConfigBGMVolumeCur = *ConfigBGMVolume;
+          mouseSlider(mouseX, mouseY, 766, 729, 380, 38, 0, 128, *ConfigSEVolume, 4);
+          *ConfigSEVolumeCur = *ConfigSEVolume;
+          mouseSlider(mouseX, mouseY, 766, 777, 380, 38, 0, 128, *ConfigMovieVolume, 5);
+          *ConfigMovieVolumeCur = *ConfigMovieVolume;
+
+          if (!SliderMoving) {
+            int index = 0;
+            for (int i = 0; i < 3; i++) {
+              menuButtonHitTest(index++, mouseX, mouseY, 97, 166 + (i * 48), 1120, 40, ConfigPage1SelectedItem);
+            }
+            index++;
+            for (int i = 0; i < 3; i++) {
+              menuButtonHitTest(index++, mouseX, mouseY, 97, 400 + (i * 48), 1120, 40, ConfigPage1SelectedItem);
+            }
+            for (int i = 0; i < 6; i++) {
+              menuButtonHitTest(index++, mouseX, mouseY, 97, 634 + (i * 48), 1120, 40, ConfigPage1SelectedItem);
+            }
+
+            // Tips Info Switch
+            if (mouseSelectHitTest(mouseX, mouseY, 964, 165, 190, 38) && *ConfigTipsInfo && (InputObject->mouseButtons & 0x1)) {
+              *ConfigTipsInfo = 0;
+              *ConfigSwitchAnimCounter = 15;
+            }
+            if (mouseSelectHitTest(mouseX, mouseY, 760, 165, 190, 38) && !*ConfigTipsInfo && (InputObject->mouseButtons & 0x1)) {
+              *ConfigTipsInfo = 1;
+              *ConfigSwitchAnimCounter = 15;
+            }
+
+            // Full Screen Switch
+            if (mouseSelectHitTest(mouseX, mouseY, 964, 213, 190, 38) && *ConfigFullScreen && (InputObject->mouseButtons & 0x1)) {
+              *ConfigFullScreen = 0;
+              *ConfigFullScreen1 = 0;
+              *ConfigFullScreen2 = 0;
+              gameExeSetScreenRes();
+              *ConfigSwitchAnimCounter = 15;
+            }
+            if (mouseSelectHitTest(mouseX, mouseY, 760, 213, 190, 38) && !*ConfigFullScreen && (InputObject->mouseButtons & 0x1)) {
+              *ConfigFullScreen = 1;
+              *ConfigFullScreen1 = 1;
+              *ConfigFullScreen2 = 1;
+              gameExeSetScreenRes();
+              *ConfigSwitchAnimCounter = 15;
+            }
+
+            // Resolution Switch
+            if (mouseSelectHitTest(mouseX, mouseY, 760, 261, 127, 38) && *ConfigResolution != 0 && (InputObject->mouseButtons & 0x1)) {
+              *ConfigResolution = 0;
+              *ConfigResolution1 = 0;
+              *ConfigResolution2 = 0;
+              gameExeSetScreenRes();
+              *ConfigSwitchAnimCounter = 15;
+            }
+            if (mouseSelectHitTest(mouseX, mouseY, 894, 261, 127, 38) && *ConfigResolution != 1 && (InputObject->mouseButtons & 0x1)) {
+              *ConfigResolution = 1;
+              *ConfigResolution1 = 1;
+              *ConfigResolution2 = 1;
+              gameExeSetScreenRes();
+              *ConfigSwitchAnimCounter = 15;
+            }
+            if (mouseSelectHitTest(mouseX, mouseY, 1028, 261, 127, 38) && *ConfigResolution != 2 && (InputObject->mouseButtons & 0x1)) {
+              *ConfigResolution = 2;
+              *ConfigResolution1 = 2;
+              *ConfigResolution2 = 2;
+              gameExeSetScreenRes();
+              *ConfigSwitchAnimCounter = 15;
+            }
+
+            // Skip Mode Switch
+            if (mouseSelectHitTest(mouseX, mouseY, 760, 495, 190, 38) && *ConfigSkipMode && (InputObject->mouseButtons & 0x1)) {
+              *ConfigSkipMode = 0;
+              *ConfigSwitchAnimCounter = 15;
+            }
+            if (mouseSelectHitTest(mouseX, mouseY, 964, 495, 190, 38) && !*ConfigSkipMode && (InputObject->mouseButtons & 0x1)) {
+              *ConfigSkipMode = 1;
+              *ConfigSwitchAnimCounter = 15;
+            }
+
+            // Sync Voice Switch
+            if (mouseSelectHitTest(mouseX, mouseY, 964, 825, 190, 38) && *ConfigSyncVoice && (InputObject->mouseButtons & 0x1)) {
+              *ConfigSyncVoice = 0;
+              *ConfigSwitchAnimCounter = 15;
+            }
+            if (mouseSelectHitTest(mouseX, mouseY, 760, 825, 190, 38) && !*ConfigSyncVoice && (InputObject->mouseButtons & 0x1)) {
+              *ConfigSyncVoice = 1;
+              *ConfigSwitchAnimCounter = 15;
+            }
+
+            // Skip Voice Switch
+            if (mouseSelectHitTest(mouseX, mouseY, 964, 873, 190, 38) && *ConfigSkipVoice && (InputObject->mouseButtons & 0x1)) {
+              *ConfigSkipVoice = 0;
+              *ConfigSwitchAnimCounter = 15;
+            }
+            if (mouseSelectHitTest(mouseX, mouseY, 760, 873, 190, 38) && !*ConfigSkipVoice && (InputObject->mouseButtons & 0x1)) {
+              *ConfigSkipVoice = 1;
+              *ConfigSwitchAnimCounter = 15;
+            }
+          }
+        } break;
+        case 1: {
+          for (int i = 0; i < 20; i++) {
+            int id = ConfigVoiceIDs[*ConfigPage2SelectedItem];
+            mouseSlider(mouseX, mouseY, 766, 165 + (i * 48), 380, 38, 0, 128, ConfigVoiceCharaVolume[id], i);
+
+            if (!SliderMoving) {
+              menuButtonHitTest(i, mouseX, mouseY, 97, 166 + (i * 46), 1120, 38, ConfigPage2SelectedItem);
+
+              if (mouseSelectHitTest(mouseX, mouseY, 616, 165 + (i * 46), 134, 38) && ConfigVoiceEnableFlags[id] && (InputObject->mouseButtons & 0x1)) {
+                ConfigVoiceEnableFlags[id] = 0;
+                *ConfigSwitchAnimCounter = 15;
+              }
+              if (mouseSelectHitTest(mouseX, mouseY, 468, 165 + (i * 46), 134, 38) && !ConfigVoiceEnableFlags[id] && (InputObject->mouseButtons & 0x1)) {
+                ConfigVoiceEnableFlags[id] = 1;
+                *ConfigSwitchAnimCounter = 15;
+              }
+            } else {
+              ConfigVoiceCharaVolumeCur[id] = ConfigVoiceCharaVolume[id];
+            }
+          }
+        } break;
+        case 2: {
+          for (int i = 0; i < 7; i++) {
+            menuButtonHitTest(i, mouseX, mouseY, 97, 166 + (i * 46), 1120, 38, ConfigPage3SelectedItem);
+
+            if (mouseSelectHitTest(mouseX, mouseY, 964, 165 + (i * 48), 190, 38) && ConfigTwipoNotifs[*ConfigPage3SelectedItem] && (InputObject->mouseButtons & 0x1)) {
+              ConfigTwipoNotifs[*ConfigPage3SelectedItem] = 0;
+              *ConfigSwitchAnimCounter = 15;
+            }
+            if (mouseSelectHitTest(mouseX, mouseY, 760, 165 + (i * 48), 190, 38) && !ConfigTwipoNotifs[*ConfigPage3SelectedItem] && (InputObject->mouseButtons & 0x1)) {
+              ConfigTwipoNotifs[*ConfigPage3SelectedItem] = 1;
+              *ConfigSwitchAnimCounter = 15;
+            }
+          }
+        } break;
+        default:
+          break;
+      }
+
+      if (InputObject->mouseButtonsHeld & 0x8) {
+        *InputMask |= 0x100;
+      } else if (InputObject->mouseButtonsHeld & 0x10) {
+        *InputMask |= 0x200;
+      }
+
+      if (InputObject->mouseButtons & 0x2) {
+        *InputMask |= 0x2000;
+      }
+    }
+    return gameExeInstOptionReal(thread);
   }
 
   int __cdecl pokecomARMainHook() {
@@ -417,10 +802,11 @@ namespace lb {
 
       bool dontMoveThisFrame = false;
 
-      if (*ARNumberOfGeoTags) {
-        int xyzCnt = 0;
-        for (int i = 0; i < *ARNumberOfGeoTags; i++) {
+      if (*ARNumDisplayedGeoTags) {
+        for (int i = 0; i < *ARNumDisplayedGeoTags; i++) {
           float x, y;
+          int id = ARDisplayedGeoTags[i];
+          int xyzCnt = 4 * id;
           // Oh shit, here we go again
           gameExeGetScreenCoords(0, &x, &y, ARGeoTagsXYZCoords[xyzCnt], 12.5f + ARGeoTagsXYZCoords[xyzCnt + 1], ARGeoTagsXYZCoords[xyzCnt + 2]);
 
@@ -429,14 +815,14 @@ namespace lb {
           int screenY = (-69 + y) * 2;
 
           int textWidth;
-          if (ARSomeGeoTagArr2[ARSomeGeoTagArr[i]]) {
+          if (ARSomeGeoTagArr2[ARSomeGeoTagArr[id]]) {
             textWidth = gameExeCountSC3Characters(gameExeGetSC3StringByID(13, *ARSomeGeoTagData + 200), 100, 0);
           } else {
-            textWidth = getSc3StringDisplayWidthHook((char*)gameExeGetSC3StringByID(13, ARSomeGeoTagArr3[ARSomeGeoTagArr[i]]), 0, 22);
+            textWidth = getSc3StringDisplayWidthHook((char*)gameExeGetSC3StringByID(13, ARSomeGeoTagArr3[ARSomeGeoTagArr[id]]), 0, 22);
           }
           textWidth *= 2;
 
-          if (menuButtonHitTest(i, mouseX, mouseY, screenX, screenY + 150, textWidth + 80, 150, ARSelectedGeoTag)) {
+          if (menuButtonHitTest(id, mouseX, mouseY, screenX, screenY + 150, textWidth + 80, 150, ARSelectedGeoTag)) {
             if (InputObject->mouseButtons & 0x1) {
               dontMoveThisFrame = true;
               *InputMask |= 0x1000;
@@ -444,8 +830,6 @@ namespace lb {
             gameExeScrWork[6432] = *ARSelectedGeoTag;
             gameExeScrWork[6433] = ARSomeGeoTagArr[*ARSelectedGeoTag];
           }
-
-          xyzCnt += 4;
         }
       }
 
@@ -503,6 +887,31 @@ namespace lb {
     return gameExePokecomARMainReal();
   }
 
+  int __cdecl pokecomViewGeotagHook() {
+    // Flag 2903 - SF_Pokecon_ManualMode
+    if (*MouseEnabled && gameExeGetFlag(2903)) {
+      LockMouseControls = true;
+      int mouseX = InputObject->scaledMouseX;
+      int mouseY = InputObject->scaledMouseY;
+
+      // Yes, very good hack, yes
+      // There are only 3 geotags with links, 2 of them identical
+      // So let's just hack up the width of the hit box
+
+      int width = 678;
+      if (gameExeScrWork[6433] == 59)
+        width = 795;
+      if (gameExeGeoTagHasLink(5, gameExeScrWork[6433], 0, 0) && mouseSelectHitTest(mouseX, mouseY, 87, 741, width, 55)
+                                                              && InputObject->mouseButtons & 0x1) {
+        *InputMask |= 0x8000;
+      } else if (InputObject->mouseButtons & 0x1 || InputObject->mouseButtons & 0x2) {
+        *InputMask |= 0x2000;
+      }
+    }
+
+    return gameExePokecomViewGeotagReal();
+  }
+
   int __cdecl pokecomMapMainHook() {
     // Flag 2903 - SF_Pokecon_ManualMode
     if (*MouseEnabled && gameExeGetFlag(2903)) {
@@ -522,6 +931,22 @@ namespace lb {
         gameExeScrWork[6517] = gameExeScrWork[6517] - 50 > 500 ? gameExeScrWork[6517] - 50 : gameExeScrWork[6517];
       } else if (InputObject->mouseButtonsHeld & 0x10) {
         gameExeScrWork[6517] = gameExeScrWork[6517] + 50 < 2000 ? gameExeScrWork[6517] + 50 : gameExeScrWork[6517];
+      }
+
+      if (gameExeScrWork[6516] == 1 || gameExeScrWork[6516] == 17) {
+        for (int i = 0; i < *MapNumPoints; i++) {
+          if (MapPointIsDisplayed[i]) {
+            int id = MapPointsIDs[i];
+            int screenX = (960 * (MapPointsData[4 * id] - (gameExeScrWork[6510] - (960 * gameExeScrWork[6517] / 1000) / 2)) / (960 * gameExeScrWork[6517] / 1000) - 42) * 2;
+            int screenY = (544 * (MapPointsData[4 * id + 1] - (gameExeScrWork[6511] - (544 * gameExeScrWork[6517] / 1000) / 2)) / (544 * gameExeScrWork[6517] / 1000) - 69) * 2;
+
+            if (menuButtonHitTest(i, mouseX, mouseY, screenX + 18, screenY + 88, MapPointsData[4 * id + 2] * 2 + 120, 76, MapSelectedPointIndex)) {
+              if (InputObject->mouseButtons & 0x1) {
+                *InputMask |= 0x1000;
+              }
+            }
+          }
+        }
       }
 
       if (InputObject->mouseButtons & 0x2) {
@@ -646,23 +1071,31 @@ namespace lb {
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
 
-      int startLineIndex = *BacklogFirstFullDispLine > 0 ? *BacklogFirstFullDispLine - 1 : 0;
-      for (int i = startLineIndex; i < *BacklogLastFullDispLine + 2; i++) {
-        int lineY = (BacklogDispLinePosY[i] - *BacklogDispPos + 54 + BacklogDispLineSize[i] + 8) * 2;
-        if (menuButtonHitTest(i, mouseX, mouseY, 0, lineY, 1725, (BacklogDispLineSize[i] + 8) * 2, BacklogSelectedIndex) && (InputObject->mouseButtons & 0x1))
-          *InputMask |= 0x1000;
-      }
+      int scrollBarY = *BacklogDispPosMax <= 380 ? 106 : ((391 * *BacklogDispPos / (*BacklogDispPosMax - 380)) + 53) * 2;
+      mouseScrollBar(mouseX, mouseY, 1738, scrollBarY + 105, 11, 105, 0, *BacklogDispPosMax - 380, 106, 888, *BacklogDispPos, 0);
 
-      if (InputObject->mouseButtonsHeld & 0x8) {
-        *BacklogDispPos = *BacklogDispPos <= 0 ? 0 : *BacklogDispPos - 48;
-        gameExeBacklogRecalcMovement();
-      } else if (InputObject->mouseButtonsHeld & 0x10) {
-        *BacklogDispPos = *BacklogDispPos + 48 >= *BacklogDispPosMax - 388 ? *BacklogDispPosMax - 380 : *BacklogDispPos + 48;
-        gameExeBacklogRecalcMovement();
-      }
+      if (!SliderMoving) {
+        int startLineIndex = *BacklogFirstFullDispLine > 0 ? *BacklogFirstFullDispLine - 1 : 0;
+        for (int i = startLineIndex; i < *BacklogLastFullDispLine + 2; i++) {
+          int lineY = (BacklogDispLinePosY[i] - *BacklogDispPos + 54 + BacklogDispLineSize[i] + 8) * 2;
+          if (menuButtonHitTest(i, mouseX, mouseY, 0, lineY, 1725, (BacklogDispLineSize[i] + 8) * 2, BacklogSelectedIndex) && (InputObject->mouseButtons & 0x1))
+            *InputMask |= 0x1000;
+        }
 
-      if (InputObject->mouseButtons & 0x2) {
-        *InputMask |= 0x2000;
+        if (InputObject->mouseButtonsHeld & 0x8) {
+          *BacklogDispPos = *BacklogDispPos <= 0 ? 0 : *BacklogDispPos - 48;
+          gameExeBacklogRecalcMovement();
+        }
+        else if (InputObject->mouseButtonsHeld & 0x10) {
+          *BacklogDispPos = *BacklogDispPos + 48 >= *BacklogDispPosMax - 388 ? *BacklogDispPosMax - 380 : *BacklogDispPos + 48;
+          gameExeBacklogRecalcMovement();
+        }
+
+        if (InputObject->mouseButtons & 0x2) {
+          *InputMask |= 0x2000;
+        }
+      } else {
+        gameExeBacklogRecalcMovement();
       }
     }
 
@@ -675,22 +1108,28 @@ namespace lb {
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
 
-      for (int i = 0; i < 15; i++) {
-        if (menuButtonHitTest(i, mouseX, mouseY, 0, 346 + (i * 44), 1870, 43, MusicModeCurrentIndex) && (InputObject->mouseButtons & 0x1))
-          *InputMask |= 0x1000;
-      }
+      int scrollBarY = (265 * *MusicModeStartIndex / 31 + 150) * 2;
+      mouseScrollBar(mouseX, mouseY, 1896, scrollBarY + 138, 20, 138, 0, 31, 300, 830, *MusicModeStartIndex, 0);
 
-      if (mouseSelectHitTest(mouseX, mouseY, 1532, 176, 258, 36) && (InputObject->mouseButtons & 0x1))
+      if (!SliderMoving) {
+        for (int i = 0; i < 15; i++) {
+          if (menuButtonHitTest(i, mouseX, mouseY, 0, 346 + (i * 44), 1870, 43, MusicModeCurrentIndex) && (InputObject->mouseButtons & 0x1))
+            *InputMask |= 0x1000;
+        }
+
+        if (mouseSelectHitTest(mouseX, mouseY, 1532, 176, 258, 36) && (InputObject->mouseButtons & 0x1))
           *InputMask |= 0x8000;
 
-      if (InputObject->mouseButtonsHeld & 0x8) {
-        *MusicModeStartIndex = *MusicModeStartIndex == 0 ? 0 : *MusicModeStartIndex - 1;
-      } else if (InputObject->mouseButtonsHeld & 0x10) {
-        *MusicModeStartIndex = *MusicModeStartIndex == 31 ? 31 : *MusicModeStartIndex + 1;
-      }
+        if (InputObject->mouseButtonsHeld & 0x8) {
+          *MusicModeStartIndex = *MusicModeStartIndex == 0 ? 0 : *MusicModeStartIndex - 1;
+        }
+        else if (InputObject->mouseButtonsHeld & 0x10) {
+          *MusicModeStartIndex = *MusicModeStartIndex == 31 ? 31 : *MusicModeStartIndex + 1;
+        }
 
-      if (InputObject->mouseButtons & 0x2) {
-        *InputMask |= 0x2000;
+        if (InputObject->mouseButtons & 0x2) {
+          *InputMask |= 0x2000;
+        }
       }
     }
 
@@ -787,38 +1226,52 @@ namespace lb {
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
 
-      int count = TipsMenuTabTipCount[*TipsMenuCurrentTab] > 19 ? 19 : TipsMenuTabTipCount[*TipsMenuCurrentTab];
-      for (int i = 0; i < count; i++) {
-        if (menuButtonHitTest(i, mouseX, mouseY, 97, 215 + (i * 44), 534, 43, TipsMenuSelectedIndex) && (InputObject->mouseButtons & 0x1))
-          *InputMask |= 0x1000;
+      if (TipsMenuTipData[6 * *TipsMenuSelectedTip] & 1 && *TipMenuTipTextHeight > 370) {
+        int scrollBarY = (316 * *TipsMenuTipTextStartOffset / (*TipMenuTipTextHeight - 370) + 114) * 2;
+        mouseScrollBar(mouseX, mouseY, 1802, scrollBarY + 105, 11, 105, 0, *TipMenuTipTextHeight - 370, 228, 860, *TipsMenuTipTextStartOffset, 0);
       }
 
-      for (int i = 0; i < 4; i++) {
-        if (TipsMenuTabTipCount[i]) {
-          if (mouseSelectHitTest(mouseX, mouseY, 94 + (i * 144), 116, 140, 35) && (InputObject->mouseButtons & 0x1))
-            *TipsMenuCurrentTab = i;
+      if (TipsMenuTabTipCount[*TipsMenuCurrentTab] > 19) {
+        int scrollBarY = (350 * *TipsMenuStartIndex / (TipsMenuTabTipCount[*TipsMenuCurrentTab] - 19) + 79) * 2;
+        mouseScrollBar(mouseX, mouseY, 634, scrollBarY + 105, 11, 105, 0, TipsMenuTabTipCount[*TipsMenuCurrentTab] - 19, 158, 859, *TipsMenuStartIndex, 1);
+      }
+
+      if (!SliderMoving) {
+        int count = TipsMenuTabTipCount[*TipsMenuCurrentTab] > 19 ? 19 : TipsMenuTabTipCount[*TipsMenuCurrentTab];
+        for (int i = 0; i < count; i++) {
+          if (menuButtonHitTest(i, mouseX, mouseY, 97, 215 + (i * 44), 534, 43, TipsMenuSelectedIndex) && (InputObject->mouseButtons & 0x1))
+            *InputMask |= 0x1000;
         }
-      }
 
-      int maxStartIndex = TipsMenuTabTipCount[*TipsMenuCurrentTab] - 19;
-      if ((TipsMenuTabTipCount[*TipsMenuCurrentTab] > 19) && mouseHitTest(mouseX, mouseY, 97, 1013, 560, 890)) {
-        if (InputObject->mouseButtonsHeld & 0x8) {
-          *TipsMenuStartIndex = *TipsMenuStartIndex == 0 ? 0 : *TipsMenuStartIndex - 1;
-        } else if (InputObject->mouseButtonsHeld & 0x10) {
-          *TipsMenuStartIndex = *TipsMenuStartIndex == maxStartIndex ? maxStartIndex : *TipsMenuStartIndex + 1;
+        for (int i = 0; i < 4; i++) {
+          if (TipsMenuTabTipCount[i]) {
+            if (mouseSelectHitTest(mouseX, mouseY, 94 + (i * 144), 116, 140, 35) && (InputObject->mouseButtons & 0x1))
+              *TipsMenuCurrentTab = i;
+          }
         }
-      }
 
-      if ((*TipMenuTipTextHeight > 370) && mouseHitTest(mouseX, mouseY, 664, 1013, 1100, 788)) {
-        if (InputObject->mouseButtonsHeld & 0x8) {
-          *TipsMenuTipTextStartOffset = *TipsMenuTipTextStartOffset == 0 ? 0 : *TipsMenuTipTextStartOffset - 20;
-        } else if (InputObject->mouseButtonsHeld & 0x10) {
-          *TipsMenuTipTextStartOffset = (*TipsMenuTipTextStartOffset - 370) > (*TipMenuTipTextHeight - 740) ? *TipsMenuTipTextStartOffset : *TipsMenuTipTextStartOffset + 20;
+        int maxStartIndex = TipsMenuTabTipCount[*TipsMenuCurrentTab] - 19;
+        if ((TipsMenuTabTipCount[*TipsMenuCurrentTab] > 19) && mouseHitTest(mouseX, mouseY, 97, 1013, 560, 890)) {
+          if (InputObject->mouseButtonsHeld & 0x8) {
+            *TipsMenuStartIndex = *TipsMenuStartIndex == 0 ? 0 : *TipsMenuStartIndex - 1;
+          }
+          else if (InputObject->mouseButtonsHeld & 0x10) {
+            *TipsMenuStartIndex = *TipsMenuStartIndex == maxStartIndex ? maxStartIndex : *TipsMenuStartIndex + 1;
+          }
         }
-      }
 
-      if (InputObject->mouseButtons & 0x2) {
-        *InputMask |= 0x2000;
+        if ((*TipMenuTipTextHeight > 370) && mouseHitTest(mouseX, mouseY, 664, 1013, 1100, 788)) {
+          if (InputObject->mouseButtonsHeld & 0x8) {
+            *TipsMenuTipTextStartOffset = (*TipsMenuTipTextStartOffset - 20) <= 0 ? 0 : *TipsMenuTipTextStartOffset - 20;
+          }
+          else if (InputObject->mouseButtonsHeld & 0x10) {
+            *TipsMenuTipTextStartOffset = (*TipsMenuTipTextStartOffset + 20) > (*TipMenuTipTextHeight - 370) ? *TipMenuTipTextHeight - 370 : *TipsMenuTipTextStartOffset + 20;
+          }
+        }
+
+        if (InputObject->mouseButtons & 0x2) {
+          *InputMask |= 0x2000;
+        }
       }
     }
 
@@ -1021,22 +1474,21 @@ namespace lb {
   int __fastcall mgsInputExecuteServerHook(MgsInputObj_t* pThis) {
     int ret = gameExeMgsInputExecuteServerReal(pThis);
 
-    if (MouseExclusive) {
-
-    }
-    else {
-      (*MouseDevice)->Unacquire();
-      (*MouseDevice)->SetCooperativeLevel(*WindowHandle, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
-      (*MouseDevice)->Acquire();
-    }
-
     if (!*MouseEnabled && pThis->mouseFocused && (InputObject->mouseButtons & 0x1)) {
       InputObject->mouseButtons = 0;
       *MouseEnabled = 1;
+      AutoSkipAlphaStep = 32;
     }
 
-    if (GetActiveWindow() != *WindowHandle) 
+    if (GetActiveWindow() != *WindowHandle) {
       *MouseEnabled = 0;
+      SliderMoving = false;
+      MovingSliderId = -1;      
+    }
+
+    if (!*MouseEnabled) {
+      AutoSkipAlphaStep = -32;
+    }
 
     *MousePointing = PointedThisFrame;
     PointedThisFrame = false;
@@ -1049,7 +1501,17 @@ namespace lb {
 
     if (*MouseEnabled && !LockMouseControls) {
       if (InputObject->mouseButtons & 0x1) {
-        *InputMask |= 0x1000;
+        if (gameExeScrWork[2113] & 1) {
+          if (!mouseHitTest(InputObject->scaledMouseX, InputObject->scaledMouseY, 13, 1064, 270, 40)) {
+            *InputMask |= 0x1000;
+          }
+        } else {
+          *InputMask |= 0x1000;
+        }
+      }
+
+      if ((InputObject->mouseButtons & 0x1) && gameExeGetFlag(1234) && gameExeScrWork[2113] & 1) {
+        *InputMask |= 0x200;
       }
       
       if (InputObject->mouseButtons & 0x2) {
