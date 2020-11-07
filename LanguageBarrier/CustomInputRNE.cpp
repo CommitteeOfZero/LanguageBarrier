@@ -5,6 +5,11 @@
 #include "LanguageBarrier.h"
 #include "SigScan.h"
 
+// A warning before this madness starts:
+// There are a lot of magic coordinate calculations in this code
+// simply because that's how it's done in the original game
+// and frankly, I have no desire or energy to try and make it better.
+
 typedef struct
 {
   uint32_t mouseButtons1;
@@ -66,6 +71,67 @@ typedef struct
   uint8_t mouseMoving;
   uint8_t mouseFocused;
 } MgsInputObj_t;
+
+enum MouseKeys {
+  MouseLeftClick = 0x1,
+  MouseRightClick = 0x2,
+  MouseMiddleClick = 0x4,
+  MouseScrollWheelUp = 0x8,
+  MouseScrollWheelDown = 0x10
+};
+
+enum PadKeys {
+  PAD1A = 0x1000,
+  PAD1B = 0x2000,
+  PAD1X = 0x4000,
+  PAD1Y = 0x8000,
+  PAD1L1 = 0x100,
+  PAD1R1 = 0x200,
+  PAD1R2 = 0x800,
+  PAD1START = 0x10,
+  PAD1RIGHTSTICKUP = 0x10000,
+  PAD1RIGHTSTICKDOWN = 0x20000,
+};
+
+enum ScrWorkEnum {
+  SW_GAMEMODE = 2113,
+  SW_SYSMENUSELNO = 3338,
+  SW_POKECOMSELNO = 6383,
+  SW_AR_ELV = 6404,
+  SW_AR_ROT = 6405,
+  SW_AR_ELVMIN = 6410,
+  SW_AR_ELVMAX = 6411,
+  SW_AR_ROTMIN = 6412,
+  SW_AR_ROTMAX = 6413,
+  SW_AR_ANGLE_M = 6427,
+  SW_AR_ANGLE_C = 6428,
+  SW_GEOTAGSEL_INDEX = 6432,
+  SW_GEOTAGSEL_ID = 6433,
+  SW_TWIPOCURTW = 6459,
+  SW_TWIPOMODE = 6460,
+  SW_TWIPOCURTAB = 6461,
+  SW_DOC_MODE = 6471,
+  SW_DOC_CURMAX = 6473,
+  SW_DOC_CURTARGET = 6476,
+  SW_DOC_SELECTED = 6479,
+  SW_DOC_UNLOCKEDNUM = 6481,
+  SW_MAP_POSX = 6510,
+  SW_MAP_POSY = 6511,
+  SW_MAP_MODE = 6516,
+  SW_MAP_SIZE = 6517,
+};
+
+enum FlagWorkEnum {
+  OPEN_START2 = 821,
+  ALBUM_ENA = 860,
+  MOVIE_ENA = 863,
+  MUSIC_ENA = 864,
+  SF_MESALLSKIP = 1234,
+  CALENDAR_DISP = 2640,
+  AR_SUPERMODE = 2817,
+  Pokecom_ManualMode = 2903,
+  Pokecom_Disable = 2904,
+};
 
 typedef int(__thiscall* MgsInputExecuteServerProc)(MgsInputObj_t* pThis);
 static MgsInputExecuteServerProc gameExeMgsInputExecuteServer = NULL;
@@ -157,9 +223,14 @@ typedef int(__cdecl* PokecomViewGeotagProc)();
 static PokecomViewGeotagProc gameExePokecomViewGeotag = NULL;
 static PokecomViewGeotagProc gameExePokecomViewGeotagReal = NULL;
 
+typedef int(__cdecl* InstHelpMenuProc)(void*);
+static InstHelpMenuProc gameExeInstHelpMenu = NULL;
+static InstHelpMenuProc gameExeInstHelpMenuReal = NULL;
+
+typedef void(__cdecl* PlaySEProc)(int);
+
 bool PointedThisFrame = false;
 bool LockMouseControls = false;
-bool MouseExclusive = false;
 uint32_t CarryInputToTheNextFrame = 0;
 
 MgsInputObj_t* InputObject = NULL; //(MgsInputObj_t*)0x2A3F6F0;
@@ -275,6 +346,7 @@ int* ConfigSEVolumeCur = NULL; //(int*)0xC6D780;
 int* ConfigMovieVolume = NULL; //(int*)0x2706944;
 int* ConfigMovieVolumeCur = NULL; //(int*)0xC6D788;
 SetScreenResProc gameExeSetScreenRes;
+PlaySEProc gameExePlaySE;
 
 int* CGviewModeAlpha = NULL; //(int*)0x270691C;
 int AutoSkipAlpha = 256;
@@ -311,6 +383,7 @@ namespace lb {
   int __cdecl mesDispWindowHook(int a1, int a2, int a3, int a4, 
                                 int a5, int a6, int a7, int a8);
   int __cdecl pokecomViewGeotagHook();
+  int __cdecl instHelpMenuHook(void* thread);
 
   bool containsPoint(int x, int y, int bx, int by, int w, int h) {
     return x > bx && x < bx + w && y < by && y > by - h;
@@ -341,13 +414,13 @@ namespace lb {
   }
 
   void mouseSlider(int mouseX, int mouseY, int bX, int bY, int w, int h, int min, int max, int& target, int id) {
-    if (MovingSliderId == -1 && mouseSelectHitTest(mouseX, mouseY, bX, bY, w, h) && (InputObject->mouseButtonsHeld & 0x1 || InputObject->mouseButtons & 0x1)) {
+    if (MovingSliderId == -1 && mouseSelectHitTest(mouseX, mouseY, bX, bY, w, h) && (InputObject->mouseButtonsHeld & MouseLeftClick || InputObject->mouseButtons & MouseLeftClick)) {
       SliderMoving = true;
       PointedThisFrame = true;
       MovingSliderId = id;
     }
     if (MovingSliderId == id) {
-      if ((InputObject->mouseButtonsHeld & 0x1 || InputObject->mouseButtons & 0x1) && SliderMoving) {
+      if ((InputObject->mouseButtonsHeld & MouseLeftClick || InputObject->mouseButtons & MouseLeftClick) && SliderMoving) {
         PointedThisFrame = true;
         if (mouseX > bX + w)
           target = max;
@@ -365,13 +438,13 @@ namespace lb {
   }
 
   void mouseScrollBar(int mouseX, int mouseY, int bX, int bY, int w, int h, int minVal, int maxVal, int minPos, int maxPos, int& target, int id) {
-    if (MovingSliderId == -1 && mouseSelectHitTest(mouseX, mouseY, bX, bY, w, h) && InputObject->mouseButtonsHeld & 0x1) {
+    if (MovingSliderId == -1 && mouseSelectHitTest(mouseX, mouseY, bX, bY, w, h) && InputObject->mouseButtonsHeld & MouseLeftClick) {
       SliderMoving = true;
       PointedThisFrame = true;
       MovingSliderId = id;
     }
     if (MovingSliderId == id) {
-      if (InputObject->mouseButtonsHeld & 0x1 && SliderMoving) {
+      if (InputObject->mouseButtonsHeld & MouseLeftClick && SliderMoving) {
         PointedThisFrame = true;
         if (mouseY > maxPos + (h / 2))
           target = maxVal;
@@ -576,13 +649,36 @@ namespace lb {
     scanCreateEnableHook("game", "PokecomViewGeotag", (uintptr_t*)&gameExePokecomViewGeotag,
                          (LPVOID)&pokecomViewGeotagHook,
                          (LPVOID*)&gameExePokecomViewGeotagReal);
+    scanCreateEnableHook("game", "InstHelpMenu", (uintptr_t*)&gameExeInstHelpMenu,
+                         (LPVOID)&instHelpMenuHook,
+                         (LPVOID*)&gameExeInstHelpMenuReal);
     gameExeGetScreenCoords = (GetScreenCoordsProc)sigScan("game", "GetScreenCoords");
     gameExeCountSC3Characters = (CountSC3CharactersProc)sigScan("game", "CountSC3Characters");
     gameExeGetSC3StringByID = (GetSC3StringByIDProc)sigScan("game", "GetSC3StringByID");
     gameExeSetScreenRes = (SetScreenResProc)sigScan("game", "SetScreenRes");
     gameExeGeoTagHasLink = (GeoTagHasLinkProc)sigScan("game", "GeoTagHasLink");
+    gameExePlaySE = (PlaySEProc)sigScan("game", "PlaySE");
 
     return true;
+  }
+
+  int __cdecl instHelpMenuHook(void* thread) {
+    if (*MouseEnabled) {
+      LockMouseControls = true;
+      int mouseX = InputObject->scaledMouseX;
+      int mouseY = InputObject->scaledMouseY;
+
+      if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
+        *InputMask3 |= PAD1L1;
+      } else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
+        *InputMask3 |= PAD1R1;
+      }
+
+      if (InputObject->mouseButtons & MouseRightClick) {
+        *InputMask |= PAD1B;
+      }
+    }
+    return gameExeInstHelpMenuReal(thread);
   }
 
   int __cdecl mesDispWindowHook(int a1, int a2, int a3, int a4, 
@@ -599,13 +695,18 @@ namespace lb {
       } else if (AutoSkipAlpha < 0) {
         AutoSkipAlpha = 0;
       }
+
+      if (!gameExeGetFlag(2904) && gameExeGetFlag(2640)) {
+        if (mouseSelectHitTest(mouseX, mouseY, 1246, 153, 674, 86) && (InputObject->mouseButtons & MouseLeftClick))
+          CarryInputToTheNextFrame |= PAD1R2;
+      }
   
       int alpha = (AutoSkipAlpha * *CGviewModeAlpha) >> 8;
 
       if (mouseSelectHitTest(mouseX, mouseY, 13, 1064, 128, 38)) {
         drawSpriteHook(80, 3805.0f, 1937.0f, 135.0f, 45.0f, 8.0f, 1022.0f, 0xFFFFFF, alpha, 1);
-        if (InputObject->mouseButtons & 0x1) {
-          CarryInputToTheNextFrame |= 0x4000;
+        if (InputObject->mouseButtons & MouseLeftClick) {
+          CarryInputToTheNextFrame |= PAD1X;
         }
       } else {
         drawSpriteHook(80, 3805.0f, 1987.0f, 135.0f, 45.0f, 8.0f, 1022.0f, 0xFFFFFF, alpha, 1);
@@ -613,11 +714,11 @@ namespace lb {
 
       if (mouseSelectHitTest(mouseX, mouseY, 152, 1064, 128, 38)) {
         drawSpriteHook(80, 3944.0f, 1937.0f, 135.0f, 45.0f, 147.0f, 1022.0f, 0xFFFFFF, alpha, 1);
-        if (InputObject->mouseButtons & 0x1) {
-          if (gameExeGetFlag(1234))
-            CarryInputToTheNextFrame |= 0x2000;
+        if (InputObject->mouseButtons & MouseLeftClick) {
+          if (gameExeGetFlag(SW_AR_ROTMAX))
+            CarryInputToTheNextFrame |= PAD1B;
           else
-            CarryInputToTheNextFrame |= 0x200;
+            CarryInputToTheNextFrame |= PAD1R1;
         }
       } else {
         drawSpriteHook(80, 3944.0f, 1987.0f, 135.0f, 45.0f, 147.0f, 1022.0f, 0xFFFFFF, alpha, 1);
@@ -662,81 +763,94 @@ namespace lb {
             }
 
             // Tips Info Switch
-            if (mouseSelectHitTest(mouseX, mouseY, 964, 165, 190, 38) && *ConfigTipsInfo && (InputObject->mouseButtons & 0x1)) {
+            if (mouseSelectHitTest(mouseX, mouseY, 964, 165, 190, 38) && *ConfigTipsInfo && (InputObject->mouseButtons & MouseLeftClick)) {
               *ConfigTipsInfo = 0;
               *ConfigSwitchAnimCounter = 15;
+              gameExePlaySE(17);
             }
-            if (mouseSelectHitTest(mouseX, mouseY, 760, 165, 190, 38) && !*ConfigTipsInfo && (InputObject->mouseButtons & 0x1)) {
+            if (mouseSelectHitTest(mouseX, mouseY, 760, 165, 190, 38) && !*ConfigTipsInfo && (InputObject->mouseButtons & MouseLeftClick)) {
               *ConfigTipsInfo = 1;
               *ConfigSwitchAnimCounter = 15;
+              gameExePlaySE(17);
             }
 
             // Full Screen Switch
-            if (mouseSelectHitTest(mouseX, mouseY, 964, 213, 190, 38) && *ConfigFullScreen && (InputObject->mouseButtons & 0x1)) {
+            if (mouseSelectHitTest(mouseX, mouseY, 964, 213, 190, 38) && *ConfigFullScreen && (InputObject->mouseButtons & MouseLeftClick)) {
               *ConfigFullScreen = 0;
               *ConfigFullScreen1 = 0;
               *ConfigFullScreen2 = 0;
+              gameExePlaySE(17);
               gameExeSetScreenRes();
               *ConfigSwitchAnimCounter = 15;
             }
-            if (mouseSelectHitTest(mouseX, mouseY, 760, 213, 190, 38) && !*ConfigFullScreen && (InputObject->mouseButtons & 0x1)) {
+            if (mouseSelectHitTest(mouseX, mouseY, 760, 213, 190, 38) && !*ConfigFullScreen && (InputObject->mouseButtons & MouseLeftClick)) {
               *ConfigFullScreen = 1;
               *ConfigFullScreen1 = 1;
               *ConfigFullScreen2 = 1;
+              gameExePlaySE(17);
               gameExeSetScreenRes();
               *ConfigSwitchAnimCounter = 15;
             }
 
             // Resolution Switch
-            if (mouseSelectHitTest(mouseX, mouseY, 760, 261, 127, 38) && *ConfigResolution != 0 && (InputObject->mouseButtons & 0x1)) {
+            if (mouseSelectHitTest(mouseX, mouseY, 760, 261, 127, 38) && *ConfigResolution != 0 && (InputObject->mouseButtons & MouseLeftClick)) {
               *ConfigResolution = 0;
               *ConfigResolution1 = 0;
               *ConfigResolution2 = 0;
+              gameExePlaySE(17);
               gameExeSetScreenRes();
               *ConfigSwitchAnimCounter = 15;
             }
-            if (mouseSelectHitTest(mouseX, mouseY, 894, 261, 127, 38) && *ConfigResolution != 1 && (InputObject->mouseButtons & 0x1)) {
+            if (mouseSelectHitTest(mouseX, mouseY, 894, 261, 127, 38) && *ConfigResolution != 1 && (InputObject->mouseButtons & MouseLeftClick)) {
               *ConfigResolution = 1;
               *ConfigResolution1 = 1;
               *ConfigResolution2 = 1;
+              gameExePlaySE(17);
               gameExeSetScreenRes();
               *ConfigSwitchAnimCounter = 15;
             }
-            if (mouseSelectHitTest(mouseX, mouseY, 1028, 261, 127, 38) && *ConfigResolution != 2 && (InputObject->mouseButtons & 0x1)) {
+            if (mouseSelectHitTest(mouseX, mouseY, 1028, 261, 127, 38) && *ConfigResolution != 2 && (InputObject->mouseButtons & MouseLeftClick)) {
               *ConfigResolution = 2;
               *ConfigResolution1 = 2;
               *ConfigResolution2 = 2;
+              gameExePlaySE(17);
               gameExeSetScreenRes();
               *ConfigSwitchAnimCounter = 15;
             }
 
             // Skip Mode Switch
-            if (mouseSelectHitTest(mouseX, mouseY, 760, 495, 190, 38) && *ConfigSkipMode && (InputObject->mouseButtons & 0x1)) {
+            if (mouseSelectHitTest(mouseX, mouseY, 760, 495, 190, 38) && *ConfigSkipMode && (InputObject->mouseButtons & MouseLeftClick)) {
               *ConfigSkipMode = 0;
+              gameExePlaySE(17);
               *ConfigSwitchAnimCounter = 15;
             }
-            if (mouseSelectHitTest(mouseX, mouseY, 964, 495, 190, 38) && !*ConfigSkipMode && (InputObject->mouseButtons & 0x1)) {
+            if (mouseSelectHitTest(mouseX, mouseY, 964, 495, 190, 38) && !*ConfigSkipMode && (InputObject->mouseButtons & MouseLeftClick)) {
               *ConfigSkipMode = 1;
+              gameExePlaySE(17);
               *ConfigSwitchAnimCounter = 15;
             }
 
             // Sync Voice Switch
-            if (mouseSelectHitTest(mouseX, mouseY, 964, 825, 190, 38) && *ConfigSyncVoice && (InputObject->mouseButtons & 0x1)) {
+            if (mouseSelectHitTest(mouseX, mouseY, 964, 825, 190, 38) && *ConfigSyncVoice && (InputObject->mouseButtons & MouseLeftClick)) {
               *ConfigSyncVoice = 0;
+              gameExePlaySE(17);
               *ConfigSwitchAnimCounter = 15;
             }
-            if (mouseSelectHitTest(mouseX, mouseY, 760, 825, 190, 38) && !*ConfigSyncVoice && (InputObject->mouseButtons & 0x1)) {
+            if (mouseSelectHitTest(mouseX, mouseY, 760, 825, 190, 38) && !*ConfigSyncVoice && (InputObject->mouseButtons & MouseLeftClick)) {
               *ConfigSyncVoice = 1;
+              gameExePlaySE(17);
               *ConfigSwitchAnimCounter = 15;
             }
 
             // Skip Voice Switch
-            if (mouseSelectHitTest(mouseX, mouseY, 964, 873, 190, 38) && *ConfigSkipVoice && (InputObject->mouseButtons & 0x1)) {
+            if (mouseSelectHitTest(mouseX, mouseY, 964, 873, 190, 38) && *ConfigSkipVoice && (InputObject->mouseButtons & MouseLeftClick)) {
               *ConfigSkipVoice = 0;
+              gameExePlaySE(17);
               *ConfigSwitchAnimCounter = 15;
             }
-            if (mouseSelectHitTest(mouseX, mouseY, 760, 873, 190, 38) && !*ConfigSkipVoice && (InputObject->mouseButtons & 0x1)) {
+            if (mouseSelectHitTest(mouseX, mouseY, 760, 873, 190, 38) && !*ConfigSkipVoice && (InputObject->mouseButtons & MouseLeftClick)) {
               *ConfigSkipVoice = 1;
+              gameExePlaySE(17);
               *ConfigSwitchAnimCounter = 15;
             }
           }
@@ -749,12 +863,14 @@ namespace lb {
             if (!SliderMoving) {
               menuButtonHitTest(i, mouseX, mouseY, 97, 166 + (i * 46), 1120, 38, ConfigPage2SelectedItem);
 
-              if (mouseSelectHitTest(mouseX, mouseY, 616, 165 + (i * 46), 134, 38) && ConfigVoiceEnableFlags[id] && (InputObject->mouseButtons & 0x1)) {
+              if (mouseSelectHitTest(mouseX, mouseY, 616, 165 + (i * 46), 134, 38) && ConfigVoiceEnableFlags[id] && (InputObject->mouseButtons & MouseLeftClick)) {
                 ConfigVoiceEnableFlags[id] = 0;
+                gameExePlaySE(17);
                 *ConfigSwitchAnimCounter = 15;
               }
-              if (mouseSelectHitTest(mouseX, mouseY, 468, 165 + (i * 46), 134, 38) && !ConfigVoiceEnableFlags[id] && (InputObject->mouseButtons & 0x1)) {
+              if (mouseSelectHitTest(mouseX, mouseY, 468, 165 + (i * 46), 134, 38) && !ConfigVoiceEnableFlags[id] && (InputObject->mouseButtons & MouseLeftClick)) {
                 ConfigVoiceEnableFlags[id] = 1;
+                gameExePlaySE(17);
                 *ConfigSwitchAnimCounter = 15;
               }
             } else {
@@ -766,12 +882,14 @@ namespace lb {
           for (int i = 0; i < 7; i++) {
             menuButtonHitTest(i, mouseX, mouseY, 97, 166 + (i * 46), 1120, 38, ConfigPage3SelectedItem);
 
-            if (mouseSelectHitTest(mouseX, mouseY, 964, 165 + (i * 48), 190, 38) && ConfigTwipoNotifs[*ConfigPage3SelectedItem] && (InputObject->mouseButtons & 0x1)) {
+            if (mouseSelectHitTest(mouseX, mouseY, 964, 165 + (i * 48), 190, 38) && ConfigTwipoNotifs[*ConfigPage3SelectedItem] && (InputObject->mouseButtons & MouseLeftClick)) {
               ConfigTwipoNotifs[*ConfigPage3SelectedItem] = 0;
+              gameExePlaySE(17);
               *ConfigSwitchAnimCounter = 15;
             }
-            if (mouseSelectHitTest(mouseX, mouseY, 760, 165 + (i * 48), 190, 38) && !ConfigTwipoNotifs[*ConfigPage3SelectedItem] && (InputObject->mouseButtons & 0x1)) {
+            if (mouseSelectHitTest(mouseX, mouseY, 760, 165 + (i * 48), 190, 38) && !ConfigTwipoNotifs[*ConfigPage3SelectedItem] && (InputObject->mouseButtons & MouseLeftClick)) {
               ConfigTwipoNotifs[*ConfigPage3SelectedItem] = 1;
+              gameExePlaySE(17);
               *ConfigSwitchAnimCounter = 15;
             }
           }
@@ -780,22 +898,21 @@ namespace lb {
           break;
       }
 
-      if (InputObject->mouseButtonsHeld & 0x8) {
-        *InputMask |= 0x100;
-      } else if (InputObject->mouseButtonsHeld & 0x10) {
-        *InputMask |= 0x200;
+      if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
+        *InputMask |= PAD1L1;
+      } else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
+        *InputMask |= PAD1R1;
       }
 
-      if (InputObject->mouseButtons & 0x2) {
-        *InputMask |= 0x2000;
+      if (InputObject->mouseButtons & MouseRightClick) {
+        *InputMask |= PAD1B;
       }
     }
     return gameExeInstOptionReal(thread);
   }
 
   int __cdecl pokecomARMainHook() {
-    // Flag 2903 - SF_Pokecon_ManualMode
-    if (*MouseEnabled && gameExeGetFlag(2903)) {
+    if (*MouseEnabled && gameExeGetFlag(Pokecom_ManualMode)) {
       LockMouseControls = true;
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
@@ -823,64 +940,51 @@ namespace lb {
           textWidth *= 2;
 
           if (menuButtonHitTest(id, mouseX, mouseY, screenX, screenY + 150, textWidth + 80, 150, ARSelectedGeoTag)) {
-            if (InputObject->mouseButtons & 0x1) {
+            if (InputObject->mouseButtons & MouseLeftClick) {
               dontMoveThisFrame = true;
-              *InputMask |= 0x1000;
+              *InputMask |= PAD1A;
             }
-            gameExeScrWork[6432] = *ARSelectedGeoTag;
-            gameExeScrWork[6433] = ARSomeGeoTagArr[*ARSelectedGeoTag];
+            gameExeScrWork[SW_GEOTAGSEL_INDEX] = *ARSelectedGeoTag;
+            gameExeScrWork[SW_GEOTAGSEL_ID] = ARSomeGeoTagArr[*ARSelectedGeoTag];
           }
         }
       }
 
-      int axisMultiplier = gameExeScrWork[6428] / 500;
-      if ((InputObject->mouseButtonsHeld & 0x1) && !dontMoveThisFrame) {
-        gameExeScrWork[6404] += InputObject->mouseYAxis * axisMultiplier;
-        gameExeScrWork[6405] -= InputObject->mouseXAxis * axisMultiplier;
+      int axisMultiplier = gameExeScrWork[SW_AR_ANGLE_C] / 500;
+      if ((InputObject->mouseButtonsHeld & MouseLeftClick) && !dontMoveThisFrame) {
+        gameExeScrWork[SW_AR_ELV] -= InputObject->mouseYAxis * axisMultiplier;
+        gameExeScrWork[SW_AR_ROT] += InputObject->mouseXAxis * axisMultiplier;
 
-        if (!MouseExclusive) {
-          MouseExclusive = true;
-          (*MouseDevice)->Unacquire();
-          (*MouseDevice)->SetCooperativeLevel(*WindowHandle, DISCL_EXCLUSIVE | DISCL_FOREGROUND);
-          (*MouseDevice)->Acquire();
-        }
-
-        if (gameExeGetFlag(2817)) {
-          if (gameExeScrWork[6404] < -80000)
-            gameExeScrWork[6404] = -80000;
-          if (gameExeScrWork[6404] >= 80000)
-            gameExeScrWork[6404] = 80000;
-          if (gameExeScrWork[6405] <= -180000)
-            gameExeScrWork[6405] += 360000;
-          if (gameExeScrWork[6405] > 180000)
-            gameExeScrWork[6405] -= 360000;
+        // Super mode == unrestrained look around
+        if (gameExeGetFlag(AR_SUPERMODE)) {
+          if (gameExeScrWork[SW_AR_ELV] < -80000)
+            gameExeScrWork[SW_AR_ELV] = -80000;
+          if (gameExeScrWork[SW_AR_ELV] >= 80000)
+            gameExeScrWork[SW_AR_ELV] = 80000;
+          if (gameExeScrWork[SW_AR_ROT] <= -180000)
+            gameExeScrWork[SW_AR_ROT] += 360000;
+          if (gameExeScrWork[SW_AR_ROT] > 180000)
+            gameExeScrWork[SW_AR_ROT] -= 360000;
         } else {
-          if (gameExeScrWork[6404] < gameExeScrWork[6410])
-            gameExeScrWork[6404] = gameExeScrWork[6410];
-          if (gameExeScrWork[6404] > gameExeScrWork[6411])
-            gameExeScrWork[6404] = gameExeScrWork[6411];
-          if (gameExeScrWork[6405] < gameExeScrWork[6412])
-            gameExeScrWork[6405] = gameExeScrWork[6412];
-          if (gameExeScrWork[6405] > gameExeScrWork[6413])
-            gameExeScrWork[6405] = gameExeScrWork[6413];
-        }
-      } else {
-        if (MouseExclusive) {
-          MouseExclusive = false;
-          (*MouseDevice)->Unacquire();
-          (*MouseDevice)->SetCooperativeLevel(*WindowHandle, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
-          (*MouseDevice)->Acquire();
+          if (gameExeScrWork[SW_AR_ELV] < gameExeScrWork[SW_AR_ELVMIN])
+            gameExeScrWork[SW_AR_ELV] = gameExeScrWork[SW_AR_ELVMIN];
+          if (gameExeScrWork[SW_AR_ELV] > gameExeScrWork[SW_AR_ELVMAX])
+            gameExeScrWork[SW_AR_ELV] = gameExeScrWork[SW_AR_ELVMAX];
+          if (gameExeScrWork[SW_AR_ROT] < gameExeScrWork[SW_AR_ROTMIN])
+            gameExeScrWork[SW_AR_ROT] = gameExeScrWork[SW_AR_ROTMIN];
+          if (gameExeScrWork[SW_AR_ROT] > gameExeScrWork[SW_AR_ROTMAX])
+            gameExeScrWork[SW_AR_ROT] = gameExeScrWork[SW_AR_ROTMAX];
         }
       }
 
-      if (InputObject->mouseButtonsHeld & 0x8) {
-        gameExeScrWork[6428] = gameExeScrWork[6428] - 1000 > 10000 ? gameExeScrWork[6428] - 1000 : 10000;
-      } else if (InputObject->mouseButtonsHeld & 0x10) {
-        gameExeScrWork[6428] = gameExeScrWork[6428] + 1000 < gameExeScrWork[6427] - 500 ? gameExeScrWork[6428] + 1000 : gameExeScrWork[6427] - 500;
+      if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
+        gameExeScrWork[SW_AR_ANGLE_C] = gameExeScrWork[SW_AR_ANGLE_C] - 1000 > 10000 ? gameExeScrWork[SW_AR_ANGLE_C] - 1000 : 10000;
+      } else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
+        gameExeScrWork[SW_AR_ANGLE_C] = gameExeScrWork[SW_AR_ANGLE_C] + 1000 < gameExeScrWork[SW_AR_ANGLE_M] - 500 ? gameExeScrWork[SW_AR_ANGLE_C] + 1000 : gameExeScrWork[SW_AR_ANGLE_M] - 500;
       }
 
-      if (InputObject->mouseButtons & 0x2) {
-        CarryInputToTheNextFrame |= 0x2000;
+      if (InputObject->mouseButtons & MouseRightClick) {
+        CarryInputToTheNextFrame |= PAD1B;
       }
     }
 
@@ -888,8 +992,7 @@ namespace lb {
   }
 
   int __cdecl pokecomViewGeotagHook() {
-    // Flag 2903 - SF_Pokecon_ManualMode
-    if (*MouseEnabled && gameExeGetFlag(2903)) {
+    if (*MouseEnabled && gameExeGetFlag(Pokecom_ManualMode)) {
       LockMouseControls = true;
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
@@ -899,13 +1002,13 @@ namespace lb {
       // So let's just hack up the width of the hit box
 
       int width = 678;
-      if (gameExeScrWork[6433] == 59)
+      if (gameExeScrWork[SW_GEOTAGSEL_ID] == 59)
         width = 795;
-      if (gameExeGeoTagHasLink(5, gameExeScrWork[6433], 0, 0) && mouseSelectHitTest(mouseX, mouseY, 87, 741, width, 55)
-                                                              && InputObject->mouseButtons & 0x1) {
-        *InputMask |= 0x8000;
-      } else if (InputObject->mouseButtons & 0x1 || InputObject->mouseButtons & 0x2) {
-        *InputMask |= 0x2000;
+      if (gameExeGeoTagHasLink(5, gameExeScrWork[SW_GEOTAGSEL_ID], 0, 0) && mouseSelectHitTest(mouseX, mouseY, 87, 741, width, 55)
+                                                              && InputObject->mouseButtons & MouseLeftClick) {
+        *InputMask |= PAD1Y;
+      } else if (InputObject->mouseButtons & MouseLeftClick || InputObject->mouseButtons & MouseRightClick) {
+        *InputMask |= PAD1B;
       }
     }
 
@@ -913,44 +1016,44 @@ namespace lb {
   }
 
   int __cdecl pokecomMapMainHook() {
-    // Flag 2903 - SF_Pokecon_ManualMode
-    if (*MouseEnabled && gameExeGetFlag(2903)) {
+    if (*MouseEnabled && gameExeGetFlag(Pokecom_ManualMode)) {
       LockMouseControls = true;
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
 
       // 6510 - MapPosX
       // 6511 - MapPosY
-      if (InputObject->mouseButtonsHeld & 0x1) {
-        gameExeScrWork[6510] -= InputObject->mouseXAxis;
-        gameExeScrWork[6511] -= InputObject->mouseYAxis;
+      if (InputObject->mouseButtonsHeld & MouseLeftClick) {
+        gameExeScrWork[SW_MAP_POSX] -= InputObject->mouseXAxis;
+        gameExeScrWork[SW_MAP_POSY] -= InputObject->mouseYAxis;
       }
 
       // 6517 - MapSize
-      if (InputObject->mouseButtonsHeld & 0x8) {
-        gameExeScrWork[6517] = gameExeScrWork[6517] - 50 > 500 ? gameExeScrWork[6517] - 50 : gameExeScrWork[6517];
-      } else if (InputObject->mouseButtonsHeld & 0x10) {
-        gameExeScrWork[6517] = gameExeScrWork[6517] + 50 < 2000 ? gameExeScrWork[6517] + 50 : gameExeScrWork[6517];
+      if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
+        gameExeScrWork[SW_MAP_SIZE] = gameExeScrWork[SW_MAP_SIZE] - 50 > 500 ? gameExeScrWork[SW_MAP_SIZE] - 50 : gameExeScrWork[SW_MAP_SIZE];
+      } else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
+        gameExeScrWork[SW_MAP_SIZE] = gameExeScrWork[SW_MAP_SIZE] + 50 < 2000 ? gameExeScrWork[SW_MAP_SIZE] + 50 : gameExeScrWork[SW_MAP_SIZE];
       }
 
-      if (gameExeScrWork[6516] == 1 || gameExeScrWork[6516] == 17) {
+      // Modes 1 and 17 allow you to select a location to move to
+      if (gameExeScrWork[SW_MAP_MODE] == 1 || gameExeScrWork[SW_MAP_MODE] == 17) {
         for (int i = 0; i < *MapNumPoints; i++) {
           if (MapPointIsDisplayed[i]) {
             int id = MapPointsIDs[i];
-            int screenX = (960 * (MapPointsData[4 * id] - (gameExeScrWork[6510] - (960 * gameExeScrWork[6517] / 1000) / 2)) / (960 * gameExeScrWork[6517] / 1000) - 42) * 2;
-            int screenY = (544 * (MapPointsData[4 * id + 1] - (gameExeScrWork[6511] - (544 * gameExeScrWork[6517] / 1000) / 2)) / (544 * gameExeScrWork[6517] / 1000) - 69) * 2;
+            int screenX = (960 * (MapPointsData[4 * id] - (gameExeScrWork[SW_MAP_POSX] - (960 * gameExeScrWork[SW_MAP_SIZE] / 1000) / 2)) / (960 * gameExeScrWork[SW_MAP_SIZE] / 1000) - 42) * 2;
+            int screenY = (544 * (MapPointsData[4 * id + 1] - (gameExeScrWork[SW_MAP_POSY] - (544 * gameExeScrWork[SW_MAP_SIZE] / 1000) / 2)) / (544 * gameExeScrWork[SW_MAP_SIZE] / 1000) - 69) * 2;
 
             if (menuButtonHitTest(i, mouseX, mouseY, screenX + 18, screenY + 88, MapPointsData[4 * id + 2] * 2 + 120, 76, MapSelectedPointIndex)) {
-              if (InputObject->mouseButtons & 0x1) {
-                *InputMask |= 0x1000;
+              if (InputObject->mouseButtons & MouseLeftClick) {
+                *InputMask |= PAD1A;
               }
             }
           }
         }
       }
 
-      if (InputObject->mouseButtons & 0x2) {
-        *InputMask |= 0x2000;
+      if (InputObject->mouseButtons & MouseRightClick) {
+        *InputMask |= PAD1B;
       }
     }
 
@@ -958,32 +1061,31 @@ namespace lb {
   }
 
   int __cdecl pokecomDocMainHook() {
-    // Flag 2903 - SF_Pokecon_ManualMode
-    if (*MouseEnabled && gameExeGetFlag(2903)) {
+    if (*MouseEnabled && gameExeGetFlag(Pokecom_ManualMode)) {
       LockMouseControls = true;
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
 
       // Doc mode - selection
-      if (gameExeScrWork[6471] == 0) {
+      if (gameExeScrWork[SW_DOC_MODE] == 0) {
         // 6481 - Number of docs unlocked
         // 6479 - Currently selected doc
-        for (int i = 0; i < gameExeScrWork[6481]; i++) {
-          if (menuButtonHitTest(i, mouseX, mouseY, 72 + (i * 232), 346, 232, 207, &gameExeScrWork[6479]) && (InputObject->mouseButtons & 0x1))
-            *InputMask |= 0x1000;
+        for (int i = 0; i < gameExeScrWork[SW_DOC_UNLOCKEDNUM]; i++) {
+          if (menuButtonHitTest(i, mouseX, mouseY, 72 + (i * 232), 346, 232, 207, &gameExeScrWork[SW_DOC_SELECTED]) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
         }
-      } else if (gameExeScrWork[6471] == 1) { // Doc mode - reading
+      } else if (gameExeScrWork[SW_DOC_MODE] == 1) { // Doc mode - reading
         // 6476 - Doc current pos
         // 6473 - Doc max pos
-        if (InputObject->mouseButtonsHeld & 0x8) {
-          gameExeScrWork[6476] = gameExeScrWork[6476] <= 8 ? 8 : gameExeScrWork[6476] - 24;
-        } else if (InputObject->mouseButtonsHeld & 0x10) {
-          gameExeScrWork[6476] = gameExeScrWork[6476] + 24 >= 32 * gameExeScrWork[6473] ? 32 * gameExeScrWork[6473] : gameExeScrWork[6476] + 24;
+        if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
+          gameExeScrWork[SW_DOC_CURTARGET] = gameExeScrWork[SW_DOC_CURTARGET] <= 8 ? 8 : gameExeScrWork[SW_DOC_CURTARGET] - 24;
+        } else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
+          gameExeScrWork[SW_DOC_CURTARGET] = gameExeScrWork[SW_DOC_CURTARGET] + 24 >= 32 * gameExeScrWork[SW_DOC_CURMAX] ? 32 * gameExeScrWork[SW_DOC_CURMAX] : gameExeScrWork[SW_DOC_CURTARGET] + 24;
         }
       }
 
-      if (InputObject->mouseButtons & 0x2) {
-        *InputMask |= 0x2000;
+      if (InputObject->mouseButtons & MouseRightClick) {
+        *InputMask |= PAD1B;
       }
     }
     return gameExePokecomDocMainReal();
@@ -996,69 +1098,69 @@ namespace lb {
       int mouseY = InputObject->scaledMouseY;
 
       // Read mode
-      if (gameExeScrWork[6460] == 0) {
+      if (gameExeScrWork[SW_TWIPOMODE] == 0) {
         // Twipo tabs
         for (int i = 0; i < 4; i++) {
-          if (mouseSelectHitTest(mouseX, mouseY, 75, 275 + (i * 273), 90, 273) && (InputObject->mouseButtons & 0x1))
-            gameExeScrWork[6461] = i;
+          if (mouseSelectHitTest(mouseX, mouseY, 75, 275 + (i * 273), 90, 273) && (InputObject->mouseButtons & MouseLeftClick))
+            gameExeScrWork[SW_TWIPOCURTAB] = i;
         }
 
         // Reply button
-        int data = *(int*)(TwipoDataPointers[gameExeScrWork[6461]] + 8 * gameExeScrWork[6459]);
+        int data = *(int*)(TwipoDataPointers[gameExeScrWork[SW_TWIPOCURTAB]] + 8 * gameExeScrWork[SW_TWIPOCURTW]);
         if ((TwipoData1[5 * data] != 0xFFFF) && TwipoData2[data]) {
-          if (mouseSelectHitTest(mouseX, mouseY, 1533, 1052, 357, 118) && (InputObject->mouseButtons & 0x1)) {
-            *InputMask |= 0x1000;
+          if (mouseSelectHitTest(mouseX, mouseY, 1533, 1052, 357, 118) && (InputObject->mouseButtons & MouseLeftClick)) {
+            *InputMask |= PAD1A;
           }
         }
 
         // Scroll tweeps up/down by clicking on them
-        if ((TwipoTweepCountInTabs[gameExeScrWork[6461]] - gameExeScrWork[6459]) > 1) {
-          if (mouseSelectHitTest(mouseX, mouseY, 166, 365, 677, 366) && (InputObject->mouseButtons & 0x1)) {
-            *InputMask4 |= 0x10000;
+        if ((TwipoTweepCountInTabs[gameExeScrWork[SW_TWIPOCURTAB]] - gameExeScrWork[SW_TWIPOCURTW]) > 1) {
+          if (mouseSelectHitTest(mouseX, mouseY, 166, 365, 677, 366) && (InputObject->mouseButtons & MouseLeftClick)) {
+            *InputMask4 |= PAD1RIGHTSTICKUP;
           }
         }
-        if (gameExeScrWork[6459] > 0) {
-          if (mouseSelectHitTest(mouseX, mouseY, 166, 1079, 677, 355) && (InputObject->mouseButtons & 0x1)) {
-            *InputMask4 |= 0x20000;
+        if (gameExeScrWork[SW_TWIPOCURTW] > 0) {
+          if (mouseSelectHitTest(mouseX, mouseY, 166, 1079, 677, 355) && (InputObject->mouseButtons & MouseLeftClick)) {
+            *InputMask4 |= PAD1RIGHTSTICKDOWN;
           }
         }
 
         // Scroll tweeps up/down with scroll wheel
         if (mouseHitTest(mouseX, mouseY, 166, 1079, 675, 1080)) {
-          if (InputObject->mouseButtonsHeld & 0x8) {
-            *InputMask4 |= 0x10000;
+          if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
+            *InputMask4 |= PAD1RIGHTSTICKUP;
           }
-          else if (InputObject->mouseButtonsHeld & 0x10) {
-            *InputMask4 |= 0x20000;
+          else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
+            *InputMask4 |= PAD1RIGHTSTICKDOWN;
           }
         }
-      } else if (gameExeScrWork[6460] == 1) {  // Reply mode
+      } else if (gameExeScrWork[SW_TWIPOMODE] == 1) {  // Reply mode
         // Reply button
-        if(mouseSelectHitTest(mouseX, mouseY, 1533, 1052, 357, 118) && (InputObject->mouseButtons & 0x1)) {
-          *InputMask |= 0x1000;
+        if(mouseSelectHitTest(mouseX, mouseY, 1533, 1052, 357, 118) && (InputObject->mouseButtons & MouseLeftClick)) {
+          *InputMask |= PAD1A;
         }
 
         // Scroll choices by clicking on up/down arrows
-        if (mouseSelectHitTest(mouseX, mouseY, 1332, 497, 94, 70) && (InputObject->mouseButtons & 0x1)) {
-          *InputMask |= 0x10000;
+        if (mouseSelectHitTest(mouseX, mouseY, 1332, 497, 94, 70) && (InputObject->mouseButtons & MouseLeftClick)) {
+          *InputMask |= PAD1RIGHTSTICKUP;
         }
-        if (mouseSelectHitTest(mouseX, mouseY, 1332, 950, 94, 70) && (InputObject->mouseButtons & 0x1)) {
-          *InputMask |= 0x20000;
+        if (mouseSelectHitTest(mouseX, mouseY, 1332, 950, 94, 70) && (InputObject->mouseButtons & MouseLeftClick)) {
+          *InputMask |= PAD1RIGHTSTICKDOWN;
         }
 
         // Scroll choices with scroll wheel
         if (mouseHitTest(mouseX, mouseY, 883, 915, 986, 452)) {
-          if (InputObject->mouseButtonsHeld & 0x8) {
-            *InputMask |= 0x10000;
+          if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
+            *InputMask |= PAD1RIGHTSTICKUP;
           }
-          else if (InputObject->mouseButtonsHeld & 0x10) {
-            *InputMask |= 0x20000;
+          else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
+            *InputMask |= PAD1RIGHTSTICKDOWN;
           }
         }
       }
 
-      if (InputObject->mouseButtons & 0x2) {
-        *InputMask |= 0x2000;
+      if (InputObject->mouseButtons & MouseRightClick) {
+        *InputMask |= PAD1B;
       }
     }
 
@@ -1078,21 +1180,21 @@ namespace lb {
         int startLineIndex = *BacklogFirstFullDispLine > 0 ? *BacklogFirstFullDispLine - 1 : 0;
         for (int i = startLineIndex; i < *BacklogLastFullDispLine + 2; i++) {
           int lineY = (BacklogDispLinePosY[i] - *BacklogDispPos + 54 + BacklogDispLineSize[i] + 8) * 2;
-          if (menuButtonHitTest(i, mouseX, mouseY, 0, lineY, 1725, (BacklogDispLineSize[i] + 8) * 2, BacklogSelectedIndex) && (InputObject->mouseButtons & 0x1))
-            *InputMask |= 0x1000;
+          if (menuButtonHitTest(i, mouseX, mouseY, 0, lineY, 1725, (BacklogDispLineSize[i] + 8) * 2, BacklogSelectedIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
         }
 
-        if (InputObject->mouseButtonsHeld & 0x8) {
+        if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
           *BacklogDispPos = *BacklogDispPos <= 0 ? 0 : *BacklogDispPos - 48;
           gameExeBacklogRecalcMovement();
         }
-        else if (InputObject->mouseButtonsHeld & 0x10) {
+        else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
           *BacklogDispPos = *BacklogDispPos + 48 >= *BacklogDispPosMax - 388 ? *BacklogDispPosMax - 380 : *BacklogDispPos + 48;
           gameExeBacklogRecalcMovement();
         }
 
-        if (InputObject->mouseButtons & 0x2) {
-          *InputMask |= 0x2000;
+        if (InputObject->mouseButtons & MouseRightClick) {
+          *InputMask |= PAD1B;
         }
       } else {
         gameExeBacklogRecalcMovement();
@@ -1113,22 +1215,22 @@ namespace lb {
 
       if (!SliderMoving) {
         for (int i = 0; i < 15; i++) {
-          if (menuButtonHitTest(i, mouseX, mouseY, 0, 346 + (i * 44), 1870, 43, MusicModeCurrentIndex) && (InputObject->mouseButtons & 0x1))
-            *InputMask |= 0x1000;
+          if (menuButtonHitTest(i, mouseX, mouseY, 0, 346 + (i * 44), 1870, 43, MusicModeCurrentIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
         }
 
-        if (mouseSelectHitTest(mouseX, mouseY, 1532, 176, 258, 36) && (InputObject->mouseButtons & 0x1))
-          *InputMask |= 0x8000;
+        if (mouseSelectHitTest(mouseX, mouseY, 1532, 176, 258, 36) && (InputObject->mouseButtons & MouseLeftClick))
+          *InputMask |= PAD1Y;
 
-        if (InputObject->mouseButtonsHeld & 0x8) {
+        if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
           *MusicModeStartIndex = *MusicModeStartIndex == 0 ? 0 : *MusicModeStartIndex - 1;
         }
-        else if (InputObject->mouseButtonsHeld & 0x10) {
+        else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
           *MusicModeStartIndex = *MusicModeStartIndex == 31 ? 31 : *MusicModeStartIndex + 1;
         }
 
-        if (InputObject->mouseButtons & 0x2) {
-          *InputMask |= 0x2000;
+        if (InputObject->mouseButtons & MouseRightClick) {
+          *InputMask |= PAD1B;
         }
       }
     }
@@ -1142,22 +1244,22 @@ namespace lb {
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
       
-      if (menuButtonHitTest(0, mouseX, mouseY, 1, 269, 478, 268, &gameExeScrWork[6383]) ||
-          menuButtonHitTest(1, mouseX, mouseY, 481, 269, 478, 268, &gameExeScrWork[6383]) ||
-          menuButtonHitTest(2, mouseX, mouseY, 1441, 269, 478, 268, &gameExeScrWork[6383]) ||
-          menuButtonHitTest(3, mouseX, mouseY, 1441, 541, 478, 268, &gameExeScrWork[6383]) ||
-          menuButtonHitTest(4, mouseX, mouseY, 481, 812, 478, 268, &gameExeScrWork[6383]) ||
-          menuButtonHitTest(5, mouseX, mouseY, 962, 812, 478, 268, &gameExeScrWork[6383]) ||
-          menuButtonHitTest(6, mouseX, mouseY, 1, 1080, 478, 268, &gameExeScrWork[6383]) ||
-          menuButtonHitTest(7, mouseX, mouseY, 962, 1080, 478, 268, &gameExeScrWork[6383]) ||
-          menuButtonHitTest(8, mouseX, mouseY, 1441, 1080, 478, 268, &gameExeScrWork[6383])) {
-        if (InputObject->mouseButtons & 0x1) {
-          *InputMask |= 0x1000;
+      if (menuButtonHitTest(0, mouseX, mouseY, 1, 269, 478, 268, &gameExeScrWork[SW_POKECOMSELNO]) ||
+          menuButtonHitTest(1, mouseX, mouseY, 481, 269, 478, 268, &gameExeScrWork[SW_POKECOMSELNO]) ||
+          menuButtonHitTest(2, mouseX, mouseY, 1441, 269, 478, 268, &gameExeScrWork[SW_POKECOMSELNO]) ||
+          menuButtonHitTest(3, mouseX, mouseY, 1441, 541, 478, 268, &gameExeScrWork[SW_POKECOMSELNO]) ||
+          menuButtonHitTest(4, mouseX, mouseY, 481, 812, 478, 268, &gameExeScrWork[SW_POKECOMSELNO]) ||
+          menuButtonHitTest(5, mouseX, mouseY, 962, 812, 478, 268, &gameExeScrWork[SW_POKECOMSELNO]) ||
+          menuButtonHitTest(6, mouseX, mouseY, 1, 1080, 478, 268, &gameExeScrWork[SW_POKECOMSELNO]) ||
+          menuButtonHitTest(7, mouseX, mouseY, 962, 1080, 478, 268, &gameExeScrWork[SW_POKECOMSELNO]) ||
+          menuButtonHitTest(8, mouseX, mouseY, 1441, 1080, 478, 268, &gameExeScrWork[SW_POKECOMSELNO])) {
+        if (InputObject->mouseButtons & MouseLeftClick) {
+          *InputMask |= PAD1A;
         }
       }
 
-      if (InputObject->mouseButtons & 0x2) {
-        *InputMask |= 0x2000;
+      if (InputObject->mouseButtons & MouseRightClick) {
+        *InputMask |= PAD1B;
       }
     }
 
@@ -1170,22 +1272,23 @@ namespace lb {
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
 
-      if (InputObject->mouseButtonsHeld & 0x1) {
+      // 2000 is just an arbitrary speed multiplier
+      if (InputObject->mouseButtonsHeld & MouseLeftClick) {
         *AlbumCGX -= InputObject->mouseXAxis * 2000;
         *AlbumCGY -= InputObject->mouseYAxis * 2000;
       }
 
-      if (InputObject->mouseButtons1 & 0x1)
-        *InputMask |= 0x1000;
+      if (InputObject->mouseButtons1 & MouseLeftClick)
+        *InputMask |= PAD1A;
       
-      if (InputObject->mouseButtonsHeld & 0x8) {
+      if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
         *AlbumCGScale = *AlbumCGScale >= *AlbumCGScaleMax ? *AlbumCGScaleMax : *AlbumCGScale + 100;
-      } else if (InputObject->mouseButtonsHeld & 0x10) {
+      } else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
         *AlbumCGScale = *AlbumCGScale <= *AlbumCGScaleMin ? *AlbumCGScaleMin : *AlbumCGScale - 100;
       }
 
-      if (InputObject->mouseButtons & 0x2) {
-        *InputMask |= 0x2000;
+      if (InputObject->mouseButtons & MouseRightClick) {
+        *InputMask |= PAD1B;
       }
     }
 
@@ -1201,19 +1304,19 @@ namespace lb {
       int id = 0;
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 4; j++) {
-          if (menuButtonHitTest(id++, mouseX, mouseY, 88 + (j * 446), 396 + (i * 276), 410, 240, CGLibraryItemIndex) && (InputObject->mouseButtons & 0x1))
-            *InputMask2 |= 0x1000;
+          if (menuButtonHitTest(id++, mouseX, mouseY, 88 + (j * 446), 396 + (i * 276), 410, 240, CGLibraryItemIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask2 |= PAD1A;
         }
       }
       
-      if (InputObject->mouseButtonsHeld & 0x8) {
+      if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
         *CGLibraryPageIndex = *CGLibraryPageIndex == 0 ? 12 : *CGLibraryPageIndex - 1;
-      } else if (InputObject->mouseButtonsHeld & 0x10) {
+      } else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
         *CGLibraryPageIndex = *CGLibraryPageIndex == 12 ? 0 : *CGLibraryPageIndex + 1;
       }
 
-      if (InputObject->mouseButtons & 0x2) {
-        *InputMask |= 0x2000;
+      if (InputObject->mouseButtons & MouseRightClick) {
+        *InputMask |= PAD1B;
       }
     }
 
@@ -1239,38 +1342,38 @@ namespace lb {
       if (!SliderMoving) {
         int count = TipsMenuTabTipCount[*TipsMenuCurrentTab] > 19 ? 19 : TipsMenuTabTipCount[*TipsMenuCurrentTab];
         for (int i = 0; i < count; i++) {
-          if (menuButtonHitTest(i, mouseX, mouseY, 97, 215 + (i * 44), 534, 43, TipsMenuSelectedIndex) && (InputObject->mouseButtons & 0x1))
-            *InputMask |= 0x1000;
+          if (menuButtonHitTest(i, mouseX, mouseY, 97, 215 + (i * 44), 534, 43, TipsMenuSelectedIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
         }
 
         for (int i = 0; i < 4; i++) {
           if (TipsMenuTabTipCount[i]) {
-            if (mouseSelectHitTest(mouseX, mouseY, 94 + (i * 144), 116, 140, 35) && (InputObject->mouseButtons & 0x1))
+            if (mouseSelectHitTest(mouseX, mouseY, 94 + (i * 144), 116, 140, 35) && (InputObject->mouseButtons & MouseLeftClick))
               *TipsMenuCurrentTab = i;
           }
         }
 
         int maxStartIndex = TipsMenuTabTipCount[*TipsMenuCurrentTab] - 19;
         if ((TipsMenuTabTipCount[*TipsMenuCurrentTab] > 19) && mouseHitTest(mouseX, mouseY, 97, 1013, 560, 890)) {
-          if (InputObject->mouseButtonsHeld & 0x8) {
+          if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
             *TipsMenuStartIndex = *TipsMenuStartIndex == 0 ? 0 : *TipsMenuStartIndex - 1;
           }
-          else if (InputObject->mouseButtonsHeld & 0x10) {
+          else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
             *TipsMenuStartIndex = *TipsMenuStartIndex == maxStartIndex ? maxStartIndex : *TipsMenuStartIndex + 1;
           }
         }
 
         if ((*TipMenuTipTextHeight > 370) && mouseHitTest(mouseX, mouseY, 664, 1013, 1100, 788)) {
-          if (InputObject->mouseButtonsHeld & 0x8) {
+          if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
             *TipsMenuTipTextStartOffset = (*TipsMenuTipTextStartOffset - 20) <= 0 ? 0 : *TipsMenuTipTextStartOffset - 20;
           }
-          else if (InputObject->mouseButtonsHeld & 0x10) {
+          else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
             *TipsMenuTipTextStartOffset = (*TipsMenuTipTextStartOffset + 20) > (*TipMenuTipTextHeight - 370) ? *TipMenuTipTextHeight - 370 : *TipsMenuTipTextStartOffset + 20;
           }
         }
 
-        if (InputObject->mouseButtons & 0x2) {
-          *InputMask |= 0x2000;
+        if (InputObject->mouseButtons & MouseRightClick) {
+          *InputMask |= PAD1B;
         }
       }
     }
@@ -1285,12 +1388,12 @@ namespace lb {
       int mouseY = InputObject->scaledMouseY;
       
       for (int i = 0; i < 11; i++) {
-        if (menuButtonHitTest(i, mouseX, mouseY, 0, 289 + (i * 58), 626, 40, &gameExeScrWork[3338]) && (InputObject->mouseButtons & 0x1))
-          *InputMask |= 0x1000;
+        if (menuButtonHitTest(i, mouseX, mouseY, 0, 289 + (i * 58), 626, 40, &gameExeScrWork[SW_SYSMENUSELNO]) && (InputObject->mouseButtons & MouseLeftClick))
+          *InputMask |= PAD1A;
       }
 
-      if (InputObject->mouseButtons & 0x2) {
-        *InputMask |= 0x2000;
+      if (InputObject->mouseButtons & MouseRightClick) {
+        *InputMask |= PAD1B;
       }
     }
     return gameExeInstSystemMenuReal(thread);
@@ -1327,20 +1430,20 @@ namespace lb {
       
       switch (*selNumVar) {
         case 1: {
-          if (menuButtonHitTest(1, mouseX, mouseY, 1225, buttonY, 158, 39, selIndexVar) && (InputObject->mouseButtons & 0x1))
-            *InputMask |= 0x1000;
+          if (menuButtonHitTest(1, mouseX, mouseY, 1225, buttonY, 158, 39, selIndexVar) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
         } break;
         case 2: {
           if (menuButtonHitTest(0, mouseX, mouseY, 1057, buttonY, 158, 39, selIndexVar) ||
               menuButtonHitTest(1, mouseX, mouseY, 1225, buttonY, 158, 39, selIndexVar))
-            if (InputObject->mouseButtons & 0x1) {
-              *InputMask |= 0x1000;
+            if (InputObject->mouseButtons & MouseLeftClick) {
+              *InputMask |= PAD1A;
             }
         } break;
       }
 
-      if (InputObject->mouseButtons & 0x2) {
-        *InputMask |= 0x2000;
+      if (InputObject->mouseButtons & MouseRightClick) {
+        *InputMask |= PAD1B;
       }
     }
 
@@ -1363,47 +1466,47 @@ namespace lb {
         int id = 0;
         for (int i = 0; i < 6; i++) {
           for (int j = 0; j < 7; j++) {
-            if (menuButtonHitTest(id++, mouseX, mouseY, 330 + (j * 211), 322 + (i * 130), 206, 127, selIndexVar) && (InputObject->mouseButtons & 0x1))
-              *InputMask |= 0x1000;
+            if (menuButtonHitTest(id++, mouseX, mouseY, 330 + (j * 211), 322 + (i * 130), 206, 127, selIndexVar) && (InputObject->mouseButtons & MouseLeftClick))
+              *InputMask |= PAD1A;
           }
         }
       
         if (!*DataCollectionMode) {
           // Page switch Left/Right buttons
-          if ((*DailyRecordsPageIndex != 0) && mouseSelectHitTest(mouseX, mouseY, 261, 564, 60, 89) && (InputObject->mouseButtons & 0x1)) {
-            *InputMask2 |= 0x100;
+          if ((*DailyRecordsPageIndex != 0) && mouseSelectHitTest(mouseX, mouseY, 261, 564, 60, 89) && (InputObject->mouseButtons & MouseLeftClick)) {
+            *InputMask2 |= PAD1L1;
           }
-          if ((*DailyRecordsPageIndex < (*DailyRecordsUnlockedPages - 1)) && mouseSelectHitTest(mouseX, mouseY, 1804, 564, 60, 89) && (InputObject->mouseButtons & 0x1)) {
-            *InputMask2 |= 0x200;
+          if ((*DailyRecordsPageIndex < (*DailyRecordsUnlockedPages - 1)) && mouseSelectHitTest(mouseX, mouseY, 1804, 564, 60, 89) && (InputObject->mouseButtons & MouseLeftClick)) {
+            *InputMask2 |= PAD1R1;
           }
 
           // Page switch with scroll wheel
-          if (InputObject->mouseButtonsHeld & 0x8) {
-            *InputMask2 |= 0x100;
+          if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
+            *InputMask2 |= PAD1L1;
           }
-          else if (InputObject->mouseButtonsHeld & 0x10) {
-            *InputMask2 |= 0x200;
+          else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
+            *InputMask2 |= PAD1R1;
           }
         }
       } else { // Save/Load
         int id = 0;
         for (int i = 0; i < 2; i++) {
           for (int j = 0; j < 4; j++) {
-            if (menuButtonHitTest(id++, mouseX, mouseY, 98 + (i * 890), 327 + (j * 220), 840, 188, SelectedSaveEntryIndex) && (InputObject->mouseButtons & 0x1))
-              *InputMask |= 0x1000;
+            if (menuButtonHitTest(id++, mouseX, mouseY, 98 + (i * 890), 327 + (j * 220), 840, 188, SelectedSaveEntryIndex) && (InputObject->mouseButtons & MouseLeftClick))
+              *InputMask |= PAD1A;
           }
         }
       
         // Page switch with scroll wheel
-        if (InputObject->mouseButtonsHeld & 0x8) {
+        if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
           *CurrentSaveMenuPage = *CurrentSaveMenuPage == 0 ? 5 : *CurrentSaveMenuPage - 1;
-        } else if (InputObject->mouseButtonsHeld & 0x10) {
+        } else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
           *CurrentSaveMenuPage = *CurrentSaveMenuPage == 5 ? 0 : *CurrentSaveMenuPage + 1;
         }
       }
 
-      if (InputObject->mouseButtons & 0x2) {
-        *InputMask |= 0x2000;
+      if (InputObject->mouseButtons & MouseRightClick) {
+        *InputMask |= PAD1B;
       }
     }
 
@@ -1419,13 +1522,18 @@ namespace lb {
       int id = 0;
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 4; j++) {
-          if (menuButtonHitTest(id++, mouseX, mouseY, 88 + (j * 446), 396 + (i * 276), 410, 240, MovieModeSelectionIndex) && (InputObject->mouseButtons & 0x1))
-            *InputMask2 |= 0x1000;
+          if (menuButtonHitTest(id++, mouseX, mouseY, 88 + (j * 446), 396 + (i * 276), 410, 240, MovieModeSelectionIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask2 |= PAD1A;
         }
       }
 
-      if (InputObject->mouseButtons & 0x2) {
-        *InputMask |= 0x2000;
+      if (InputObject->mouseButtons & MouseRightClick) {
+        // Yeah you need both, one to get the back sound effect
+        // and the other to actually back out
+        // why? good question
+
+        *InputMask |= PAD1B;
+        *InputMask2 |= PAD1B;
       }
     }
 
@@ -1440,7 +1548,7 @@ namespace lb {
       int* selIndexVar = TitleMenuSelectionIndex;
       // Number of main menu items
       // Flag 821 means Phase 09 menu item has been unlocked
-      int numItems = 6 + gameExeGetFlag(821);
+      int numItems = 6 + gameExeGetFlag(OPEN_START2);
       if (*SubMenuSelIndex) {
         switch (*SubMenuSelIndex) {
           case 1: {
@@ -1451,20 +1559,20 @@ namespace lb {
             selIndexVar = ExtrasMenuSelIndex;
             // Get number of Extras menu items based on unlocked menus
             // Flags: 860 - Album, 863 - Movie, 864 - Sound
-            numItems = 2 + (gameExeGetFlag(860) + gameExeGetFlag(863) + gameExeGetFlag(864));
+            numItems = 2 + (gameExeGetFlag(ALBUM_ENA) + gameExeGetFlag(MOVIE_ENA) + gameExeGetFlag(MUSIC_ENA));
           } break;
         }
       }
       
       if (!*TitleSubMenuAnimCounter) {
         for (int i = 0; i < numItems; i++) {
-          if (menuButtonHitTest(i, mouseX, mouseY, 0, 266 + (i * 76), 835, 52, selIndexVar) && (InputObject->mouseButtons & 0x1))
-            *InputMask |= 0x1000;
+          if (menuButtonHitTest(i, mouseX, mouseY, 0, 266 + (i * 76), 835, 52, selIndexVar) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
         }
       }
 
-      if (InputObject->mouseButtons & 0x2) {
-        *InputMask |= 0x2000;
+      if (InputObject->mouseButtons & MouseRightClick) {
+        *InputMask |= PAD1B;
       }
     }
 
@@ -1474,7 +1582,7 @@ namespace lb {
   int __fastcall mgsInputExecuteServerHook(MgsInputObj_t* pThis) {
     int ret = gameExeMgsInputExecuteServerReal(pThis);
 
-    if (!*MouseEnabled && pThis->mouseFocused && (InputObject->mouseButtons & 0x1)) {
+    if (!*MouseEnabled && pThis->mouseFocused && (InputObject->mouseButtons & MouseLeftClick)) {
       InputObject->mouseButtons = 0;
       *MouseEnabled = 1;
       AutoSkipAlphaStep = 32;
@@ -1500,35 +1608,38 @@ namespace lb {
     int ret = gameExePADmainReal();
 
     if (*MouseEnabled && !LockMouseControls) {
-      if (InputObject->mouseButtons & 0x1) {
-        if (gameExeScrWork[2113] & 1) {
-          if (!mouseHitTest(InputObject->scaledMouseX, InputObject->scaledMouseY, 13, 1064, 270, 40)) {
-            *InputMask |= 0x1000;
+      // ScrWork[SW_GAMEMODE] & 1 is the main novel mode
+
+      if (InputObject->mouseButtons & MouseLeftClick) {
+        if (gameExeScrWork[SW_GAMEMODE] & 1) {
+          if (!mouseHitTest(InputObject->scaledMouseX, InputObject->scaledMouseY, 13, 1064, 270, 40) &&
+             (!mouseSelectHitTest(InputObject->scaledMouseX, InputObject->scaledMouseY, 1246, 153, 674, 86) && gameExeGetFlag(CALENDAR_DISP))) {
+            *InputMask |= PAD1A;
           }
         } else {
-          *InputMask |= 0x1000;
+          *InputMask |= PAD1A;
         }
       }
 
-      if ((InputObject->mouseButtons & 0x1) && gameExeGetFlag(1234) && gameExeScrWork[2113] & 1) {
-        *InputMask |= 0x200;
+      if ((InputObject->mouseButtons & MouseLeftClick) && gameExeGetFlag(SF_MESALLSKIP) && gameExeScrWork[SW_GAMEMODE] & 1) {
+        *InputMask |= PAD1R1;
       }
       
-      if (InputObject->mouseButtons & 0x2) {
-        if (gameExeScrWork[2113] & 1)
-          *InputMask |= 0x10;
+      if (InputObject->mouseButtons & MouseRightClick) {
+        if (gameExeScrWork[SW_GAMEMODE] & 1)
+          *InputMask |= PAD1START;
         else
-          *InputMask |= 0x2000;
+          *InputMask |= PAD1B;
       }
 
-      if (InputObject->mouseButtons & 0x4 && gameExeScrWork[2113] & 1) {
-        *InputMask |= 0x800;
+      if (InputObject->mouseButtons & MouseMiddleClick && gameExeScrWork[SW_GAMEMODE] & 1) {
+        *InputMask |= PAD1R2;
       }
       
-      if (InputObject->mouseButtons & 0x8) {
-        *InputMask |= 0x8000;
-      } else if (InputObject->mouseButtons & 0x10) {
-        *InputMask |= 0x1000;
+      if (InputObject->mouseButtons & MouseScrollWheelUp) {
+        *InputMask |= PAD1Y;
+      } else if (InputObject->mouseButtons & MouseScrollWheelDown) {
+        *InputMask |= PAD1A;
       }
     }
 
