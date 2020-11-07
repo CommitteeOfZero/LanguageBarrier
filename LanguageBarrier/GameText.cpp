@@ -1014,14 +1014,15 @@ namespace lb {
 	void fixLeadingZeroes()
 	{
 		static char* dateTime = "%04d/%02d/%02d %02d:%02d:%02d";
-		static char* dateTime2 = "%010d";
+		static char* dateTime2 = "%10d";
+		static char* dateTime3 = "%010d";
 
 		int leadingZeroFixAddr1=sigScan("game", "leadingZeroFix1");
 		int leadingZeroFixAddr2=sigScan("game", "leadingZeroFix2");
 		int leadingZeroFixAddr3=sigScan("game", "leadingZeroFix3");
 
 		memcpy_perms((void*)leadingZeroFixAddr1, &dateTime2, sizeof(char*));
-		memcpy_perms((void*)leadingZeroFixAddr2, &dateTime2, sizeof(char*));
+		memcpy_perms((void*)leadingZeroFixAddr2, &dateTime3, sizeof(char*));
 		memcpy_perms((void*)leadingZeroFixAddr3, &dateTime, sizeof(char*));
 
 
