@@ -41,7 +41,7 @@ struct FontGlyph {
 	template <class Archive>
 	void serialize(Archive& ar)
 	{
-		ar(x, y, advance,top,left,rows,width);
+		ar(x, y, advance, top, left, rows, width);
 	}
 
 
@@ -86,7 +86,7 @@ struct GlyphMap {
 	template <class Archive>
 	void serialize(Archive& ar)
 	{
-		ar(glyphMap,outlineMap);
+		ar(glyphMap, outlineMap);
 	}
 
 
@@ -126,6 +126,11 @@ enum FontType {
 	Italics
 };
 
+enum FontDataLanguage :uint8_t {
+	JP = 0,
+	EN = 1
+};
+
 
 struct FontData {
 	int size;
@@ -138,13 +143,15 @@ struct FontData {
 	ID3D11ShaderResourceView* fontShaderRscView;
 	ID3D11Texture2D* outlineTexturePtr;
 	ID3D11ShaderResourceView* outlineShaderRscView;
+	FontDataLanguage lang = EN;
+
 
 	FontGlyph* getGlyphInfo(int id, FontType type);
 	FontGlyph* getGlyphInfoByChar(wchar_t character, FontType type);
 	template <class Archive>
 	void serialize(Archive& ar)
 	{
-		ar(glyphData);
+		ar(lang, glyphData);
 	}
 
 
@@ -169,7 +176,7 @@ struct TextRendering
 	uint8_t originalWidth2[32000];
 	uint8_t* widthData;
 	uint8_t* widthData2;
-	void Init(void* widthData, void* widthData2);
+	void Init(void* widthData, void* widthData2, FontDataLanguage language);
 	void buildFont(int fontSize, bool measure);
 
 	void initFT(int fontSize);
@@ -212,6 +219,7 @@ struct TextRendering
 
 
 
+	FontDataLanguage language;
 };
 
 

@@ -41,9 +41,9 @@ void TextRendering::enableReplacement()
 {
 	this->enabled = true;
 	for (int i = 0; i < 351; i++) {
-		this->widthData[i] = this->getFont(32,true)->getGlyphInfo(i, FontType::Regular)->advance;
+		this->widthData[i] = this->getFont(32, true)->getGlyphInfo(i, FontType::Regular)->advance;
 		this->widthData2[i] = this->getFont(32, true)->getGlyphInfo(i, FontType::Regular)->advance;
-		
+
 	}
 	this->widthData[0] = lb::config["patch"]["spaceWidthPixels"].get<uint16_t>();
 	this->widthData[lb::config["gamedef"]["glyphIdFullwidthSpace"].get<uint16_t>()] = lb::config["patch"]["spaceWidthPixels"].get<uint16_t>();;
@@ -52,7 +52,16 @@ void TextRendering::enableReplacement()
 TextRendering::TextRendering()
 {
 
-	auto charset=lb::config["patch"]["charset"].get<std::string>();
+
+}
+
+void TextRendering::Init(void* widthData, void* widthData2, FontDataLanguage language)
+{
+
+
+
+
+	auto charset = lb::config["patch"]["charset"].get<std::string>();
 	this->fontPath = lb::config["patch"]["fontPath"].get<std::string>();
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 	fullCharMap = converter.from_bytes(charset.c_str());
@@ -61,23 +70,20 @@ TextRendering::TextRendering()
 	currentCharMap = &fullCharMap;
 	this->buildFont(32, true);
 
-	
+	this->language = language;
+
 
 	filteredCharMap.reserve(fullCharMap.length());
 	initFT(32);
 	for (int i = 0; i < fullCharMap.length(); i++) {
 		int glyph_index = FT_Get_Char_Index(this->ftFace, fullCharMap[i]);
 
-		if (glyph_index && !(fullCharMap[i] >= 0x4E00 && fullCharMap[i] <= 0x9faf) && filteredCharMap.find(fullCharMap[i]) == currentCharMap->npos)
+		if (glyph_index && (!(fullCharMap[i] >= 0x4E00 && fullCharMap[i] <= 0x9faf) || language == JP) && filteredCharMap.find(fullCharMap[i]) == currentCharMap->npos)
 			filteredCharMap.push_back(fullCharMap[i]);
 	}
 	currentCharMap = &filteredCharMap;
 
 	this->NUM_GLYPHS = filteredCharMap.length();
-}
-
-void TextRendering::Init(void* widthData, void* widthData2)
-{
 	memcpy(originalWidth, widthData, 351);
 	memcpy(originalWidth2, widthData2, 351);
 	this->widthData = (uint8_t*)widthData;
@@ -91,7 +97,6 @@ void TextRendering::Init(void* widthData, void* widthData2)
 	this->fontData.erase(32);
 	this->widthData[0] = lb::config["patch"]["spaceWidthPixels"].get<uint16_t>();
 	this->widthData[lb::config["gamedef"]["glyphIdFullwidthSpace"].get<uint16_t>()] = lb::config["patch"]["spaceWidthPixels"].get<uint16_t>();;
-
 }
 
 struct TextSize {
@@ -108,6 +113,7 @@ void TextRendering::buildFont(int fontSize, bool measure)
 
 	this->fontData[fontSize] = FontData();
 	auto  fontData = &this->fontData[fontSize];
+	fontData->lang = this->language;
 	NUM_GLYPHS = currentCharMap->length();
 	if (!measure) {
 		fontData->fontTexture.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_A8_UNORM, FONT_CELL_SIZE * GLYPHS_PER_ROW, FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW), 1, 1);
@@ -192,7 +198,7 @@ void TextRendering::buildFont(int fontSize, bool measure)
 	int cellSize = FONT_CELL_SIZE / num;
 
 	FT_Set_Pixel_Sizes(this->ftFace, 0, fontSize / num);
-	
+
 	if (this->fontData.find(fontSize / num) == this->fontData.end()) {
 		this->fontData[fontSize / num] = FontData();
 		fontData = &this->fontData[fontSize / num];
@@ -236,7 +242,7 @@ void TextRendering::buildFont(int fontSize, bool measure)
 					memcpy(&rgbaPixels[GLYPHS_PER_ROW * cellSize * (j + y * cellSize) + cellSize * x], &glyph->data[j * FONT_CELL_SIZE], glyph->width);
 				}
 				characterCount++;
-					delete  glyph->data;
+				delete  glyph->data;
 				glyph->data = nullptr;
 
 			}
@@ -389,43 +395,60 @@ void TextRendering::loadCache()
 	std::ifstream os("LanguageBarrier/fonts/fontData.bin", std::ios::binary);
 	if (!os.fail()) {
 		cereal::BinaryInputArchive archive(os);
-		archive(this->fontData);
-		for (auto it = fontData.begin(); it != fontData.end(); it++) {
+		try {
+			archive(this->fontData);
 
-			wchar_t fileName[260];
-			int size = it->first;
-			wsprintf(fileName, L"languagebarrier/fonts/font_%02d.dds", it->first);
-			auto g = DirectX::LoadFromDDSFile(fileName, DirectX::DDS_FLAGS::DDS_FLAGS_NONE, nullptr, this->fontData[size].fontTexture);
-			if (g != S_OK) {
-				this->fontData.clear();
-				return;
+
+
+			for (auto it = fontData.begin(); it != fontData.end(); it++) {
+
+				if (it->second.lang != TextRendering::Get().language) {
+					lb::LanguageBarrierLog("Font cache language mismatch, clearing font cache");
+
+					fontData.clear();
+					TextRendering::Get().saveCache();
+					return;
+				}
+
+				wchar_t fileName[260];
+				int size = it->first;
+				wsprintf(fileName, L"languagebarrier/fonts/font_%02d.dds", it->first);
+				auto g = DirectX::LoadFromDDSFile(fileName, DirectX::DDS_FLAGS::DDS_FLAGS_NONE, nullptr, this->fontData[size].fontTexture);
+				if (g != S_OK) {
+					this->fontData.clear();
+					return;
+				}
+				wsprintf(fileName, L"languagebarrier/fonts/outline_%02d.dds", it->first);
+				g = DirectX::LoadFromDDSFile(fileName, DirectX::DDS_FLAGS::DDS_FLAGS_NONE, nullptr, this->fontData[size].outlineTexture);
+				if (g != S_OK) {
+					this->fontData.clear();
+
+					return;
+				}
+				const auto fontData = &this->fontData[size];
+				loadTexture(size);
+				DirectX::ScratchImage dummy;
+				if (surfaceArray[FONT_TEXTURE_ID].texPtr[0] == nullptr) {
+					dummy.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_A8_UNORM, 1, 1, 1, 1);
+
+					SaveToDDSMemory(dummy.GetImages(), dummy.GetImageCount(), dummy.GetMetadata(), DirectX::DDS_FLAGS_NONE, fontData->texture);
+
+
+					lb::gameLoadTexture(FONT_TEXTURE_ID, fontData->texture.GetBufferPointer(), fontData->texture.GetBufferSize());
+				}
+				if (surfaceArray[OUTLINE_TEXTURE_ID].texPtr[0] == nullptr) {
+					dummy.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_A8_UNORM, 1, 1, 1, 1);
+					SaveToDDSMemory(dummy.GetImages(), dummy.GetImageCount(), dummy.GetMetadata(), DirectX::DDS_FLAGS_NONE, fontData->texture2);
+					lb::gameLoadTexture(OUTLINE_TEXTURE_ID, fontData->texture2.GetBufferPointer(), fontData->texture2.GetBufferSize());
+				}
+				fontData->fontTexture.Release();
+				fontData->outlineTexture.Release();
+
 			}
-			wsprintf(fileName, L"languagebarrier/fonts/outline_%02d.dds", it->first);
-			g = DirectX::LoadFromDDSFile(fileName, DirectX::DDS_FLAGS::DDS_FLAGS_NONE, nullptr, this->fontData[size].outlineTexture);
-			if (g != S_OK) {
-				this->fontData.clear();
-
-				return;
-			}
-			const auto fontData = &this->fontData[size];
-			loadTexture(size);
-			DirectX::ScratchImage dummy;
-			if (surfaceArray[FONT_TEXTURE_ID].texPtr[0] == nullptr) {
-				dummy.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_A8_UNORM, 1, 1, 1, 1);
-
-				SaveToDDSMemory(dummy.GetImages(), dummy.GetImageCount(), dummy.GetMetadata(), DirectX::DDS_FLAGS_NONE, fontData->texture);
-
-
-				lb::gameLoadTexture(FONT_TEXTURE_ID, fontData->texture.GetBufferPointer(), fontData->texture.GetBufferSize());
-			}
-			if (surfaceArray[OUTLINE_TEXTURE_ID].texPtr[0] == nullptr) {
-				dummy.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_A8_UNORM, 1, 1, 1, 1);
-				SaveToDDSMemory(dummy.GetImages(), dummy.GetImageCount(), dummy.GetMetadata(), DirectX::DDS_FLAGS_NONE, fontData->texture2);
-				lb::gameLoadTexture(OUTLINE_TEXTURE_ID, fontData->texture2.GetBufferPointer(), fontData->texture2.GetBufferSize());
-			}
-			fontData->fontTexture.Release();
-			fontData->outlineTexture.Release();
-
+		}
+		catch (std::exception e) {
+			lb::LanguageBarrierLog("Cannot load font cache " + std::string(e.what()));
+			return;
 		}
 	}
 	return;
@@ -473,7 +496,7 @@ void TextRendering::renderGlyph(FontData* fontData, uint16_t n, bool measure)
 
 	glyphData->advance = face->glyph->advance.x / 64;
 	if (n == ' ') {
-		glyphData->advance = 13 * fontData->size/32.0f;
+		glyphData->advance = 13 * fontData->size / 32.0f;
 	}
 	glyphData->rows = face->glyph->bitmap.rows;
 	glyphData->width = face->glyph->bitmap.width;
@@ -517,7 +540,7 @@ void TextRendering::RenderOutline(FontData* fontData, uint16_t n, bool measure)
 	glyphData->top = bitmapGlyph->top;
 	int diff = (glyphData->width - fontData->getGlyphInfoByChar(n, Regular)->width);
 	glyphData->advance = face->glyph->advance.x / 64 + diff;
-	
+
 
 	uint8_t* glyphBuffer = (uint8_t*)fontData->glyphData.outlineMap[n].data;
 	if (!measure) {
@@ -540,6 +563,7 @@ FontData* TextRendering::getFont(int height, bool measure)
 	this->FONT_CELL_SIZE = height * 1.33;
 	if (fontData.find(height) == fontData.end()) {
 		fontData[height] = FontData();
+
 		this->buildFont(height, measure);
 	}
 	if (fontData[height].fontTexturePtr == nullptr && !measure) {

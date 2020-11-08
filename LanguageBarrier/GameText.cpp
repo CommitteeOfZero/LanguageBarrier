@@ -124,6 +124,7 @@ int __cdecl gslFillHook(int id, int a1, int a2, int a3, int a4, int r, int g, in
 static uintptr_t gameExeRenderMode = NULL;
 static uintptr_t gameExeShaderPtr = NULL;
 static uintptr_t gameExeBlendMode = NULL;
+static int* gameExeLanguage = NULL;
 
 
 typedef int(__cdecl* drawTwipoContentHookProc)(int textureId, int a2, int a3, unsigned int a4, int a5, unsigned int a6, char* sc3, int a8, int a9, uint32_t opacity, int a11, int a12, int a13, int a14
@@ -534,7 +535,12 @@ namespace lb {
 		gameExeRenderMode = *(uintptr_t*)sigScan("game", "renderMode");
 		gameExeBlendMode = *(uintptr_t*)sigScan("game", "blendMode");
 		gameExeShaderPtr = *(uintptr_t*)sigScan("game", "shaderPtr");
+
+		gameExeLanguage = *(int**)sigScan("game", "CurrentLanguage");
+
+
 		fixSkipRN();
+
 
 
 
@@ -992,7 +998,7 @@ namespace lb {
 		fclose(widthsfile);
 		memcpy(gameExeGlyphWidthsFont1, widths, GLYPH_RANGE_FULLWIDTH_START);
 		memcpy(gameExeGlyphWidthsFont2, widths, GLYPH_RANGE_FULLWIDTH_START);*/
-		TextRendering::Get().Init(gameExeGlyphWidthsFont1, gameExeGlyphWidthsFont2);
+		TextRendering::Get().Init(gameExeGlyphWidthsFont1, gameExeGlyphWidthsFont2,(FontDataLanguage)*gameExeLanguage);
 
 
 	}
