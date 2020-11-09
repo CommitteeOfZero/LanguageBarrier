@@ -131,6 +131,7 @@ enum FlagWorkEnum {
   AR_SUPERMODE = 2817,
   Pokecom_ManualMode = 2903,
   Pokecom_Disable = 2904,
+  KRep_SearchMode = 3030
 };
 
 typedef int(__thiscall* MgsInputExecuteServerProc)(MgsInputObj_t* pThis);
@@ -290,6 +291,7 @@ int* TwipoData2 = NULL; //(int*)0x26FD7A0;
 int* ARNumberOfGeoTags = NULL; //(int*)0x996B0C;
 float* ARGeoTagsXYZCoords = NULL; //(float*)0x998BE0;
 int* ARSelectedGeoTag = NULL; //(int*)0x74CC94;
+int* ARPointingAtReport = NULL; //(int*)0x74CC88;
 int* ARDisplayedGeoTags = NULL; //(int*)0x74CB94;
 int* ARNumDisplayedGeoTags = NULL; //(int*)0x74CB90;
 int* ARSomeGeoTagArr = NULL; //(int*)0x999220;
@@ -527,6 +529,7 @@ namespace lb {
     ARNumberOfGeoTags = (int*)sigScan("game", "useOfARNumberOfGeoTags");
     ARGeoTagsXYZCoords = (float*)sigScan("game", "useOfARGeoTagsXYZCoords");
     ARSelectedGeoTag = (int*)sigScan("game", "useOfARSelectedGeoTag");
+    ARPointingAtReport = (int*)sigScan("game", "useOfARPointingAtReport");
     ARDisplayedGeoTags = (int*)sigScan("game", "useOfARDisplayedGeoTags");
     ARNumDisplayedGeoTags = (int*)sigScan("game", "useOfARNumDisplayedGeoTags");
     ARSomeGeoTagArr = (int*)sigScan("game", "useOfARSomeGeoTagArr");
@@ -948,6 +951,11 @@ namespace lb {
             gameExeScrWork[SW_GEOTAGSEL_ID] = ARSomeGeoTagArr[*ARSelectedGeoTag];
           }
         }
+      }
+
+      if (gameExeGetFlag(KRep_SearchMode) && *ARPointingAtReport) {
+        if (mouseSelectHitTest(mouseX, mouseY, 923, 581, 72, 70) && (InputObject->mouseButtons & MouseLeftClick))
+          *InputMask |= PAD1A;
       }
 
       int axisMultiplier = gameExeScrWork[SW_AR_ANGLE_C] / 500;
@@ -1430,7 +1438,7 @@ namespace lb {
       
       switch (*selNumVar) {
         case 1: {
-          if (menuButtonHitTest(1, mouseX, mouseY, 1225, buttonY, 158, 39, selIndexVar) && (InputObject->mouseButtons & MouseLeftClick))
+          if (menuButtonHitTest(0, mouseX, mouseY, 1225, buttonY, 158, 39, selIndexVar) && (InputObject->mouseButtons & MouseLeftClick))
             *InputMask |= PAD1A;
         } break;
         case 2: {
