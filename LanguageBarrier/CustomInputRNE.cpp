@@ -289,6 +289,8 @@ int* TwipoTweepCountInTabs = NULL; //(int*)0x2706450;
 int* TwipoDataPointers = NULL; //(int*)0x2706440;
 int* TwipoData1 = NULL; //(int*)0x26EBE34;
 int* TwipoData2 = NULL; //(int*)0x26FD7A0;
+float* TwipoReplyX = NULL;
+float* TwipoReplyY = NULL;
 
 int* ARNumberOfGeoTags = NULL; //(int*)0x996B0C;
 float* ARGeoTagsXYZCoords = NULL; //(float*)0x998BE0;
@@ -535,6 +537,8 @@ namespace lb {
     TwipoDataPointers = (int*)sigScan("game", "useOfTwipoDataPointers");
     TwipoData1 = (int*)sigScan("game", "useOfTwipoData1");
     TwipoData2 = (int*)sigScan("game", "useOfTwipoData2");
+    TwipoReplyX = (float*)sigScan("game", "useOfTwipoReplyButtonX");
+    TwipoReplyY = (float*)sigScan("game", "useOfTwipoReplyButtonY");
 
     ARNumberOfGeoTags = (int*)sigScan("game", "useOfARNumberOfGeoTags");
     ARGeoTagsXYZCoords = (float*)sigScan("game", "useOfARGeoTagsXYZCoords");
@@ -1126,6 +1130,12 @@ namespace lb {
         // Reply button
         int data = *(int*)(TwipoDataPointers[gameExeScrWork[SW_TWIPOCURTAB]] + 8 * gameExeScrWork[SW_TWIPOCURTW]);
         if ((TwipoData1[5 * data] != 0xFFFF) && TwipoData2[data]) {
+          DWORD oldProtect;
+          VirtualProtect(TwipoReplyY, 11, PAGE_READWRITE, &oldProtect);
+          *TwipoReplyX = 1096.0f;
+          *TwipoReplyY = 1540.0f;
+          VirtualProtect(TwipoReplyY, 11, oldProtect, &oldProtect);
+
           if (mouseSelectHitTest(mouseX, mouseY, 1533, 1052, 357, 118) && (InputObject->mouseButtons & MouseLeftClick)) {
             *InputMask |= PAD1A;
           }
@@ -1180,6 +1190,24 @@ namespace lb {
       if (InputObject->mouseButtons & MouseRightClick) {
         *InputMask |= PAD1B;
       }
+    }
+
+    if (gameExeScrWork[SW_TWIPOMODE] == 0) {
+      int data = *(int*)(TwipoDataPointers[gameExeScrWork[SW_TWIPOCURTAB]] + 8 * gameExeScrWork[SW_TWIPOCURTW]);
+      if ((TwipoData1[5 * data] != 0xFFFF) && TwipoData2[data]) {
+        DWORD oldProtect;
+        VirtualProtect(TwipoReplyY, 11, PAGE_READWRITE, &oldProtect);
+        *TwipoReplyX = 1096.0f;
+        *TwipoReplyY = 1540.0f;
+        VirtualProtect(TwipoReplyY, 11, oldProtect, &oldProtect);
+      }
+    }
+    else if (gameExeScrWork[SW_TWIPOMODE] == 1) {
+      DWORD oldProtect;
+      VirtualProtect(TwipoReplyY, 11, PAGE_READWRITE, &oldProtect);
+      *TwipoReplyX = 1474.0f;
+      *TwipoReplyY = 1540.0f;
+      VirtualProtect(TwipoReplyY, 11, oldProtect, &oldProtect);
     }
 
     return gameExeTwipoMainReal();
