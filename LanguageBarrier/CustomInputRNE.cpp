@@ -230,6 +230,8 @@ static InstHelpMenuProc gameExeInstHelpMenuReal = NULL;
 
 typedef void(__cdecl* PlaySEProc)(int);
 
+bool ScrollDownToAdvanceText = false;
+bool ScrollDownToCloseBacklog = true;
 bool PointedThisFrame = false;
 bool LockMouseControls = false;
 uint32_t CarryInputToTheNextFrame = 0;
@@ -469,6 +471,14 @@ namespace lb {
         config["patch"]["RNEMouseInput"].get<bool>() == false) {
         return true;
     }
+
+    if (config["patch"].count("ScrollDownToAdvanceText") == 1 &&
+        config["patch"]["ScrollDownToAdvanceText"].get<bool>() == true)
+      ScrollDownToAdvanceText = true;
+
+    if (config["patch"].count("ScrollDownToCloseBacklog") == 1 &&
+        config["patch"]["ScrollDownToCloseBacklog"].get<bool>() == false)
+      ScrollDownToCloseBacklog = false;
 
     ShowCursor(1);
 
@@ -1201,6 +1211,11 @@ namespace lb {
           gameExeBacklogRecalcMovement();
         }
 
+        if (ScrollDownToCloseBacklog && (*BacklogDispPos + 48 >= *BacklogDispPosMax - 388) 
+                                     && InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
+          *InputMask |= PAD1B;
+        }
+
         if (InputObject->mouseButtons & MouseRightClick) {
           *InputMask |= PAD1B;
         }
@@ -1646,7 +1661,9 @@ namespace lb {
       
       if (InputObject->mouseButtons & MouseScrollWheelUp) {
         *InputMask |= PAD1Y;
-      } else if (InputObject->mouseButtons & MouseScrollWheelDown) {
+      }
+
+      if (ScrollDownToAdvanceText && (InputObject->mouseButtons & MouseScrollWheelDown)) {
         *InputMask |= PAD1A;
       }
     }
