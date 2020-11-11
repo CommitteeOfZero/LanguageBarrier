@@ -1729,6 +1729,12 @@ namespace lb {
 
 		}
 
+		if (glyphSize == 63 && maxLineLength == 613) {
+
+			lineHeight = glyphSize * 1.25;
+
+		}
+
 		processSc3TokenList(startX, startY, lineLength, words, a5, color,
 			glyphSize, &str, true, COORDS_MULTIPLIER, -1,
 			NOT_A_LINK, color, lineHeight, &mData);
@@ -1884,9 +1890,9 @@ namespace lb {
 		int prevLineLength = 0;
 
 		int spaceCost =
-			TextRendering::Get().getFont(baseGlyphSize, true)->getGlyphInfo(GLYPH_ID_FULLWIDTH_SPACE, Regular)->advance;
+			TextRendering::Get().getFont(baseGlyphSize * 1.5f, true)->getGlyphInfo(GLYPH_ID_FULLWIDTH_SPACE, Regular)->advance;
 		int ellipsisCost =
-			TextRendering::Get().getFont(baseGlyphSize, true)->getGlyphInfoByChar('.', Regular)->advance *3;
+			TextRendering::Get().getFont(baseGlyphSize * 1.5f, true)->getGlyphInfoByChar('.', Regular)->advance *3+4;
 
 		MultiplierData multiplierData;
 		if (mData != NULL) {
@@ -1958,8 +1964,9 @@ namespace lb {
 					break;
 				default:
 					int glyphId = (uint8_t)sc3string[1] + ((c & 0x7f) << 8);
-					auto glyphWidth = addCharacter(result, baseGlyphSize, glyphId, lineCount, curLinkNumber, measureOnly, multiplier, xOffset, curLineLength, yOffset, currentColor, lineHeight, mData);
-
+					if (result->lines < lineCount - 1 || (result->lines == lineCount - 1 && curLineLength + ellipsisCost < lineLength)) {
+						auto glyphWidth = addCharacter(result, baseGlyphSize, glyphId, lineCount, curLinkNumber, measureOnly, multiplier, xOffset, curLineLength, yOffset, currentColor, lineHeight, mData);
+					}
 
 					sc3string += 2;
 					break;
