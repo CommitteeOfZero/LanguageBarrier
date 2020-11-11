@@ -1130,12 +1130,6 @@ namespace lb {
         // Reply button
         int data = *(int*)(TwipoDataPointers[gameExeScrWork[SW_TWIPOCURTAB]] + 8 * gameExeScrWork[SW_TWIPOCURTW]);
         if ((TwipoData1[5 * data] != 0xFFFF) && TwipoData2[data]) {
-          DWORD oldProtect;
-          VirtualProtect(TwipoReplyY, 11, PAGE_READWRITE, &oldProtect);
-          *TwipoReplyX = 1096.0f;
-          *TwipoReplyY = 1540.0f;
-          VirtualProtect(TwipoReplyY, 11, oldProtect, &oldProtect);
-
           if (mouseSelectHitTest(mouseX, mouseY, 1533, 1052, 357, 118) && (InputObject->mouseButtons & MouseLeftClick)) {
             *InputMask |= PAD1A;
           }
@@ -1192,7 +1186,9 @@ namespace lb {
       }
     }
 
+    // Read mode
     if (gameExeScrWork[SW_TWIPOMODE] == 0) {
+      //Tweep can be replied to check
       int data = *(int*)(TwipoDataPointers[gameExeScrWork[SW_TWIPOCURTAB]] + 8 * gameExeScrWork[SW_TWIPOCURTW]);
       if ((TwipoData1[5 * data] != 0xFFFF) && TwipoData2[data]) {
         DWORD oldProtect;
@@ -1202,7 +1198,7 @@ namespace lb {
         VirtualProtect(TwipoReplyY, 11, oldProtect, &oldProtect);
       }
     }
-    else if (gameExeScrWork[SW_TWIPOMODE] == 1) {
+    else if (gameExeScrWork[SW_TWIPOMODE] == 1) { // Reply mode
       DWORD oldProtect;
       VirtualProtect(TwipoReplyY, 11, PAGE_READWRITE, &oldProtect);
       *TwipoReplyX = 1474.0f;
