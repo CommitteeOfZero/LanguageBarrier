@@ -1226,6 +1226,11 @@ namespace lb {
             *InputMask |= PAD1A;
         }
 
+        if (ScrollDownToCloseBacklog && (*BacklogDispPos >= *BacklogDispPosMax - 380)
+          && InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
+          *InputMask |= PAD1B;
+        }
+
         if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
           *BacklogDispPos = *BacklogDispPos <= 0 ? 0 : *BacklogDispPos - 48;
           gameExeBacklogRecalcMovement();
@@ -1233,11 +1238,6 @@ namespace lb {
         else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
           *BacklogDispPos = *BacklogDispPos + 48 >= *BacklogDispPosMax - 388 ? *BacklogDispPosMax - 380 : *BacklogDispPos + 48;
           gameExeBacklogRecalcMovement();
-        }
-
-        if (ScrollDownToCloseBacklog && (*BacklogDispPos + 48 >= *BacklogDispPosMax - 388) 
-                                     && InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
-          *InputMask |= PAD1B;
         }
 
         if (InputObject->mouseButtons & MouseRightClick) {
