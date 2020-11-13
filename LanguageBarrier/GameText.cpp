@@ -1723,15 +1723,25 @@ namespace lb {
 		str.curLinkNumber = 0xFF;
 		int lineHeight = glyphSize;
 
+		//Twipo regular text
 		if (glyphSize == 55 && maxLineLength == 645) {
 
 			lineHeight = glyphSize * 1.25;
 
 		}
-
+		//Twipo reply 
 		if (glyphSize == 63 && maxLineLength == 613) {
 
 			lineHeight = glyphSize * 1.25;
+
+		} 
+
+		//Kimijima report list
+
+		if (glyphSize == 33 && maxLineLength == 138) {
+
+			glyphSize = 29;
+			mData.displayYOffset = -4.0f * glyphSize / 48.0f;
 
 		}
 
