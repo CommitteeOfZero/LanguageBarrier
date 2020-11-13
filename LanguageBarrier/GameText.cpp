@@ -2473,6 +2473,10 @@ namespace lb {
 					maskY = startY + maskYf;
 				LABEL_35:
 
+					if (str.displayStartY[i] > 120 && str.displayStartY[i] < 900) {
+						maskY = 38;
+					}
+
 					gameExeSg0DrawGlyph2(
 						TextRendering::Get().FONT_TEXTURE_ID, maskId, str.textureStartX[i], str.textureStartY[i],
 						str.textureWidth[i], str.textureHeight[i],
