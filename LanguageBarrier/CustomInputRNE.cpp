@@ -1093,7 +1093,13 @@ namespace lb {
         // 6481 - Number of docs unlocked
         // 6479 - Currently selected doc
         for (int i = 0; i < gameExeScrWork[SW_DOC_UNLOCKEDNUM]; i++) {
-          if (menuButtonHitTest(i, mouseX, mouseY, 72 + (i * 232), 346, 232, 207, &gameExeScrWork[SW_DOC_SELECTED]) && (InputObject->mouseButtons & MouseLeftClick))
+          int j = 0;
+          int r = i;
+          if (i > 5) {
+            r = i - 6;
+            j = 1;
+          }
+          if (menuButtonHitTest(i, mouseX, mouseY, 72 + (r * 232), 346 + (j * 334), 232, 207, &gameExeScrWork[SW_DOC_SELECTED]) && (InputObject->mouseButtons & MouseLeftClick))
             *InputMask |= PAD1A;
         }
       } else if (gameExeScrWork[SW_DOC_MODE] == 1) { // Doc mode - reading
