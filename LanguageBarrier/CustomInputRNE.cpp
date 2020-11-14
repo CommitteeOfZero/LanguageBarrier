@@ -713,7 +713,7 @@ namespace lb {
         AutoSkipAlpha = 0;
       }
 
-      if (!gameExeGetFlag(2904) && gameExeGetFlag(2640)) {
+      if (!gameExeGetFlag(Pokecom_Disable) && gameExeGetFlag(CALENDAR_DISP)) {
         if (mouseSelectHitTest(mouseX, mouseY, 1246, 153, 674, 86) && (InputObject->mouseButtons & MouseLeftClick))
           CarryInputToTheNextFrame |= PAD1R2;
       }
@@ -732,7 +732,7 @@ namespace lb {
       if (mouseSelectHitTest(mouseX, mouseY, 152, 1064, 128, 38)) {
         drawSpriteHook(80, 3944.0f, 1937.0f, 135.0f, 45.0f, 147.0f, 1022.0f, 0xFFFFFF, alpha, 1);
         if (InputObject->mouseButtons & MouseLeftClick) {
-          if (gameExeGetFlag(SW_AR_ROTMAX))
+          if (gameExeGetFlag(SF_MESALLSKIP))
             CarryInputToTheNextFrame |= PAD1B;
           else
             CarryInputToTheNextFrame |= PAD1R1;
