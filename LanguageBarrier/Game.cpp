@@ -35,6 +35,7 @@ static MpkConstructorProc gameExeMpkConstructor = NULL;
 typedef int(__cdecl* MountArchiveProc)(int id, const char* mountPoint,
 	const char* archiveName, int unk01);
 static MountArchiveProc gameExeMountArchive = NULL;
+static MountArchiveProc gameExeMountArchiveReal = NULL;
 
 typedef int(__thiscall* CloseAllSystemsProc)(void* pThis);
 static CloseAllSystemsProc gameExeCloseAllSystems = NULL;
@@ -299,6 +300,8 @@ namespace lb {
 	BOOL __cdecl openMyGamesHook(char* outPath);
 	int __cdecl SNDgetPlayLevelHook(int a1);
 	int __cdecl PadUpdateDeviceHook();
+	int __cdecl mountArchiveHook(int id, const char* mountPoint,
+                               const char* archiveName, int unk01);
 
 	void gameInit() {
 		std::ifstream in("languagebarrier\\stringReplacementTable.bin",
@@ -331,7 +334,9 @@ namespace lb {
 			gameExeMpkConstructor = (MpkConstructorProc)sigScan("game", "mpkConstructor");
 		}
 		else if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "cri") {
-			gameExeMountArchive = (MountArchiveProc)sigScan("game", "mountArchive");
+			if (!scanCreateEnableHook("game", "mountArchive", (uintptr_t*)&gameExeMountArchive,
+				  (LPVOID)mountArchiveHook, (LPVOID*)&gameExeMountArchiveReal))
+				return;
 		}
 
 		gameExeGetFlag = (GetFlagProc)sigScan("game", "getFlag");
@@ -492,7 +497,7 @@ namespace lb {
 			}
 			else if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "cri") {
 				// 15 is just a random ID, let's hope it won't ever get used
-				int ret = gameExeMountArchive(C0DATA_MOUNT_ID, "C0DATA", "languagebarrier\\C0DATA", 0);
+				int ret = gameExeMountArchiveReal(C0DATA_MOUNT_ID, "C0DATA", "languagebarrier\\C0DATA", 0);
 				LanguageBarrierLog("c0data mounted");
 
 				c0dataCpk = &gameExeFileObjects[C0DATA_MOUNT_ID];
@@ -571,6 +576,25 @@ namespace lb {
 		}
 
 		return gameExeMpkFopenByIdReal(pThis, mpk, fileId, unk3);
+	}
+
+	int __cdecl mountArchiveHook(int id, const char* mountPoint,
+		                           const char* archiveName, int unk01) {
+		if (config["patch"].count("archiveRedirection") == 1 &&
+			config["patch"]["archiveRedirection"].count(mountPoint) == 1) {
+			std::stringstream newPath;
+			newPath
+				<< "languagebarrier\\"
+				<< config["patch"]["archiveRedirection"][mountPoint].get<std::string>();
+
+			std::stringstream logstr;
+			logstr << "redirecting physical fopen " << mountPoint << " to " << newPath.str();
+			LanguageBarrierLog(logstr.str());
+
+			return gameExeMountArchiveReal(id, mountPoint, newPath.str().c_str(), unk01);
+		}
+
+		return gameExeMountArchiveReal(id, mountPoint, archiveName, unk01);
 	}
 
 	int __fastcall mgsFileOpenHook(mgsFileLoader* pThis, void* dummy, int unused) {
