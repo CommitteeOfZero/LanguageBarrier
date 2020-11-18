@@ -1698,7 +1698,6 @@ namespace lb {
 	int __cdecl drawTwipoContentHook(int textureId, int startX, int startY, unsigned int maxLineLength, int a5, unsigned int a6, char* sc3, int color, int glyphSize, uint32_t opacity, int linkColor, int a12, int a13, int a14) {
 
 		// if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
-		int lineLength = maxLineLength * 1.5;
 		std::list<StringWord_t> words;
 
 
@@ -1706,7 +1705,6 @@ namespace lb {
 			return  rnDrawTwipoContentReal(textureId, startX, startY, maxLineLength, a5, a6, sc3, color, glyphSize, opacity, linkColor, a12, a13, a14);
 			;
 		}
-		semiTokeniseSc3String(sc3, words, glyphSize * 1.5, lineLength);
 		int xOffset, yOffset;
 		xOffset = 0;
 		yOffset = 0;
@@ -1725,16 +1723,27 @@ namespace lb {
 
 		//Twipo regular text
 		if (glyphSize == 55 && maxLineLength == 645) {
-
+			 
+			glyphSize = 48;
 			lineHeight = glyphSize * 1.25;
-
+			a5 = ceil(a5 / 1.25)+1;
+			 
 		}
 		//Twipo reply 
 		if (glyphSize == 63 && maxLineLength == 613) {
 
+			glyphSize = 55;
 			lineHeight = glyphSize * 1.25;
-
+			a5= ceil(a5 / 1.25);
 		} 
+
+
+		//Twipo header 
+		if (glyphSize == 55 && maxLineLength == 461) {
+
+			maxLineLength = 600;
+
+		}
 
 		//Kimijima report list
 
@@ -1744,8 +1753,20 @@ namespace lb {
 			mData.displayYOffset = -4.0f * glyphSize / 48.0f;
 
 		}
+		if (glyphSize == 63 && maxLineLength == 0x1CD) {
+			maxLineLength = 600;
+		}
 
-		processSc3TokenList(startX, startY, lineLength, words, a5, color,
+		if (glyphSize == 0x27 && maxLineLength == 0xD5) {
+
+			maxLineLength = 0x10f;
+
+		}
+
+		int lineLength = maxLineLength * 1.5f;
+		semiTokeniseSc3String(sc3, words, glyphSize * 1.5, lineLength);
+
+		 processSc3TokenList(startX, startY, lineLength, words, a5, color,
 			glyphSize, &str, true, COORDS_MULTIPLIER, -1,
 			NOT_A_LINK, color, lineHeight, &mData);
 

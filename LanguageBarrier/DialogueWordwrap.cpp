@@ -165,6 +165,19 @@ void dlgWordwrapGenerateMaskHook(int unk0) {
       next_word(pos);
     }
   }
+
+  int lastletter = 0;;
+
+  for (int i = 0; i < *gameExeDlgWordwrapLength; i++) {
+      if (gameExeDlgWordwrapMask[i] == mask_bytes::letter || gameExeDlgWordwrapMask[i]== mask_bytes::word_last_char) {
+          lastletter = i;
+      }
+  }
+  for (int i = lastletter; i < *gameExeDlgWordwrapLength; i++) {
+      gameExeDlgWordwrapMask[i] = mask_bytes::letter;
+  }
+
+
   return;
 
 }
