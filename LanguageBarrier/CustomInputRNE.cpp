@@ -232,6 +232,7 @@ typedef void(__cdecl* PlaySEProc)(int);
 
 bool ScrollDownToAdvanceText = false;
 bool ScrollDownToCloseBacklog = true;
+int IruoSensitivity = 500;
 bool PointedThisFrame = false;
 bool LockMouseControls = false;
 uint32_t CarryInputToTheNextFrame = 0;
@@ -366,6 +367,10 @@ uint32_t* InputMask3 = NULL; //(uint32_t*)0xC71044;
 uint32_t* InputMask2 = NULL; //(uint32_t*)0xC71048;
 uint32_t* InputMask4 = NULL; //(uint32_t*)0xC7104C;
 LPDIRECTINPUTDEVICEA* MouseDevice = NULL; //(LPDIRECTINPUTDEVICEA*)0x2A3F684;
+int* GameScreenTopLeftX = NULL; //(uint32_t*)0x6F8CCC;
+int* GameScreenTopLeftY = NULL; //(uint32_t*)0x6F8CD0;
+int* GameScreenBottomRightX = NULL; //(uint32_t*)0x6F8CD4;
+int* GameScreenBottomRightY = NULL; //(uint32_t*)0x6F8CD8;
 
 namespace lb {
   int __fastcall mgsInputExecuteServerHook(MgsInputObj_t* pThis);
@@ -481,6 +486,9 @@ namespace lb {
     if (config["patch"].count("ScrollDownToCloseBacklog") == 1 &&
         config["patch"]["ScrollDownToCloseBacklog"].get<bool>() == false)
       ScrollDownToCloseBacklog = false;
+
+    if (config["patch"].count("iruoSensitivity") == 1)
+      IruoSensitivity = config["patch"]["iruoSensitivity"].get<int>();
 
     ShowCursor(1);
 
@@ -602,6 +610,11 @@ namespace lb {
     InputMask3 = (uint32_t*)sigScan("game", "useOfInputMask3");
     InputMask4 = (uint32_t*)sigScan("game", "useOfInputMask4");
     MouseDevice = (LPDIRECTINPUTDEVICEA*)sigScan("game", "useOfMouseDevice");
+
+    GameScreenTopLeftX = (int*)sigScan("game", "useOfGameScreenTopLeftX");
+    GameScreenTopLeftY = (int*)sigScan("game", "useOfGameScreenTopLeftY");
+    GameScreenBottomRightX = (int*)sigScan("game", "useOfGameScreenBottomRightX");
+    GameScreenBottomRightY = (int*)sigScan("game", "useOfGameScreenBottomRightY");
    
     if (!scanCreateEnableHook("game", "mgsInputExecuteServer", (uintptr_t*)&gameExeMgsInputExecuteServer,
                               (LPVOID)&mgsInputExecuteServerHook,
@@ -972,7 +985,7 @@ namespace lb {
           *InputMask |= PAD1A;
       }
 
-      int axisMultiplier = gameExeScrWork[SW_AR_ANGLE_C] / 500;
+      int axisMultiplier = gameExeScrWork[SW_AR_ANGLE_C] / IruoSensitivity;
       if ((InputObject->mouseButtonsHeld & MouseLeftClick) && !dontMoveThisFrame) {
         gameExeScrWork[SW_AR_ELV] -= InputObject->mouseYAxis * axisMultiplier;
         gameExeScrWork[SW_AR_ROT] += InputObject->mouseXAxis * axisMultiplier;
@@ -1633,6 +1646,19 @@ namespace lb {
   }
 
   int __fastcall mgsInputExecuteServerHook(MgsInputObj_t* pThis) {
+    if (*ConfigFullScreen1) {
+      int x = GetSystemMetrics(SM_CXSCREEN);
+      int y = GetSystemMetrics(SM_CYSCREEN);
+      int width = min(x, ceilf((float)y * 1.7777f));
+      int height = min(y, ceilf((float)x / 1.7777f));
+      int boundX = (x - width) / 2;
+      int boundY = (y - height) / 2;
+      *GameScreenTopLeftX = boundX;
+      *GameScreenTopLeftY = boundY;
+      *GameScreenBottomRightX = width + boundX;
+      *GameScreenBottomRightY = height + boundY;
+    }
+
     int ret = gameExeMgsInputExecuteServerReal(pThis);
 
     if (!*MouseEnabled && pThis->mouseFocused && (InputObject->mouseButtons & MouseLeftClick)) {
