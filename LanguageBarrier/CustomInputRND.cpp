@@ -124,7 +124,8 @@ namespace rnd {
   };
 
   enum FlagWorkEnum {
-    OPEN_START2 = 821,
+    OPEN_START2 = 810,
+    OPEN_START3 = 811,
     ALBUM_ENA = 860,
     MOVIE_ENA = 863,
     MUSIC_ENA = 864,
@@ -255,10 +256,6 @@ namespace rnd {
   int* SelectedSaveEntryIndex = NULL; //(int*)0xC6D628;
   int* CurrentSaveMenuPage = NULL; //(int*)0xC6D62C;
   int* DailyRecordsItemIndex = NULL; //(int*)0x6E2CCC;
-  int* DailyRecordsPageIndex = NULL; //(int*)0xC6D708;
-  int* DailyRecordsUnlockedPages = NULL; //(int*)0xC6D774;
-  int* DataCollectionMode = NULL; //(int*)0xC6D6F8;
-  int* DataCollectionItemIndex = NULL; //(int*)0x6E3140;
 
   int* SysMesBoxMesNum = NULL; //(int*)0xC6D900;
   int* SysMesBoxChoiceNum = NULL; //(int*)0xC6D904;
@@ -504,21 +501,17 @@ namespace rnd {
     InputMask4 = (uint32_t*)sigScan("game", "useOfInputMask4");
     MouseDevice = (LPDIRECTINPUTDEVICEA*)sigScan("game", "useOfMouseDevice");
 
-    //TitleMenuSelectionIndex = (int*)sigScan("game", "useOfTitleMenuSelectionIndex");
-    //SubMenuSelIndex = (int*)sigScan("game", "useOfSubMenuSelIndex");
-    //LoadMenuSelIndex = (int*)sigScan("game", "useOfLoadMenuSelIndex");
-    //ExtrasMenuSelIndex = (int*)sigScan("game", "useOfExtrasMenuSelIndex");
-    //TitleSubMenuAnimCounter = (int*)sigScan("game", "useOfTitleSubMenuAnimCounter");
+    TitleMenuSelectionIndex = (int*)sigScan("game", "useOfTitleMenuSelectionIndex");
+    SubMenuSelIndex = (int*)sigScan("game", "useOfSubMenuSelIndex");
+    LoadMenuSelIndex = (int*)sigScan("game", "useOfLoadMenuSelIndex");
+    ExtrasMenuSelIndex = (int*)sigScan("game", "useOfExtrasMenuSelIndex");
+    TitleSubMenuAnimCounter = (int*)sigScan("game", "useOfTitleSubMenuAnimCounter");
 
     //MovieModeSelectionIndex = (int*)sigScan("game", "useOfMovieModeSelectionIndex");
 
-    //SelectedSaveEntryIndex = (int*)sigScan("game", "useOfSelectedSaveEntryIndex");
-    //CurrentSaveMenuPage = (int*)sigScan("game", "useOfCurrentSaveMenuPage");
-    //DailyRecordsItemIndex = (int*)sigScan("game", "useOfDailyRecordsItemIndex");
-    //DailyRecordsPageIndex = (int*)sigScan("game", "useOfDailyRecordsPageIndex");
-    //DailyRecordsUnlockedPages = (int*)sigScan("game", "useOfDailyRecordsUnlockedPages");
-    //DataCollectionMode = (int*)sigScan("game", "useOfDataCollectionMode");
-    //DataCollectionItemIndex = (int*)sigScan("game", "useOfDataCollectionItemIndex");
+    SelectedSaveEntryIndex = (int*)sigScan("game", "useOfSelectedSaveEntryIndex");
+    CurrentSaveMenuPage = (int*)sigScan("game", "useOfCurrentSaveMenuPage");
+    DailyRecordsItemIndex = (int*)sigScan("game", "useOfDailyRecordsItemIndex");
 
     SysMesBoxMesNum = (int*)sigScan("game", "useOfSysMesBoxMesNum");
     SysMesBoxChoiceNum = (int*)sigScan("game", "useOfSysMesBoxChoiceNum");
@@ -1544,40 +1537,27 @@ namespace rnd {
 
       if (type == 11) { // Daily Records/Data Collection
         int* selIndexVar = DailyRecordsItemIndex;
-        if (*DataCollectionMode) {
-          selIndexVar = DataCollectionItemIndex;
-        }
         int id = 0;
         for (int i = 0; i < 6; i++) {
           for (int j = 0; j < 7; j++) {
-            if (menuButtonHitTest(id++, mouseX, mouseY, 330 + (j * 211), 322 + (i * 130), 206, 127, selIndexVar) && (InputObject->mouseButtons & MouseLeftClick))
+            if (menuButtonHitTest(id++, mouseX, mouseY, 378 + (j * 202), 349 + (i * 123), 198, 122, selIndexVar) && (InputObject->mouseButtons & MouseLeftClick))
               *InputMask |= PAD1A;
           }
         }
 
-        if (!*DataCollectionMode) {
-          // Page switch Left/Right buttons
-          if ((*DailyRecordsPageIndex != 0) && mouseSelectHitTest(mouseX, mouseY, 261, 564, 60, 89) && (InputObject->mouseButtons & MouseLeftClick)) {
-            *InputMask2 |= PAD1L1;
-          }
-          if ((*DailyRecordsPageIndex < (*DailyRecordsUnlockedPages - 1)) && mouseSelectHitTest(mouseX, mouseY, 1804, 564, 60, 89) && (InputObject->mouseButtons & MouseLeftClick)) {
-            *InputMask2 |= PAD1R1;
-          }
-
-          // Page switch with scroll wheel
-          if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
-            *InputMask2 |= PAD1L1;
-          }
-          else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
-            *InputMask2 |= PAD1R1;
-          }
+        // Page switch with scroll wheel
+        if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
+          *InputMask2 |= PAD1L1;
+        }
+        else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
+          *InputMask2 |= PAD1R1;
         }
       }
       else { // Save/Load
         int id = 0;
         for (int i = 0; i < 2; i++) {
           for (int j = 0; j < 4; j++) {
-            if (menuButtonHitTest(id++, mouseX, mouseY, 98 + (i * 890), 327 + (j * 220), 840, 188, SelectedSaveEntryIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            if (menuButtonHitTest(id++, mouseX, mouseY, 56 + (i * 910), 365 + (j * 201), 896, 178, SelectedSaveEntryIndex) && (InputObject->mouseButtons & MouseLeftClick))
               *InputMask |= PAD1A;
           }
         }
@@ -1626,6 +1606,7 @@ namespace rnd {
     return gameExeMovieModeDispReal(thread);
   }
 
+
   int __cdecl instTitleMenuHook(void* thread) {
     if (*MouseEnabled) {
       LockMouseControls = true;
@@ -1633,8 +1614,8 @@ namespace rnd {
       int mouseY = InputObject->scaledMouseY;
       int* selIndexVar = TitleMenuSelectionIndex;
       // Number of main menu items
-      // Flag 821 means Phase 09 menu item has been unlocked
-      int numItems = 6 + gameExeGetFlag(OPEN_START2);
+      // Flag 810 means Phase Aki menu item has been unlocked, 811 - Last Phase
+      int numItems = 6 + gameExeGetFlag(OPEN_START2) + gameExeGetFlag(OPEN_START3);
       if (*SubMenuSelIndex) {
         switch (*SubMenuSelIndex) {
         case 1: {
@@ -1652,7 +1633,7 @@ namespace rnd {
 
       if (!*TitleSubMenuAnimCounter) {
         for (int i = 0; i < numItems; i++) {
-          if (menuButtonHitTest(i, mouseX, mouseY, 0, 266 + (i * 76), 835, 52, selIndexVar) && (InputObject->mouseButtons & MouseLeftClick))
+          if (menuButtonHitTest(i, mouseX, mouseY, 72, 591 + (i * 48), 384, 41, selIndexVar) && (InputObject->mouseButtons & MouseLeftClick))
             *InputMask |= PAD1A;
         }
       }
