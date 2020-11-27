@@ -244,6 +244,7 @@ endlocal</Command>
     <ClInclude Include="Config.h" />
     <ClInclude Include="contrib\include\stb_vorbis.h" />
     <ClInclude Include="CriManaMod.h" />
+    <ClInclude Include="CustomInputRND.h" />
     <ClInclude Include="CustomInputRNE.h" />
     <ClInclude Include="DialogueWordwrap.h" />
     <ClInclude Include="TextRendering.h" />
@@ -265,6 +266,7 @@ endlocal</Command>
     <ClCompile Include="contrib\speexdsp\resample.c" />
     <ClCompile Include="contrib\stb_vorbis.c" />
     <ClCompile Include="CriManaMod.cpp" />
+    <ClCompile Include="CustomInputRND.cpp" />
     <ClCompile Include="CustomInputRNE.cpp" />
     <ClCompile Include="DialogueWordwrap.cpp" />
     <ClCompile Include="dinput8.cpp">

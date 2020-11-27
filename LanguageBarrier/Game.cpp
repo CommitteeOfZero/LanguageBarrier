@@ -19,6 +19,7 @@
 #include "TextReplace.h"
 #include "TextRendering.h"
 #include "CustomInputRNE.h"
+#include "CustomInputRND.h"
 
 typedef int(__cdecl* EarlyInitProc)(int unk0, int unk1);
 static EarlyInitProc gameExeEarlyInit = NULL;
@@ -32,10 +33,15 @@ static GetStringFromScriptProc gameExeGetStringFromScriptReal = NULL;
 typedef void(__thiscall* MpkConstructorProc)(void* pThis);
 static MpkConstructorProc gameExeMpkConstructor = NULL;
 
-typedef int(__cdecl* MountArchiveProc)(int id, const char* mountPoint,
+typedef int(__cdecl* MountArchiveRNEProc)(int id, const char* mountPoint,
 	const char* archiveName, int unk01);
-static MountArchiveProc gameExeMountArchive = NULL;
-static MountArchiveProc gameExeMountArchiveReal = NULL;
+static MountArchiveRNEProc gameExeMountArchiveRNE = NULL;
+static MountArchiveRNEProc gameExeMountArchiveRNEReal = NULL;
+
+typedef int(__cdecl* MountArchiveRNDProc)(int id, const char* mountPoint,
+	int unk01, int unk02, int unk03);
+static MountArchiveRNDProc gameExeMountArchiveRND = NULL;
+static MountArchiveRNDProc gameExeMountArchiveRNDReal = NULL;
 
 typedef int(__thiscall* CloseAllSystemsProc)(void* pThis);
 static CloseAllSystemsProc gameExeCloseAllSystems = NULL;
@@ -300,8 +306,10 @@ namespace lb {
 	BOOL __cdecl openMyGamesHook(char* outPath);
 	int __cdecl SNDgetPlayLevelHook(int a1);
 	int __cdecl PadUpdateDeviceHook();
-	int __cdecl mountArchiveHook(int id, const char* mountPoint,
-                               const char* archiveName, int unk01);
+	int __cdecl mountArchiveHookRNE(int id, const char* mountPoint,
+                                  const char* archiveName, int unk01);
+	int __cdecl mountArchiveHookRND(int id, const char* mountPoint,
+                                  int unk01, int unk02, int unk03);
 
 	void gameInit() {
 		std::ifstream in("languagebarrier\\stringReplacementTable.bin",
@@ -323,20 +331,26 @@ namespace lb {
 		surfaceArray = *(SurfaceStruct**)sigScan("game", "surfaceArray");
 
 
-		gameExeMpkMount = sigScan("game", "mpkMount");
 		gameExeEarlyInit = (EarlyInitProc)sigScan("game", "earlyInit");
-		gameExePCurrentBgm = sigScan("game", "useOfPCurrentBgm");
-		gameExePLoopBgm = sigScan("game", "useOfPLoopBgm");
-		gameExePShouldPlayBgm = sigScan("game", "useOfPShouldPlayBgm");
+		//gameExePCurrentBgm = sigScan("game", "useOfPCurrentBgm");
+		//gameExePLoopBgm = sigScan("game", "useOfPLoopBgm");
+		//gameExePShouldPlayBgm = sigScan("game", "useOfPShouldPlayBgm");
 
 
 		if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "mpk") {
+			gameExeMpkMount = sigScan("game", "mpkMount");
 			gameExeMpkConstructor = (MpkConstructorProc)sigScan("game", "mpkConstructor");
 		}
 		else if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "cri") {
-			if (!scanCreateEnableHook("game", "mountArchive", (uintptr_t*)&gameExeMountArchive,
-				  (LPVOID)mountArchiveHook, (LPVOID*)&gameExeMountArchiveReal))
-				return;
+			if (config["gamedef"]["signatures"]["game"].count("mountArchiveRNE") == 1) {
+				if (!scanCreateEnableHook("game", "mountArchiveRNE", (uintptr_t*)&gameExeMountArchiveRNE,
+				    (LPVOID)mountArchiveHookRNE, (LPVOID*)&gameExeMountArchiveRNEReal))
+					return;
+			} else if (config["gamedef"]["signatures"]["game"].count("mountArchiveRND") == 1) {
+				if (!scanCreateEnableHook("game", "mountArchiveRND", (uintptr_t*)&gameExeMountArchiveRND,
+					  (LPVOID)mountArchiveHookRND, (LPVOID*)&gameExeMountArchiveRNDReal))
+					return;
+			}
 		}
 
 		gameExeGetFlag = (GetFlagProc)sigScan("game", "getFlag");
@@ -346,8 +360,8 @@ namespace lb {
 		scanCreateEnableHook("game", "recreateDDSSurface", (uintptr_t*)&gameExeGslDDSload,
 			(LPVOID)ReCreateLoadTextureDDS, NULL);
 
-		scanCreateEnableHook("game", "openMyGames", (uintptr_t*)&gameExeOpenMyGames,
-			(LPVOID)openMyGamesHook, NULL);
+		//scanCreateEnableHook("game", "openMyGames", (uintptr_t*)&gameExeOpenMyGames,
+		//	(LPVOID)openMyGamesHook, NULL);
 
 		// TODO: fault tolerance - we don't need to call it quits entirely just
 		// because one *feature* can't work
@@ -472,7 +486,7 @@ namespace lb {
 				TextRendering::Get().loadCache();
 				TextRendering::Get().enableReplacement();
 			}	else {
-				TextRendering::Get().disableReplacement();
+				//TextRendering::Get().disableReplacement();
 			}
 	
 			gameExeScrWork = (int*)sigScan("game", "useOfScrWork");
@@ -497,7 +511,11 @@ namespace lb {
 			}
 			else if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "cri") {
 				// 15 is just a random ID, let's hope it won't ever get used
-				int ret = gameExeMountArchiveReal(C0DATA_MOUNT_ID, "C0DATA", "languagebarrier\\C0DATA", 0);
+				if (config["gamedef"]["signatures"]["game"].count("mountArchiveRNE") == 1) {
+					gameExeMountArchiveRNEReal(C0DATA_MOUNT_ID, "C0DATA", "languagebarrier\\C0DATA", 0);
+				} else if (config["gamedef"]["signatures"]["game"].count("mountArchiveRND") == 1) {
+					gameExeMountArchiveRNDReal(C0DATA_MOUNT_ID, "languagebarrier\\c0data", 0, 1, 0);
+				}
 				LanguageBarrierLog("c0data mounted");
 
 				c0dataCpk = &gameExeFileObjects[C0DATA_MOUNT_ID];
@@ -514,13 +532,13 @@ namespace lb {
 
 			if (config["patch"].count("RNEMouseInput") == 1 &&
 				  config["patch"]["RNEMouseInput"].get<bool>() == true) {
-        customInputRNEInit();
+        rne::customInputInit();
 			}
 
-			//if (config["patch"].count("RNDMouseInput") == 1 &&
-			//	  config["patch"]["RNDMouseInput"].get<bool>() == true) {
-		  //  customInputRNDInit();
-			//}
+			if (config["patch"].count("RNDMouseInput") == 1 &&
+				  config["patch"]["RNDMouseInput"].get<bool>() == true) {
+		    rnd::customInputInit();
+			}
 
 			if (config["patch"].count("RNENameTagFix") == 1 &&
 				config["patch"]["RNENameTagFix"].get<bool>() == true) {
@@ -578,8 +596,7 @@ namespace lb {
 		return gameExeMpkFopenByIdReal(pThis, mpk, fileId, unk3);
 	}
 
-	int __cdecl mountArchiveHook(int id, const char* mountPoint,
-		                           const char* archiveName, int unk01) {
+	std::string mountArchiveHookPart(const char* mountPoint) {
 		if (config["patch"].count("archiveRedirection") == 1 &&
 			config["patch"]["archiveRedirection"].count(mountPoint) == 1) {
 			std::stringstream newPath;
@@ -591,10 +608,22 @@ namespace lb {
 			logstr << "redirecting physical fopen " << mountPoint << " to " << newPath.str();
 			LanguageBarrierLog(logstr.str());
 
-			return gameExeMountArchiveReal(id, mountPoint, newPath.str().c_str(), unk01);
+			return newPath.str();
 		}
 
-		return gameExeMountArchiveReal(id, mountPoint, archiveName, unk01);
+		return mountPoint;
+	}
+
+	int __cdecl mountArchiveHookRNE(int id, const char* mountPoint,
+		                              const char* archiveName, int unk01) {
+		std::string path = mountArchiveHookPart(mountPoint);
+		return gameExeMountArchiveRNEReal(id, mountPoint, path.c_str(), unk01);
+	}
+
+	int __cdecl mountArchiveHookRND(int id, const char* mountPoint,
+		                              int unk01, int unk02, int unk03) {
+		std::string path = mountArchiveHookPart(mountPoint);
+		return gameExeMountArchiveRNDReal(id, path.c_str(), unk01, unk02, unk03);
 	}
 
 	int __fastcall mgsFileOpenHook(mgsFileLoader* pThis, void* dummy, int unused) {

@@ -1,11 +1,11 @@
-#ifndef __CUSTOMINPUTRNE_H__
-#define __CUSTOMINPUTRNE_H__
+#ifndef __CUSTOMINPUTRND_H__
+#define __CUSTOMINPUTRND_H__
 
 #include <cstdint>
 #include "dinput.h"
 
 namespace lb {
-namespace rne {
+namespace rnd {
   bool customInputInit();
 }
 }
