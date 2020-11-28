@@ -520,14 +520,14 @@ namespace rnd {
     SysMesBoxChoiceNumAlt = (int*)sigScan("game", "useOfSysMesBoxChoiceNumAlt");
     SysMesBoxChoiceIndexAlt = (int*)sigScan("game", "useOfSysMesBoxChoiceIndexAlt");
 
-    //CGLibraryPageIndex = (int*)sigScan("game", "useOfCGLibraryPageIndex");
-    //CGLibraryItemIndex = (int*)sigScan("game", "useOfCGLibraryItemIndex");
+    CGLibraryPageIndex = (int*)sigScan("game", "useOfCGLibraryPageIndex");
+    CGLibraryItemIndex = (int*)sigScan("game", "useOfCGLibraryItemIndex");
 
-    //AlbumCGScale = (int*)sigScan("game", "useOfAlbumCGScale");
-    //AlbumCGScaleMin = (int*)sigScan("game", "useOfAlbumCGScaleMin");
-    //AlbumCGScaleMax = (int*)sigScan("game", "useOfAlbumCGScaleMax");
-    //AlbumCGX = (int*)sigScan("game", "useOfAlbumCGX");
-    //AlbumCGY = (int*)sigScan("game", "useOfAlbumCGY");
+    AlbumCGScale = (int*)sigScan("game", "useOfAlbumCGScale");
+    AlbumCGScaleMin = (int*)sigScan("game", "useOfAlbumCGScaleMin");
+    AlbumCGScaleMax = (int*)sigScan("game", "useOfAlbumCGScaleMax");
+    AlbumCGX = (int*)sigScan("game", "useOfAlbumCGX");
+    AlbumCGY = (int*)sigScan("game", "useOfAlbumCGY");
 
     MusicModeCurrentIndex = (int*)sigScan("game", "useOfMusicModeCurrentIndex");
     MusicModeStartIndex = (int*)sigScan("game", "useOfMusicModeStartIndex");
@@ -576,7 +576,7 @@ namespace rnd {
     //ConfigPage3SelectedItem = (int*)sigScan("game", "useOfConfigPage3SelectedItem");
     //ConfigSwitchAnimCounter = (int*)sigScan("game", "useOfConfigSwitchAnimCounter");
     //ConfigTipsInfo = (int*)sigScan("game", "useOfConfigTipsInfo");
-    //ConfigFullScreen = (int*)sigScan("game", "useOfConfigFullScreen");
+    ConfigFullScreen = (int*)sigScan("game", "useOfConfigFullScreen");
     //ConfigFullScreen1 = (int*)sigScan("game", "useOfConfigFullScreen1");
     //ConfigFullScreen2 = (int*)sigScan("game", "useOfConfigFullScreen2");
     //ConfigResolution = (int*)sigScan("game", "useOfConfigResolution");
@@ -761,178 +761,6 @@ namespace rnd {
       LockMouseControls = true;
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
-
-      switch (*ConfigMenuCurrentPage) {
-      case 0: {
-        mouseSlider(mouseX, mouseY, 766, 399, 380, 38, 256, 4096, *ConfigMessageSpeed, 0);
-        *ConfigMessageSpeedCur = *ConfigMessageSpeed;
-        mouseSlider(mouseX, mouseY, 766, 447, 380, 38, 2048, 256, *ConfigAutoModeDelay, 1);
-        *ConfigAutoModeDelayCur = *ConfigAutoModeDelay;
-        mouseSlider(mouseX, mouseY, 766, 633, 380, 38, 0, 128, *ConfigVoiceVolume, 2);
-        *ConfigVoiceVolumeCur = *ConfigVoiceVolume;
-        mouseSlider(mouseX, mouseY, 766, 681, 380, 38, 0, 128, *ConfigBGMVolume, 3);
-        *ConfigBGMVolumeCur = *ConfigBGMVolume;
-        mouseSlider(mouseX, mouseY, 766, 729, 380, 38, 0, 128, *ConfigSEVolume, 4);
-        *ConfigSEVolumeCur = *ConfigSEVolume;
-        mouseSlider(mouseX, mouseY, 766, 777, 380, 38, 0, 128, *ConfigMovieVolume, 5);
-        *ConfigMovieVolumeCur = *ConfigMovieVolume;
-
-        if (!SliderMoving) {
-          int index = 0;
-          for (int i = 0; i < 3; i++) {
-            menuButtonHitTest(index++, mouseX, mouseY, 97, 166 + (i * 48), 1120, 40, ConfigPage1SelectedItem);
-          }
-          index++;
-          for (int i = 0; i < 3; i++) {
-            menuButtonHitTest(index++, mouseX, mouseY, 97, 400 + (i * 48), 1120, 40, ConfigPage1SelectedItem);
-          }
-          for (int i = 0; i < 6; i++) {
-            menuButtonHitTest(index++, mouseX, mouseY, 97, 634 + (i * 48), 1120, 40, ConfigPage1SelectedItem);
-          }
-
-          // Tips Info Switch
-          if (mouseSelectHitTest(mouseX, mouseY, 964, 165, 190, 38) && *ConfigTipsInfo && (InputObject->mouseButtons & MouseLeftClick)) {
-            *ConfigTipsInfo = 0;
-            *ConfigSwitchAnimCounter = 15;
-            gameExePlaySE(17);
-          }
-          if (mouseSelectHitTest(mouseX, mouseY, 760, 165, 190, 38) && !*ConfigTipsInfo && (InputObject->mouseButtons & MouseLeftClick)) {
-            *ConfigTipsInfo = 1;
-            *ConfigSwitchAnimCounter = 15;
-            gameExePlaySE(17);
-          }
-
-          // Full Screen Switch
-          if (mouseSelectHitTest(mouseX, mouseY, 964, 213, 190, 38) && *ConfigFullScreen && (InputObject->mouseButtons & MouseLeftClick)) {
-            *ConfigFullScreen = 0;
-            *ConfigFullScreen1 = 0;
-            *ConfigFullScreen2 = 0;
-            gameExePlaySE(17);
-            gameExeSetScreenRes();
-            *ConfigSwitchAnimCounter = 15;
-          }
-          if (mouseSelectHitTest(mouseX, mouseY, 760, 213, 190, 38) && !*ConfigFullScreen && (InputObject->mouseButtons & MouseLeftClick)) {
-            *ConfigFullScreen = 1;
-            *ConfigFullScreen1 = 1;
-            *ConfigFullScreen2 = 1;
-            gameExePlaySE(17);
-            gameExeSetScreenRes();
-            *ConfigSwitchAnimCounter = 15;
-          }
-
-          // Resolution Switch
-          if (mouseSelectHitTest(mouseX, mouseY, 760, 261, 127, 38) && *ConfigResolution != 0 && (InputObject->mouseButtons & MouseLeftClick)) {
-            *ConfigResolution = 0;
-            *ConfigResolution1 = 0;
-            *ConfigResolution2 = 0;
-            gameExePlaySE(17);
-            gameExeSetScreenRes();
-            *ConfigSwitchAnimCounter = 15;
-          }
-          if (mouseSelectHitTest(mouseX, mouseY, 894, 261, 127, 38) && *ConfigResolution != 1 && (InputObject->mouseButtons & MouseLeftClick)) {
-            *ConfigResolution = 1;
-            *ConfigResolution1 = 1;
-            *ConfigResolution2 = 1;
-            gameExePlaySE(17);
-            gameExeSetScreenRes();
-            *ConfigSwitchAnimCounter = 15;
-          }
-          if (mouseSelectHitTest(mouseX, mouseY, 1028, 261, 127, 38) && *ConfigResolution != 2 && (InputObject->mouseButtons & MouseLeftClick)) {
-            *ConfigResolution = 2;
-            *ConfigResolution1 = 2;
-            *ConfigResolution2 = 2;
-            gameExePlaySE(17);
-            gameExeSetScreenRes();
-            *ConfigSwitchAnimCounter = 15;
-          }
-
-          // Skip Mode Switch
-          if (mouseSelectHitTest(mouseX, mouseY, 760, 495, 190, 38) && *ConfigSkipMode && (InputObject->mouseButtons & MouseLeftClick)) {
-            *ConfigSkipMode = 0;
-            gameExePlaySE(17);
-            *ConfigSwitchAnimCounter = 15;
-          }
-          if (mouseSelectHitTest(mouseX, mouseY, 964, 495, 190, 38) && !*ConfigSkipMode && (InputObject->mouseButtons & MouseLeftClick)) {
-            *ConfigSkipMode = 1;
-            gameExePlaySE(17);
-            *ConfigSwitchAnimCounter = 15;
-          }
-
-          // Sync Voice Switch
-          if (mouseSelectHitTest(mouseX, mouseY, 964, 825, 190, 38) && *ConfigSyncVoice && (InputObject->mouseButtons & MouseLeftClick)) {
-            *ConfigSyncVoice = 0;
-            gameExePlaySE(17);
-            *ConfigSwitchAnimCounter = 15;
-          }
-          if (mouseSelectHitTest(mouseX, mouseY, 760, 825, 190, 38) && !*ConfigSyncVoice && (InputObject->mouseButtons & MouseLeftClick)) {
-            *ConfigSyncVoice = 1;
-            gameExePlaySE(17);
-            *ConfigSwitchAnimCounter = 15;
-          }
-
-          // Skip Voice Switch
-          if (mouseSelectHitTest(mouseX, mouseY, 964, 873, 190, 38) && *ConfigSkipVoice && (InputObject->mouseButtons & MouseLeftClick)) {
-            *ConfigSkipVoice = 0;
-            gameExePlaySE(17);
-            *ConfigSwitchAnimCounter = 15;
-          }
-          if (mouseSelectHitTest(mouseX, mouseY, 760, 873, 190, 38) && !*ConfigSkipVoice && (InputObject->mouseButtons & MouseLeftClick)) {
-            *ConfigSkipVoice = 1;
-            gameExePlaySE(17);
-            *ConfigSwitchAnimCounter = 15;
-          }
-        }
-      } break;
-      case 1: {
-        for (int i = 0; i < 20; i++) {
-          int id = ConfigVoiceIDs[*ConfigPage2SelectedItem];
-          mouseSlider(mouseX, mouseY, 766, 165 + (i * 48), 380, 38, 0, 128, ConfigVoiceCharaVolume[id], i);
-
-          if (!SliderMoving) {
-            menuButtonHitTest(i, mouseX, mouseY, 97, 166 + (i * 46), 1120, 38, ConfigPage2SelectedItem);
-
-            if (mouseSelectHitTest(mouseX, mouseY, 616, 165 + (i * 46), 134, 38) && ConfigVoiceEnableFlags[id] && (InputObject->mouseButtons & MouseLeftClick)) {
-              ConfigVoiceEnableFlags[id] = 0;
-              gameExePlaySE(17);
-              *ConfigSwitchAnimCounter = 15;
-            }
-            if (mouseSelectHitTest(mouseX, mouseY, 468, 165 + (i * 46), 134, 38) && !ConfigVoiceEnableFlags[id] && (InputObject->mouseButtons & MouseLeftClick)) {
-              ConfigVoiceEnableFlags[id] = 1;
-              gameExePlaySE(17);
-              *ConfigSwitchAnimCounter = 15;
-            }
-          }
-          else {
-            ConfigVoiceCharaVolumeCur[id] = ConfigVoiceCharaVolume[id];
-          }
-        }
-      } break;
-      case 2: {
-        for (int i = 0; i < 7; i++) {
-          menuButtonHitTest(i, mouseX, mouseY, 97, 166 + (i * 46), 1120, 38, ConfigPage3SelectedItem);
-
-          if (mouseSelectHitTest(mouseX, mouseY, 964, 165 + (i * 48), 190, 38) && ConfigTwipoNotifs[*ConfigPage3SelectedItem] && (InputObject->mouseButtons & MouseLeftClick)) {
-            ConfigTwipoNotifs[*ConfigPage3SelectedItem] = 0;
-            gameExePlaySE(17);
-            *ConfigSwitchAnimCounter = 15;
-          }
-          if (mouseSelectHitTest(mouseX, mouseY, 760, 165 + (i * 48), 190, 38) && !ConfigTwipoNotifs[*ConfigPage3SelectedItem] && (InputObject->mouseButtons & MouseLeftClick)) {
-            ConfigTwipoNotifs[*ConfigPage3SelectedItem] = 1;
-            gameExePlaySE(17);
-            *ConfigSwitchAnimCounter = 15;
-          }
-        }
-      } break;
-      default:
-        break;
-      }
-
-      if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
-        *InputMask |= PAD1L1;
-      }
-      else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
-        *InputMask |= PAD1R1;
-      }
 
       if (InputObject->mouseButtons & MouseRightClick) {
         *InputMask |= PAD1B;
@@ -1242,14 +1070,14 @@ namespace rnd {
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
 
-      int scrollBarY = *BacklogDispPosMax <= 600 ? 130 : (793 * *BacklogDispPos / (*BacklogDispPosMax - 600)) + 130;
-      mouseScrollBar(mouseX, mouseY, 1738, scrollBarY + 105, 11, 105, 0, *BacklogDispPosMax - 600, 106, 888, *BacklogDispPos, 0);
+      int scrollBarY = *BacklogDispPosMax <= 600 ? 138 : (793 * *BacklogDispPos / (*BacklogDispPosMax - 600)) + 138;
+      mouseScrollBar(mouseX, mouseY, 1820, scrollBarY + 48, 11, 48, 0, *BacklogDispPosMax - 600, 138, 931, *BacklogDispPos, 0);
 
       if (!SliderMoving) {
         int startLineIndex = *BacklogFirstFullDispLine > 0 ? *BacklogFirstFullDispLine - 1 : 0;
         for (int i = startLineIndex; i < *BacklogLastFullDispLine + 2; i++) {
-          int lineY = (BacklogDispLinePosY[i] - *BacklogDispPos + 54 + BacklogDispLineSize[i] + 8) * 2;
-          if (menuButtonHitTest(i, mouseX, mouseY, 0, lineY, 1725, (BacklogDispLineSize[i] + 8) * 2, BacklogSelectedIndex) && (InputObject->mouseButtons & MouseLeftClick))
+          int lineY = (float)(BacklogDispLinePosY[i] - *BacklogDispPos + 54 + BacklogDispLineSize[i] + 16) * 1.5f;
+          if (menuButtonHitTest(i, mouseX, mouseY, 538, lineY, 1725, (BacklogDispLineSize[i] + 16) * 1.5f, BacklogSelectedIndex) && (InputObject->mouseButtons & MouseLeftClick))
             *InputMask |= PAD1A;
         }
 
@@ -1380,16 +1208,16 @@ namespace rnd {
       int id = 0;
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 4; j++) {
-          if (menuButtonHitTest(id++, mouseX, mouseY, 88 + (j * 446), 396 + (i * 276), 410, 240, CGLibraryItemIndex) && (InputObject->mouseButtons & MouseLeftClick))
-            *InputMask2 |= PAD1A;
+          if (menuButtonHitTest(id++, mouseX, mouseY, 128 + (j * 426), 427 + (i * 257), 386, 218, CGLibraryItemIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
         }
       }
 
       if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
-        *CGLibraryPageIndex = *CGLibraryPageIndex == 0 ? 12 : *CGLibraryPageIndex - 1;
+        *CGLibraryPageIndex = *CGLibraryPageIndex == 0 ? 7 : *CGLibraryPageIndex - 1;
       }
       else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
-        *CGLibraryPageIndex = *CGLibraryPageIndex == 12 ? 0 : *CGLibraryPageIndex + 1;
+        *CGLibraryPageIndex = *CGLibraryPageIndex == 7 ? 0 : *CGLibraryPageIndex + 1;
       }
 
       if (InputObject->mouseButtons & MouseRightClick) {
@@ -1642,18 +1470,18 @@ namespace rnd {
   }
 
   int __fastcall mgsInputExecuteServerHook(MgsInputObj_t* pThis) {
-    //if (*ConfigFullScreen1) {
-    //  int x = GetSystemMetrics(SM_CXSCREEN);
-    //  int y = GetSystemMetrics(SM_CYSCREEN);
-    //  int width = min(x, ceilf((float)y * 1.7777f));
-    //  int height = min(y, ceilf((float)x / 1.7777f));
-    //  int boundX = (x - width) / 2;
-    //  int boundY = (y - height) / 2;
-    //  *GameScreenTopLeftX = boundX;
-    //  *GameScreenTopLeftY = boundY;
-    //  *GameScreenBottomRightX = width + boundX;
-    //  *GameScreenBottomRightY = height + boundY;
-    //}
+    if (*ConfigFullScreen) {
+      int x = GetSystemMetrics(SM_CXSCREEN);
+      int y = GetSystemMetrics(SM_CYSCREEN);
+      int width = min(x, ceilf((float)y * 1.7777f));
+      int height = min(y, ceilf((float)x / 1.7777f));
+      int boundX = (x - width) / 2;
+      int boundY = (y - height) / 2;
+      *GameScreenTopLeftX = boundX;
+      *GameScreenTopLeftY = boundY;
+      *GameScreenBottomRightX = width + boundX;
+      *GameScreenBottomRightY = height + boundY;
+    }
 
     int ret = gameExeMgsInputExecuteServerReal(pThis);
 
