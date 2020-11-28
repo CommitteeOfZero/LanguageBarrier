@@ -507,7 +507,7 @@ namespace rnd {
     ExtrasMenuSelIndex = (int*)sigScan("game", "useOfExtrasMenuSelIndex");
     TitleSubMenuAnimCounter = (int*)sigScan("game", "useOfTitleSubMenuAnimCounter");
 
-    //MovieModeSelectionIndex = (int*)sigScan("game", "useOfMovieModeSelectionIndex");
+    MovieModeSelectionIndex = (int*)sigScan("game", "useOfMovieModeSelectionIndex");
 
     SelectedSaveEntryIndex = (int*)sigScan("game", "useOfSelectedSaveEntryIndex");
     CurrentSaveMenuPage = (int*)sigScan("game", "useOfCurrentSaveMenuPage");
@@ -529,8 +529,8 @@ namespace rnd {
     //AlbumCGX = (int*)sigScan("game", "useOfAlbumCGX");
     //AlbumCGY = (int*)sigScan("game", "useOfAlbumCGY");
 
-    //MusicModeCurrentIndex = (int*)sigScan("game", "useOfMusicModeCurrentIndex");
-    //MusicModeStartIndex = (int*)sigScan("game", "useOfMusicModeStartIndex");
+    MusicModeCurrentIndex = (int*)sigScan("game", "useOfMusicModeCurrentIndex");
+    MusicModeStartIndex = (int*)sigScan("game", "useOfMusicModeStartIndex");
 
     //TipsMenuTabTipCount = (int*)sigScan("game", "useOfTipsMenuTabTipCount");
     //TipsMenuCurrentTab = (int*)sigScan("game", "useOfTipsMenuCurrentTab");
@@ -1242,7 +1242,7 @@ namespace rnd {
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
 
-      int scrollBarY = *BacklogDispPosMax <= 600 ? 106 : ((391 * *BacklogDispPos / (*BacklogDispPosMax - 600)) + 53) * 2;
+      int scrollBarY = *BacklogDispPosMax <= 600 ? 130 : (793 * *BacklogDispPos / (*BacklogDispPosMax - 600)) + 130;
       mouseScrollBar(mouseX, mouseY, 1738, scrollBarY + 105, 11, 105, 0, *BacklogDispPosMax - 600, 106, 888, *BacklogDispPos, 0);
 
       if (!SliderMoving) {
@@ -1285,23 +1285,23 @@ namespace rnd {
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
 
-      int scrollBarY = (265 * *MusicModeStartIndex / 31 + 150) * 2;
-      mouseScrollBar(mouseX, mouseY, 1896, scrollBarY + 138, 20, 138, 0, 31, 300, 830, *MusicModeStartIndex, 0);
+      int scrollBarY = 552 * *MusicModeStartIndex / 22 + 357;
+      mouseScrollBar(mouseX, mouseY, 1815, scrollBarY + 60, 10, 60, 0, 22, 357, 909, *MusicModeStartIndex, 0);
 
       if (!SliderMoving) {
-        for (int i = 0; i < 15; i++) {
-          if (menuButtonHitTest(i, mouseX, mouseY, 0, 346 + (i * 44), 1870, 43, MusicModeCurrentIndex) && (InputObject->mouseButtons & MouseLeftClick))
+        for (int i = 0; i < 16; i++) {
+          if (menuButtonHitTest(i, mouseX, mouseY, 80, 399 + (i * 38), 1690, 40, MusicModeCurrentIndex) && (InputObject->mouseButtons & MouseLeftClick))
             *InputMask |= PAD1A;
         }
 
-        if (mouseSelectHitTest(mouseX, mouseY, 1532, 176, 258, 36) && (InputObject->mouseButtons & MouseLeftClick))
+        if (mouseSelectHitTest(mouseX, mouseY, 1600, 198, 222, 22) && (InputObject->mouseButtons & MouseLeftClick))
           *InputMask |= PAD1Y;
 
         if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
           *MusicModeStartIndex = *MusicModeStartIndex == 0 ? 0 : *MusicModeStartIndex - 1;
         }
         else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
-          *MusicModeStartIndex = *MusicModeStartIndex == 31 ? 31 : *MusicModeStartIndex + 1;
+          *MusicModeStartIndex = *MusicModeStartIndex == 22 ? 22 : *MusicModeStartIndex + 1;
         }
 
         if (InputObject->mouseButtons & MouseRightClick) {
@@ -1586,20 +1586,15 @@ namespace rnd {
       int mouseY = InputObject->scaledMouseY;
 
       int id = 0;
-      for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 4; j++) {
-          if (menuButtonHitTest(id++, mouseX, mouseY, 88 + (j * 446), 396 + (i * 276), 410, 240, MovieModeSelectionIndex) && (InputObject->mouseButtons & MouseLeftClick))
-            *InputMask2 |= PAD1A;
+      for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 3; j++) {
+          if (menuButtonHitTest(id++, mouseX, mouseY, 143 + (j * 560), 560 + (i * 336), 514, 291, MovieModeSelectionIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
         }
       }
 
       if (InputObject->mouseButtons & MouseRightClick) {
-        // Yeah you need both, one to get the back sound effect
-        // and the other to actually back out
-        // why? good question
-
         *InputMask |= PAD1B;
-        *InputMask2 |= PAD1B;
       }
     }
 
