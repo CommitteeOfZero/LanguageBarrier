@@ -165,7 +165,7 @@ int __cdecl drawMovieFrameHook(int tint, int opacity) {
   for (const auto& kv : stateMap) {
     auto state = kv.second;
     if (!state->keepLastFrame) {      
-      gameExePMgsD3D11State->pid3d11devicecontext18->CopyResource(state->stagingTexture, surfaceArray[RENDER_TARGET_SURF_ID].texPtr[0]);
+      gameExePMgsD3D11State->pid3d11devicecontext18->CopyResource(state->stagingTexture, lb::SurfaceWrapper::getTexPtr(surfaceArray,RENDER_TARGET_SURF_ID,0));
       
       D3D11_MAPPED_SUBRESOURCE rsc;
       memset(&rsc, 0, sizeof(D3D11_MAPPED_SUBRESOURCE));
@@ -176,13 +176,13 @@ int __cdecl drawMovieFrameHook(int tint, int opacity) {
       frame.planes[0] = imagePtr;
       frame.strides[0] = rsc.RowPitch;
       frame.pixfmt = CSRI_F_BGR_;
-      csri_fmt format = { frame.pixfmt, surfaceArray[RENDER_TARGET_SURF_ID].width, surfaceArray[RENDER_TARGET_SURF_ID].height };
+      csri_fmt format = { frame.pixfmt, lb::SurfaceWrapper::width(surfaceArray,RENDER_TARGET_SURF_ID),lb::SurfaceWrapper::height(surfaceArray,RENDER_TARGET_SURF_ID) };
       if (csri_request_fmt(state->csri, &format) == 0) {
           csri_render(state->csri, &frame, state->time);
       }
       
       gameExePMgsD3D11State->pid3d11devicecontext18->Unmap(state->stagingTexture, 0);
-      gameExePMgsD3D11State->pid3d11devicecontext18->CopyResource(surfaceArray[RENDER_TARGET_SURF_ID].texPtr[0], state->stagingTexture);
+      gameExePMgsD3D11State->pid3d11devicecontext18->CopyResource(lb::SurfaceWrapper::getTexPtr(surfaceArray, RENDER_TARGET_SURF_ID,0), state->stagingTexture);
     }
   }
 
@@ -217,7 +217,7 @@ int __fastcall mgsMovieCPlayerPlayHook(MgsMoviePlayerObj_t* pThis, void* dummy, 
 
       D3D11_TEXTURE2D_DESC desc;
       memset(&desc, 0, sizeof(D3D11_TEXTURE2D_DESC));
-      surfaceArray[RENDER_TARGET_SURF_ID].texPtr[0]->GetDesc(&desc);
+      lb::SurfaceWrapper::getTexPtr(surfaceArray,RENDER_TARGET_SURF_ID,0)->GetDesc(&desc);
       desc.Usage = D3D11_USAGE_STAGING;
       desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
       desc.BindFlags = 0;

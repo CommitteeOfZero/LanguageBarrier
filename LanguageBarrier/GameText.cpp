@@ -90,7 +90,8 @@ typedef struct __declspec(align(4)) {
   static name *gameExeDialoguePages_##name = NULL;
 DEF_DIALOGUE_PAGE(DialoguePage_t, 2000, char);
 DEF_DIALOGUE_PAGE(CCDialoguePage_t, 600, char);
-DEF_DIALOGUE_PAGE(RNDialoguePage_t, 2200, int16_t);
+DEF_DIALOGUE_PAGE(RNEDialoguePage_t, 2200, int16_t);
+DEF_DIALOGUE_PAGE(RNDDialoguePage_t, 600, int16_t);
 
 typedef void(__cdecl* DrawDialogueProc)(int fontNumber, int pageNumber,
 	int opacity, int xOffset, int yOffset);
@@ -416,7 +417,11 @@ namespace lb {
 		uint32_t opacity);
 	void __cdecl rnDrawDialogueHook(int fontNumber, int pageNumber,
 		uint32_t opacity, int xOffset, int yOffset);
+	void __cdecl rnDDrawDialogueHook(int fontNumber, int pageNumber,
+		uint32_t opacity, int xOffset, int yOffset);
 	void __cdecl rnDrawDialogue2Hook(int fontNumber, int pageNumber,
+		uint32_t opacity);
+	void __cdecl rnDDrawDialogue2Hook(int fontNumber, int pageNumber,
 		uint32_t opacity);
 	int __cdecl dialogueLayoutRelatedHook(int unk0, int* unk1, int* unk2, int unk3,
 		int unk4, int unk5, int unk6, int yOffset,
@@ -538,10 +543,12 @@ namespace lb {
 
 		gameExeLanguage = *(int**)sigScan("game", "CurrentLanguage");
 
+		if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
 
-		fixSkipRN();
 
+			fixSkipRN();
 
+		}
 
 
 		/*	if (IMPROVE_DIALOGUE_OUTLINES) {
@@ -680,15 +687,32 @@ namespace lb {
 		}
 		else if (config["gamedef"].count("dialoguePageVersion") == 1 &&
 			config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
-			gameExeDialoguePages_RNDialoguePage_t =
-				(RNDialoguePage_t*)sigScan("game", "useOfDialoguePages");
+			gameExeDialoguePages_RNEDialoguePage_t =
+				(RNEDialoguePage_t*)sigScan("game", "useOfDialoguePages");
 			if (true) {
+				SurfaceWrapper::game = 0;
+
 				scanCreateEnableHook(
 					"game", "drawDialogue", (uintptr_t*)&gameExeDrawDialogue,
 					(LPVOID)rnDrawDialogueHook, (LPVOID*)&gameExeDrawDialogueReal);
 				scanCreateEnableHook(
 					"game", "drawDialogue2", (uintptr_t*)&gameExeDrawDialogue2,
 					(LPVOID)rnDrawDialogue2Hook, (LPVOID*)&gameExeDrawDialogue2Real);
+			}
+		}
+		else if (config["gamedef"].count("dialoguePageVersion") == 1 &&
+			config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rnd") {
+			SurfaceWrapper::game = 1;
+			gameExeDialoguePages_RNDDialoguePage_t =
+				(RNDDialoguePage_t*)sigScan("game", "useOfDialoguePages");
+			if (true) {
+
+				scanCreateEnableHook(
+					"game", "drawDialogue2", (uintptr_t*)&gameExeDrawDialogue2,
+					(LPVOID)rnDDrawDialogue2Hook, (LPVOID*)&gameExeDrawDialogue2Real);
+				scanCreateEnableHook(
+					"game", "drawDialogue", (uintptr_t*)&gameExeDrawDialogue,
+					(LPVOID)rnDDrawDialogueHook, (LPVOID*)&gameExeDrawDialogueReal);
 			}
 		}
 		else {
@@ -872,7 +896,7 @@ namespace lb {
 
 		if (true) {
 
-			BacklogLineSave = (int*)sigScan("game", "BacklogLineSave");
+			/*BacklogLineSave = (int*)sigScan("game", "BacklogLineSave");
 			BacklogDispLinePos = (int*)sigScan("game", "BacklogDispLinePos");
 			BacklogLineBufSize = (int*)sigScan("game", "BacklogLineBufSize");
 			BacklogTextPos = (uint16_t*)sigScan("game", "BacklogTextPos");
@@ -893,7 +917,7 @@ namespace lb {
 			BacklogTextCo = (uint8_t*)sigScan("game", "BacklogTextCo");
 			BacklogLineVoice = (int*)sigScan("game", "BacklogLineVoice");
 			BacklogDispLinePosY = (int*)sigScan("game", "BacklogDispLinePosY");
-			BacklogDispCurPosSY = (int*)sigScan("game", "BacklogDispCurPosSY");
+			BacklogDispCurPosSY = (int*)sigScan("game", "BacklogDispCurPosSY");*/
 
 
 
@@ -907,6 +931,7 @@ namespace lb {
 			scanCreateEnableHook("game", "drawSprite", (uintptr_t*)&gameExeDrawSprite,
 				(LPVOID)drawSpriteHook,
 				(LPVOID*)&gameExeDrawSpriteReal);
+
 
 
 		}
@@ -1099,117 +1124,119 @@ namespace lb {
     }                                    \
   }                                      \
   }
+
+
+#define DEF_RNDRAW_DIALOGUE_HOOK(funcName, pageType)               \
+                                         \
+  void __cdecl funcName(int fontNumber, int pageNumber, uint32_t opacity,    \
+            int xOffset, int yOffset) {              \
+  pageType *page = &gameExeDialoguePages_##pageType[pageNumber];       \
+	return;\
+	if (!TextRendering::Get().enabled)\
+		return gameExeDrawDialogueReal(fontNumber, pageNumber, opacity, xOffset, yOffset); \
+		\
+		bool newline = true; \
+		float displayStartX = \
+		(page->charDisplayX[0] + xOffset) * COORDS_MULTIPLIER; \
+		float displayStartY = \
+		(page->charDisplayY[0] + yOffset) * COORDS_MULTIPLIER; \
+		for (int i = 0; i < page->pageLength; i++) {\
+				if (fontNumber == page->fontNumber[i]) {\
+					\
+						\
+						int glyphSize = page->glyphDisplayHeight[i]; \
+						if (i == 0 || i > 0 && page->charDisplayY[i] != page->charDisplayY[i - 1]) {\
+							\
+								newline = true; \
+						}\
+						else newline = false; \
+							\
+							if (newline == false) {\
+								\
+									__int16 fontSize = page->glyphDisplayHeight[i] * 1.5f; \
+									\
+									uint32_t currentChar = page->glyphCol[i - 1] + page->glyphRow[i - 1] * TextRendering::Get().GLYPHS_PER_ROW; \
+									auto glyphInfo = TextRendering::Get().getFont(fontSize, false)->getGlyphInfo(currentChar, Regular); \
+									displayStartX += glyphInfo->advance; \
+							}\
+							else {\
+								\
+									displayStartX = (page->charDisplayX[i] + xOffset) * COORDS_MULTIPLIER; \
+							}\
+								\
+									\
+									\
+									uint32_t _opacity = (page->charDisplayOpacity[i] * opacity) >> 8; \
+									\
+									\
+									if (page->charOutlineColor[i] != -1) {\
+										\
+											\
+										{\
+											uint32_t currentChar = page->glyphCol[i] + page->glyphRow[i] * TextRendering::Get().GLYPHS_PER_ROW; \
+											wchar_t cChar = TextRendering::Get().fullCharMap[currentChar]; \
+											const auto glyphInfo = TextRendering::Get().getFont(page->glyphDisplayHeight[i] * 1.5f, false)->getGlyphInfo(currentChar, FontType::Outline); \
+											displayStartY = \
+											(page->charDisplayY[i] + yOffset) * 1.5f; \
+											\
+											\
+											__int16 fontSize = page->glyphDisplayHeight[i] * 1.5f; \
+											float yOffset = -6.0f * fontSize / 48.0f; \
+											\
+											TextRendering::Get().replaceFontSurface(fontSize); \
+											if (glyphInfo->width && glyphInfo->rows)\
+												\
+												gameExeDrawSpriteReal(\
+													TextRendering::Get().OUTLINE_TEXTURE_ID, \
+													glyphInfo->x, \
+													glyphInfo->y, \
+													glyphInfo->width, \
+													glyphInfo->rows, round(displayStartX + glyphInfo->left), \
+													round(yOffset + displayStartY + fontSize - glyphInfo->top), \
+													page->charOutlineColor[i], _opacity, 4); \
+										}\
+									}\
+										\
+												\
+												\
+											{\
+												uint32_t currentChar = page->glyphCol[i] + page->glyphRow[i] * TextRendering::Get().GLYPHS_PER_ROW; \
+												auto glyphInfo = TextRendering::Get().getFont(page->glyphDisplayHeight[i] * 1.5f, false)->getGlyphInfo(currentChar, FontType::Regular); \
+												\
+												displayStartY = \
+												(page->charDisplayY[i] + yOffset) * 1.5f; \
+												float xRatio = ((float)page->glyphDisplayWidth[i] / (float)page->glyphOrigWidth[i]); \
+												\
+												TextRendering::Get().replaceFontSurface(page->glyphDisplayHeight[i] * 1.5); \
+												__int16 fontSize = page->glyphDisplayHeight[i] * 1.5f; \
+												float yOffset = -6.0f * fontSize / 48.0f; \
+												\
+												if (glyphInfo->width && glyphInfo->rows)\
+													gameExeDrawSpriteReal(\
+														TextRendering::Get().FONT_TEXTURE_ID, \
+														glyphInfo->x, \
+														glyphInfo->y, \
+														glyphInfo->width, \
+														glyphInfo->rows, round(displayStartX + glyphInfo->left), \
+														round(yOffset + displayStartY + fontSize - glyphInfo->top), \
+														page->charColor[i], _opacity, 4); \
+													page->field_20 = (displayStartX + glyphInfo->advance) / 1.5f; \
+													\
+											}\
+												\
+				}\
+		}\
+	}
+																																							
+																																													 
+
+
+
+
 	DEF_DRAW_DIALOGUE_HOOK(drawDialogueHook, DialoguePage_t);
 	DEF_DRAW_DIALOGUE_HOOK(ccDrawDialogueHook, CCDialoguePage_t);
-	//DEF_DRAW_DIALOGUE_HOOK(rnDrawDialogueHook, RNDialoguePage_t);
-
-
-
-	void __cdecl rnDrawDialogueHook(int fontNumber, int pageNumber, uint32_t opacity,
-		int xOffset, int yOffset) {
-		RNDialoguePage_t* page = &gameExeDialoguePages_RNDialoguePage_t[pageNumber];
-		//if (GetAsyncKeyState(VK_RBUTTON)) {
-		//	TextRendering::Get().enableReplacement();
-
-		//}
-		//else if (GetAsyncKeyState(VK_LBUTTON)) {
-		//	TextRendering::Get().disableReplacement();
-		//}
-
-		if (!TextRendering::Get().enabled)
-			return gameExeDrawDialogueReal(fontNumber, pageNumber, opacity, xOffset, yOffset);
-
-		bool newline = true;
-		float displayStartX =
-			(page->charDisplayX[0] + xOffset) * COORDS_MULTIPLIER;
-		float displayStartY =
-			(page->charDisplayY[0] + yOffset) * COORDS_MULTIPLIER;
-		for (int i = 0; i < page->pageLength; i++) {
-			if (fontNumber == page->fontNumber[i]) {
-
-				int glyphSize = page->glyphDisplayHeight[i];
-				if (i == 0 || i > 0 && page->charDisplayY[i] != page->charDisplayY[i - 1]) {
-					newline = true;
-				}
-				else newline = false;
-
-				if (newline == false) {
-					__int16 fontSize = page->glyphDisplayHeight[i] * 1.5f;
-
-					uint32_t currentChar = page->glyphCol[i - 1] + page->glyphRow[i - 1] * TextRendering::Get().GLYPHS_PER_ROW;
-					auto glyphInfo = TextRendering::Get().getFont(fontSize, false)->getGlyphInfo(currentChar, Regular);
-					displayStartX += glyphInfo->advance ;
-				}
-				else {
-					displayStartX = (page->charDisplayX[i] + xOffset) * COORDS_MULTIPLIER;
-				}
-				
-					//				displayStartX = (page->charDisplayX[i] + xOffset) * COORDS_MULTIPLIER;
-
-
-				uint32_t _opacity = (page->charDisplayOpacity[i] * opacity) >> 8;
-
-
-				if (page->charOutlineColor[i] != -1) {
-
-					{
-						uint32_t currentChar = page->glyphCol[i] + page->glyphRow[i] * TextRendering::Get().GLYPHS_PER_ROW;
-						wchar_t cChar = TextRendering::Get().fullCharMap[currentChar];
-						const auto glyphInfo = TextRendering::Get().getFont(page->glyphDisplayHeight[i] * 1.5f, false)->getGlyphInfo(currentChar, FontType::Outline);
-						displayStartY =
-							(page->charDisplayY[i] + yOffset) * 1.5f;
-
-
-						__int16 fontSize = page->glyphDisplayHeight[i] * 1.5f;
-						float yOffset = -6.0f * fontSize / 48.0f;
-
-						TextRendering::Get().replaceFontSurface(fontSize);
-						if (glyphInfo->width && glyphInfo->rows)
-
-							gameExeDrawSpriteReal(
-								TextRendering::Get().OUTLINE_TEXTURE_ID,
-								glyphInfo->x,
-								glyphInfo->y,
-								glyphInfo->width,
-								glyphInfo->rows, round(displayStartX + glyphInfo->left),
-								round(yOffset + displayStartY + fontSize - glyphInfo->top),
-								page->charOutlineColor[i], _opacity, 4);
-					}
-				}
-
-
-
-				{
-					uint32_t currentChar = page->glyphCol[i] + page->glyphRow[i] * TextRendering::Get().GLYPHS_PER_ROW;
-					auto glyphInfo = TextRendering::Get().getFont(page->glyphDisplayHeight[i] * 1.5f, false)->getGlyphInfo(currentChar, FontType::Regular);
-					//   if (page->charDisplayX[i + 1] > page->charDisplayX[i] && (i + 1) < page->pageLength) {
-					 //    page->charDisplayX[i + 1] = page->charDisplayX[i]+ glyphInfo.advance  /3.0f;
-					//}
-
-					displayStartY =
-						(page->charDisplayY[i] + yOffset) * 1.5f;
-					float xRatio = ((float)page->glyphDisplayWidth[i] / (float)page->glyphOrigWidth[i]);
-
-					TextRendering::Get().replaceFontSurface(page->glyphDisplayHeight[i] * 1.5);
-					__int16 fontSize = page->glyphDisplayHeight[i] * 1.5f;
-					float yOffset = -6.0f * fontSize / 48.0f;
-
-					if (glyphInfo->width && glyphInfo->rows)
-						gameExeDrawSpriteReal(
-							TextRendering::Get().FONT_TEXTURE_ID,
-							glyphInfo->x,
-							glyphInfo->y,
-							glyphInfo->width,
-							glyphInfo->rows, round(displayStartX + glyphInfo->left),
-							round(yOffset + displayStartY + fontSize - glyphInfo->top),
-							page->charColor[i], _opacity, 4);
-					page->field_20 = (displayStartX + glyphInfo->advance) / 1.5f;
-
-				}
-
-			}
-		}
-	}
+	DEF_RNDRAW_DIALOGUE_HOOK(rnDrawDialogueHook, RNEDialoguePage_t);
+	DEF_RNDRAW_DIALOGUE_HOOK(rnDDrawDialogueHook, RNDDialoguePage_t);
 
 
 	void __cdecl drawDialogue2Hook(int fontNumber, int pageNumber,
@@ -1224,6 +1251,10 @@ namespace lb {
 	void __cdecl rnDrawDialogue2Hook(int fontNumber, int pageNumber,
 		uint32_t opacity) {
 		rnDrawDialogueHook(fontNumber, pageNumber, opacity, 0, 0);
+	}
+	void __cdecl rnDDrawDialogue2Hook(int fontNumber, int pageNumber,
+		uint32_t opacity) {
+		rnDDrawDialogueHook(fontNumber, pageNumber, opacity, 0, 0);
 	}
 
 	void semiTokeniseSc3String(char* sc3string, std::list<StringWord_t>& words,
@@ -1333,7 +1364,7 @@ namespace lb {
 	unsigned int __cdecl sub_4BB760(int textureId, int maskTextureId, int textureStartX, int textureStartY, float textureSizeX, float textureSizeY, float startPosX, float startPosY, float EndPosX, float EndPosY, float color, float opacity)
 	{
 		float a3[4]; // [esp+14h] [ebp-7Ch]
-		SurfaceStruct* a1[2]; // [esp+24h] [ebp-6Ch]
+		void* a1[2]; // [esp+24h] [ebp-6Ch]
 		CColor colorStruct; // [esp+2Ch] [ebp-64h]
 		float a4[8]; // [esp+6Ch] [ebp-24h]
 
@@ -1353,8 +1384,8 @@ namespace lb {
 		a4[3] = (textureSizeY);
 		initColor(&colorStruct, color);
 		GameExeGetShader(40);
-		a1[0] = &surfaceArray[textureId];
-		a1[1] = &surfaceArray[maskTextureId];
+		a1[0] =lb::SurfaceWrapper::ptr(surfaceArray,textureId);
+		a1[1] = lb::SurfaceWrapper::ptr(surfaceArray, maskTextureId);
 
 		int shaderPtr = *(int*)gameExeShaderPtr;
 		int blendMode = *(int*)gameExeBlendMode;
@@ -2431,10 +2462,20 @@ namespace lb {
 		}
 
 		if (TextRendering::Get().enabled)
-			return gameExeSg0DrawGlyph2Real(TextRendering::Get().FONT_TEXTURE_ID, a2, glyphInTextureStartX / 1.5f,
-				glyphInTextureStartY / 1.5f, glyphInTextureWidth / 1.5f,
-				glyphInTextureHeight / 1.5f, a7 / 2.0f, a8 / 2.0f, a9 / 2.0f, a10 / 2.0f, a11 / 2.0f,
-				a12 / 2.0f, inColor, opacity, a15, a16);
+			if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
+
+				return gameExeSg0DrawGlyph2Real(TextRendering::Get().FONT_TEXTURE_ID, a2, glyphInTextureStartX / 1.5f,
+					glyphInTextureStartY / 1.5f, glyphInTextureWidth / 1.5f,
+					glyphInTextureHeight / 1.5f, a7 / 2.0f, a8 / 2.0f, a9 / 2.0f, a10 / 2.0f, a11 / 2.0f,
+					a12 / 2.0f, inColor, opacity, a15, a16);
+			}
+			else {
+				return gameExeSg0DrawGlyph2Real(TextRendering::Get().FONT_TEXTURE_ID, a2, glyphInTextureStartX,
+					glyphInTextureStartY, glyphInTextureWidth,
+					glyphInTextureHeight, a7, a8, a9, a10, a11,
+					a12, inColor, opacity, a15, a16);
+				}
+			
 		else {
 			return gameExeSg0DrawGlyph2Real(textureId, a2, glyphInTextureStartX,
 				glyphInTextureStartY, glyphInTextureWidth,
@@ -2461,8 +2502,16 @@ namespace lb {
 		char name[256];
 		std::list<StringWord_t> words;
 		MultiplierData mData;
-		mData.xOffset = 2.0f;
-		mData.yOffset = 2.0f;
+
+		if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
+
+			mData.xOffset = 2.0f;
+			mData.yOffset = 2.0f;
+		}
+		else {
+			mData.xOffset = 1.5f;
+			mData.yOffset = 1.5f;
+		}
 		semiTokeniseSc3String(a10, words, 64,
 			TIP_REIMPL_LINE_LENGTH);
 		processSc3TokenList(startX, startY, a3, words, 255, a11,
@@ -2596,13 +2645,6 @@ namespace lb {
 		int dummy2;
 		char name[256];
 
-		for (int i = 0; i < 512; i++) {
-
-			if (surfaceArray[i].texPtr[0] != nullptr) {
-				sprintf(name, "Surface texture %i-0", i);
-				surfaceArray[i].texPtr[0]->SetPrivateData(WKPDID_D3DDebugObjectName, strlen(name), name);
-			}
-		}
 		if (!TextRendering::Get().enabled) {
 			gameExeDrawTipContentReal(textureId, maskId, startX, startY, maskStartY, maskHeight, a7, color, shadowColor, opacity);
 			return;
@@ -2625,7 +2667,7 @@ namespace lb {
 				auto glyphInfo = fontData->getGlyphInfo(str.glyph[i], FontType::Regular);
 
 				gameExeSg0DrawGlyph2(
-					textureId, maskId, str.textureStartX[i], str.textureStartY[i],
+					TextRendering::Get().FONT_TEXTURE_ID, maskId, str.textureStartX[i], str.textureStartY[i],
 					str.textureWidth[i], str.textureHeight[i],
 					((float)str.displayStartX[i] + (1.0f * COORDS_MULTIPLIER)),
 					((float)str.displayStartY[i] + TIP_REIMPL_GLYPH_SIZE - glyphInfo->top + (1.0f * COORDS_MULTIPLIER)),
@@ -2638,7 +2680,7 @@ namespace lb {
 					shadowColor, opacity, &dummy1, &dummy2);
 
 				gameExeSg0DrawGlyph2(
-					textureId, maskId, str.textureStartX[i], str.textureStartY[i],
+					TextRendering::Get().FONT_TEXTURE_ID, maskId, str.textureStartX[i], str.textureStartY[i],
 					str.textureWidth[i], str.textureHeight[i], str.displayStartX[i],
 					str.displayStartY[i] + TIP_REIMPL_GLYPH_SIZE - glyphInfo->top, str.displayStartX[i],
 					((float)str.displayStartY[i] + TIP_REIMPL_GLYPH_SIZE - glyphInfo->top + ((float)a7 * COORDS_MULTIPLIER)),

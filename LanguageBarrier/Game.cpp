@@ -287,10 +287,24 @@ static int* gameExeScriptIdsToFileIds = NULL;
 static std::string stringReplacementTable;
 static mpkObject* c0dataMpk = NULL;
 static mgsVFSObject* c0dataCpk = NULL;
-SurfaceStruct* surfaceArray;
+
+
+
+
+
+void* surfaceArray;
+
+
+
+
 int* gameExeScrWork = (int*)NULL;
 
 namespace lb {
+
+
+
+	int SurfaceWrapper::game = 0;
+
 	int __cdecl earlyInitHook(int unk0, int unk1);
 	int __fastcall mpkFopenByIdHook(void* pThis, void* EDX, mpkObject* mpk,
 		int fileId, int unk3);
@@ -328,7 +342,7 @@ namespace lb {
 
 		gameExeGslCreateTexture = sigScan("game", "createTexture");
 		gameExeGslCreateTextureCLUT = sigScan("game", "createTextureCLUT");
-		surfaceArray = *(SurfaceStruct**)sigScan("game", "surfaceArray");
+		surfaceArray = *(void**)sigScan("game", "surfaceArray");
 
 
 		gameExeEarlyInit = (EarlyInitProc)sigScan("game", "earlyInit");

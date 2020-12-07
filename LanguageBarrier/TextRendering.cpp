@@ -307,10 +307,10 @@ void TextRendering::buildFont(int fontSize, bool measure)
 		SaveToDDSFile(fontData->outlineTexture.GetImages(), fontData->outlineTexture.GetImageCount(), fontData->outlineTexture.GetMetadata(), DirectX::DDS_FLAGS_NONE, fileName);
 
 
-		if (surfaceArray[FONT_TEXTURE_ID].texPtr[0] == nullptr) {
+		if (lb::SurfaceWrapper::getTexPtr(surfaceArray,FONT_TEXTURE_ID,0) == nullptr) {
 			lb::gameLoadTexture(FONT_TEXTURE_ID, fontData->texture.GetBufferPointer(), fontData->texture.GetBufferSize());
 		}
-		if (surfaceArray[OUTLINE_TEXTURE_ID].texPtr[0] == nullptr) {
+		if (lb::SurfaceWrapper::getTexPtr(surfaceArray, OUTLINE_TEXTURE_ID, 0) == nullptr) {
 			lb::gameLoadTexture(OUTLINE_TEXTURE_ID, fontData->texture2.GetBufferPointer(), fontData->texture2.GetBufferSize());
 		}
 		fontData->fontTexture.Release();
@@ -428,7 +428,7 @@ void TextRendering::loadCache()
 				const auto fontData = &this->fontData[size];
 				loadTexture(size);
 				DirectX::ScratchImage dummy;
-				if (surfaceArray[FONT_TEXTURE_ID].texPtr[0] == nullptr) {
+				if (lb::SurfaceWrapper::getTexPtr(surfaceArray,FONT_TEXTURE_ID,0) == nullptr) {
 					dummy.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_A8_UNORM, 1, 1, 1, 1);
 
 					SaveToDDSMemory(dummy.GetImages(), dummy.GetImageCount(), dummy.GetMetadata(), DirectX::DDS_FLAGS_NONE, fontData->texture);
@@ -436,7 +436,7 @@ void TextRendering::loadCache()
 
 					lb::gameLoadTexture(FONT_TEXTURE_ID, fontData->texture.GetBufferPointer(), fontData->texture.GetBufferSize());
 				}
-				if (surfaceArray[OUTLINE_TEXTURE_ID].texPtr[0] == nullptr) {
+				if (lb::SurfaceWrapper::getTexPtr(surfaceArray, OUTLINE_TEXTURE_ID, 0) == nullptr) {
 					dummy.Initialize2D(DXGI_FORMAT::DXGI_FORMAT_A8_UNORM, 1, 1, 1, 1);
 					SaveToDDSMemory(dummy.GetImages(), dummy.GetImageCount(), dummy.GetMetadata(), DirectX::DDS_FLAGS_NONE, fontData->texture2);
 					lb::gameLoadTexture(OUTLINE_TEXTURE_ID, fontData->texture2.GetBufferPointer(), fontData->texture2.GetBufferSize());
@@ -577,27 +577,28 @@ void TextRendering::replaceFontSurface(int size)
 
 	auto currentFontData = this->getFont(size, false);
 
-	if (surfaceArray[FONT_TEXTURE_ID].texPtr[0] == nullptr && currentFontData->texture.GetBufferPointer() != nullptr) {
+	if (lb::SurfaceWrapper::getTexPtr(surfaceArray, OUTLINE_TEXTURE_ID, 0) == nullptr && currentFontData->texture.GetBufferPointer() != nullptr) {
 		lb::gameLoadTexture(FONT_TEXTURE_ID, currentFontData->texture.GetBufferPointer(), currentFontData->texture.GetBufferSize());
 		currentFontData->texture.Release();
 	}
-	if (surfaceArray[OUTLINE_TEXTURE_ID].texPtr[0] == nullptr && currentFontData->texture2.GetBufferPointer() != nullptr) {
+	if (lb::SurfaceWrapper::getTexPtr(surfaceArray,OUTLINE_TEXTURE_ID,0) == nullptr && currentFontData->texture2.GetBufferPointer() != nullptr) {
 		lb::gameLoadTexture(OUTLINE_TEXTURE_ID, currentFontData->texture2.GetBufferPointer(), currentFontData->texture2.GetBufferSize());
 		currentFontData->texture.Release();
 	}
 
-	surfaceArray[FONT_TEXTURE_ID].width = FONT_CELL_SIZE * GLYPHS_PER_ROW;
-	surfaceArray[FONT_TEXTURE_ID].height = FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW);
-	surfaceArray[FONT_TEXTURE_ID].field_40 = FONT_CELL_SIZE * GLYPHS_PER_ROW;
-	surfaceArray[FONT_TEXTURE_ID].field_44 = FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW);
-	surfaceArray[OUTLINE_TEXTURE_ID].field_40 = FONT_CELL_SIZE * GLYPHS_PER_ROW;
-	surfaceArray[OUTLINE_TEXTURE_ID].field_44 = FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW);
-	surfaceArray[OUTLINE_TEXTURE_ID].width = FONT_CELL_SIZE * GLYPHS_PER_ROW;
-	surfaceArray[OUTLINE_TEXTURE_ID].height = FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW);
-	surfaceArray[FONT_TEXTURE_ID].texPtr[0] = currentFontData->fontTexturePtr;
-	surfaceArray[FONT_TEXTURE_ID].shaderRscView = currentFontData->fontShaderRscView;
-	surfaceArray[OUTLINE_TEXTURE_ID].texPtr[0] = currentFontData->outlineTexturePtr;
-	surfaceArray[OUTLINE_TEXTURE_ID].shaderRscView = currentFontData->outlineShaderRscView;
+	lb::SurfaceWrapper::setWidth(surfaceArray, FONT_TEXTURE_ID, FONT_CELL_SIZE * GLYPHS_PER_ROW);
+	lb::SurfaceWrapper::setHeight(surfaceArray, FONT_TEXTURE_ID, FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW));
+	lb::SurfaceWrapper::setField_40(surfaceArray, FONT_TEXTURE_ID, FONT_CELL_SIZE * GLYPHS_PER_ROW);
+	lb::SurfaceWrapper::setField_44(surfaceArray, FONT_TEXTURE_ID, FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW));
+	lb::SurfaceWrapper::setWidth(surfaceArray, OUTLINE_TEXTURE_ID, FONT_CELL_SIZE * GLYPHS_PER_ROW);
+	lb::SurfaceWrapper::setHeight(surfaceArray, OUTLINE_TEXTURE_ID, FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW));
+	lb::SurfaceWrapper::setField_40(surfaceArray, OUTLINE_TEXTURE_ID, FONT_CELL_SIZE * GLYPHS_PER_ROW);
+	lb::SurfaceWrapper::setField_44(surfaceArray, OUTLINE_TEXTURE_ID, FONT_CELL_SIZE * ceil((float)NUM_GLYPHS / GLYPHS_PER_ROW));
+	lb::SurfaceWrapper::setTexPtr(surfaceArray, FONT_TEXTURE_ID, 0, currentFontData->fontTexturePtr);
+	lb::SurfaceWrapper::setTexPtr(surfaceArray, OUTLINE_TEXTURE_ID, 0, currentFontData->outlineTexturePtr);
+	lb::SurfaceWrapper::setShaderRscView(surfaceArray, FONT_TEXTURE_ID,  currentFontData->fontShaderRscView);
+	lb::SurfaceWrapper::setShaderRscView(surfaceArray, OUTLINE_TEXTURE_ID, currentFontData->outlineShaderRscView);
+
 
 }
 
