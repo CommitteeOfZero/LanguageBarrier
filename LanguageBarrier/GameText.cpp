@@ -1131,7 +1131,6 @@ namespace lb {
   void __cdecl funcName(int fontNumber, int pageNumber, uint32_t opacity,    \
             int xOffset, int yOffset) {              \
   pageType *page = &gameExeDialoguePages_##pageType[pageNumber];       \
-	return;\
 	if (!TextRendering::Get().enabled)\
 		return gameExeDrawDialogueReal(fontNumber, pageNumber, opacity, xOffset, yOffset); \
 		\
@@ -1238,6 +1237,7 @@ namespace lb {
 	DEF_RNDRAW_DIALOGUE_HOOK(rnDrawDialogueHook, RNEDialoguePage_t);
 	DEF_RNDRAW_DIALOGUE_HOOK(rnDDrawDialogueHook, RNDDialoguePage_t);
 
+	
 
 	void __cdecl drawDialogue2Hook(int fontNumber, int pageNumber,
 		uint32_t opacity) {
