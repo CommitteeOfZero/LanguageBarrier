@@ -548,16 +548,16 @@ namespace rnd {
     //TwipoReplyX = (float*)sigScan("game", "useOfTwipoReplyButtonX");
     //TwipoReplyY = (float*)sigScan("game", "useOfTwipoReplyButtonY");
 
-    //ARNumberOfGeoTags = (int*)sigScan("game", "useOfARNumberOfGeoTags");
-    //ARGeoTagsXYZCoords = (float*)sigScan("game", "useOfARGeoTagsXYZCoords");
-    //ARSelectedGeoTag = (int*)sigScan("game", "useOfARSelectedGeoTag");
-    //ARPointingAtReport = (int*)sigScan("game", "useOfARPointingAtReport");
-    //ARDisplayedGeoTags = (int*)sigScan("game", "useOfARDisplayedGeoTags");
-    //ARNumDisplayedGeoTags = (int*)sigScan("game", "useOfARNumDisplayedGeoTags");
-    //ARSomeGeoTagArr = (int*)sigScan("game", "useOfARSomeGeoTagArr");
-    //ARSomeGeoTagArr2 = (int*)sigScan("game", "useOfARSomeGeoTagArr2");
-    //ARSomeGeoTagArr3 = (int*)sigScan("game", "useOfARSomeGeoTagArr3");
-    //ARSomeGeoTagData = (int*)sigScan("game", "useOfARSomeGeoTagData");
+    ARNumberOfGeoTags = (int*)sigScan("game", "useOfARNumberOfGeoTags");
+    ARGeoTagsXYZCoords = (float*)sigScan("game", "useOfARGeoTagsXYZCoords");
+    ARSelectedGeoTag = (int*)sigScan("game", "useOfARSelectedGeoTag");
+    ARPointingAtReport = (int*)sigScan("game", "useOfARPointingAtReport");
+    ARDisplayedGeoTags = (int*)sigScan("game", "useOfARDisplayedGeoTags");
+    ARNumDisplayedGeoTags = (int*)sigScan("game", "useOfARNumDisplayedGeoTags");
+    ARSomeGeoTagArr = (int*)sigScan("game", "useOfARSomeGeoTagArr");
+    ARSomeGeoTagArr2 = (int*)sigScan("game", "useOfARSomeGeoTagArr2");
+    ARSomeGeoTagArr3 = (int*)sigScan("game", "useOfARSomeGeoTagArr3");
+    ARSomeGeoTagData = (int*)sigScan("game", "useOfARSomeGeoTagData");
 
     BacklogDispPosMax = (int*)sigScan("game", "useOfBacklogDispPosMax");
     BacklogSelectedIndex = (int*)sigScan("game", "useOfBacklogSelectedIndex");
@@ -783,11 +783,11 @@ namespace rnd {
           int id = ARDisplayedGeoTags[i];
           int xyzCnt = 4 * id;
           // Oh shit, here we go again
-          gameExeGetScreenCoords(0, &x, &y, ARGeoTagsXYZCoords[xyzCnt], 12.5f + ARGeoTagsXYZCoords[xyzCnt + 1], ARGeoTagsXYZCoords[xyzCnt + 2]);
+          gameExeGetScreenCoords(1, &x, &y, ARGeoTagsXYZCoords[xyzCnt], 1.25f + ARGeoTagsXYZCoords[xyzCnt + 1], ARGeoTagsXYZCoords[xyzCnt + 2]);
 
           // Your guess is as good as mine
-          int screenX = (-42 + x) * 2;
-          int screenY = (-69 + y) * 2;
+          int screenX = x - 84;
+          int screenY = y - 138;
 
           int textWidth;
           if (ARSomeGeoTagArr2[ARSomeGeoTagArr[id]]) {
@@ -798,7 +798,7 @@ namespace rnd {
           }
           textWidth *= 2;
 
-          if (menuButtonHitTest(id, mouseX, mouseY, screenX, screenY + 150, textWidth + 80, 150, ARSelectedGeoTag)) {
+          if (menuButtonHitTest(id, mouseX, mouseY, screenX, screenY, textWidth + 80, 62, ARSelectedGeoTag)) {
             if (InputObject->mouseButtons & MouseLeftClick) {
               dontMoveThisFrame = true;
               *InputMask |= PAD1A;
@@ -1147,15 +1147,15 @@ namespace rnd {
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
 
-      if (menuButtonHitTest(0, mouseX, mouseY, 1, 269, 478, 268, &gameExeScrWork[SW_POKECOMSELNO]) ||
-        menuButtonHitTest(1, mouseX, mouseY, 481, 269, 478, 268, &gameExeScrWork[SW_POKECOMSELNO]) ||
-        menuButtonHitTest(2, mouseX, mouseY, 1441, 269, 478, 268, &gameExeScrWork[SW_POKECOMSELNO]) ||
-        menuButtonHitTest(3, mouseX, mouseY, 1441, 541, 478, 268, &gameExeScrWork[SW_POKECOMSELNO]) ||
-        menuButtonHitTest(4, mouseX, mouseY, 481, 812, 478, 268, &gameExeScrWork[SW_POKECOMSELNO]) ||
-        menuButtonHitTest(5, mouseX, mouseY, 962, 812, 478, 268, &gameExeScrWork[SW_POKECOMSELNO]) ||
-        menuButtonHitTest(6, mouseX, mouseY, 1, 1080, 478, 268, &gameExeScrWork[SW_POKECOMSELNO]) ||
-        menuButtonHitTest(7, mouseX, mouseY, 962, 1080, 478, 268, &gameExeScrWork[SW_POKECOMSELNO]) ||
-        menuButtonHitTest(8, mouseX, mouseY, 1441, 1080, 478, 268, &gameExeScrWork[SW_POKECOMSELNO])) {
+      if (menuButtonHitTest(0, mouseX, mouseY, 408, 382, 275, 154, &gameExeScrWork[SW_POKECOMSELNO]) ||
+        menuButtonHitTest(1, mouseX, mouseY, 684, 382, 275, 154, &gameExeScrWork[SW_POKECOMSELNO]) ||
+        menuButtonHitTest(2, mouseX, mouseY, 1236, 382, 275, 154, &gameExeScrWork[SW_POKECOMSELNO]) ||
+        menuButtonHitTest(3, mouseX, mouseY, 1236, 538, 275, 154, &gameExeScrWork[SW_POKECOMSELNO]) ||
+        menuButtonHitTest(4, mouseX, mouseY, 684, 693, 275, 154, &gameExeScrWork[SW_POKECOMSELNO]) ||
+        menuButtonHitTest(5, mouseX, mouseY, 960, 693, 275, 154, &gameExeScrWork[SW_POKECOMSELNO]) ||
+        menuButtonHitTest(6, mouseX, mouseY, 408, 849, 275, 154, &gameExeScrWork[SW_POKECOMSELNO]) ||
+        menuButtonHitTest(7, mouseX, mouseY, 960, 849, 275, 154, &gameExeScrWork[SW_POKECOMSELNO]) ||
+        menuButtonHitTest(8, mouseX, mouseY, 1236, 849, 275, 154, &gameExeScrWork[SW_POKECOMSELNO])) {
         if (InputObject->mouseButtons & MouseLeftClick) {
           *InputMask |= PAD1A;
         }
