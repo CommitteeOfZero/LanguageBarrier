@@ -286,11 +286,9 @@ namespace rnd {
   int* TipsMenuSelectedTip = NULL; //(int*)0x6E0AD0;
 
   int* TwipoTweepCountInTabs = NULL; //(int*)0x2706450;
-  int* TwipoDataPointers = NULL; //(int*)0x2706440;
-  int* TwipoData1 = NULL; //(int*)0x26EBE34;
-  int* TwipoData2 = NULL; //(int*)0x26FD7A0;
-  float* TwipoReplyX = NULL;
-  float* TwipoReplyY = NULL;
+
+  int* PokecomSelectionIndex = NULL;
+  int* PokecomWindowCoords = NULL;
 
   int* ARNumberOfGeoTags = NULL; //(int*)0x996B0C;
   float* ARGeoTagsXYZCoords = NULL; //(float*)0x998BE0;
@@ -532,21 +530,19 @@ namespace rnd {
     MusicModeCurrentIndex = (int*)sigScan("game", "useOfMusicModeCurrentIndex");
     MusicModeStartIndex = (int*)sigScan("game", "useOfMusicModeStartIndex");
 
-    //TipsMenuTabTipCount = (int*)sigScan("game", "useOfTipsMenuTabTipCount");
-    //TipsMenuCurrentTab = (int*)sigScan("game", "useOfTipsMenuCurrentTab");
-    //TipsMenuSelectedIndex = (int*)sigScan("game", "useOfTipsMenuSelectedIndex");
-    //TipsMenuStartIndex = (int*)sigScan("game", "useOfTipsMenuStartIndex");
-    //TipsMenuTipTextStartOffset = (int*)sigScan("game", "useOfTipsMenuTipTextStartOffset");
-    //TipMenuTipTextHeight = (int*)sigScan("game", "useOfTipMenuTipTextHeight");
-    //TipsMenuTipData = (int*)sigScan("game", "useOfTipsMenuTipData");
-    //TipsMenuSelectedTip = (int*)sigScan("game", "useOfTipsMenuSelectedTip");
+    TipsMenuTabTipCount = (int*)sigScan("game", "useOfTipsMenuTabTipCount");
+    TipsMenuCurrentTab = (int*)sigScan("game", "useOfTipsMenuCurrentTab");
+    TipsMenuSelectedIndex = (int*)sigScan("game", "useOfTipsMenuSelectedIndex");
+    TipsMenuStartIndex = (int*)sigScan("game", "useOfTipsMenuStartIndex");
+    TipsMenuTipTextStartOffset = (int*)sigScan("game", "useOfTipsMenuTipTextStartOffset");
+    TipMenuTipTextHeight = (int*)sigScan("game", "useOfTipMenuTipTextHeight");
+    TipsMenuTipData = (int*)sigScan("game", "useOfTipsMenuTipData");
+    TipsMenuSelectedTip = (int*)sigScan("game", "useOfTipsMenuSelectedTip");
 
-    //TwipoTweepCountInTabs = (int*)sigScan("game", "useOfTwipoTweepCountInTabs");
-    //TwipoDataPointers = (int*)sigScan("game", "useOfTwipoDataPointers");
-    //TwipoData1 = (int*)sigScan("game", "useOfTwipoData1");
-    //TwipoData2 = (int*)sigScan("game", "useOfTwipoData2");
-    //TwipoReplyX = (float*)sigScan("game", "useOfTwipoReplyButtonX");
-    //TwipoReplyY = (float*)sigScan("game", "useOfTwipoReplyButtonY");
+    TwipoTweepCountInTabs = (int*)sigScan("game", "useOfTwipoTweepCountInTabs");
+
+    PokecomSelectionIndex = (int*)sigScan("game", "useOfPokecomSelectionIndex");
+    PokecomWindowCoords = (int*)sigScan("game", "useOfPokecomWindowCoords");
 
     ARNumberOfGeoTags = (int*)sigScan("game", "useOfARNumberOfGeoTags");
     ARGeoTagsXYZCoords = (float*)sigScan("game", "useOfARGeoTagsXYZCoords");
@@ -564,11 +560,11 @@ namespace rnd {
     BacklogFirstFullDispLine = (int*)sigScan("game", "useOfBacklogFirstFullDispLine");
     BacklogLastFullDispLine = (int*)sigScan("game", "useOfBacklogLastFullDispLine");
 
-    //MapNumPoints = (int*)sigScan("game", "useOfMapNumPoints");
-    //MapPointsData = (int*)sigScan("game", "useOfMapPointsData");
-    //MapPointsIDs = (int*)sigScan("game", "useOfMapPointsIDs");
-    //MapSelectedPointIndex = (int*)sigScan("game", "useOfMapSelectedPointIndex");
-    //MapPointIsDisplayed = (int*)sigScan("game", "useOfMapPointIsDisplayed");
+    MapNumPoints = (int*)sigScan("game", "useOfMapNumPoints");
+    MapPointsData = (int*)sigScan("game", "useOfMapPointsData");
+    MapPointsIDs = (int*)sigScan("game", "useOfMapPointsIDs");
+    MapSelectedPointIndex = (int*)sigScan("game", "useOfMapSelectedPointIndex");
+    MapPointIsDisplayed = (int*)sigScan("game", "useOfMapPointIsDisplayed");
 
     //ConfigMenuCurrentPage = (int*)sigScan("game", "useOfConfigMenuCurrentPage");
     //ConfigPage1SelectedItem = (int*)sigScan("game", "useOfConfigPage1SelectedItem");
@@ -603,7 +599,7 @@ namespace rnd {
     //ConfigMovieVolume = (int*)sigScan("game", "useOfConfigMovieVolume");
     //ConfigMovieVolumeCur = (int*)sigScan("game", "useOfConfigMovieVolumeCur");
 
-    /*CGviewModeAlpha = (int*)sigScan("game", "useOfCGviewModeAlpha");*/
+    CGviewModeAlpha = (int*)sigScan("game", "useOfCGviewModeAlpha");
 
     GameScreenTopLeftX = (int*)sigScan("game", "useOfGameScreenTopLeftX");
     GameScreenTopLeftY = (int*)sigScan("game", "useOfGameScreenTopLeftY");
@@ -667,9 +663,9 @@ namespace rnd {
     scanCreateEnableHook("game", "InstOption", (uintptr_t*)&gameExeInstOption,
                          (LPVOID)&instOptionHook,
                          (LPVOID*)&gameExeInstOptionReal);
-    scanCreateEnableHook("game", "MesDispWindow", (uintptr_t*)&gameExeMesDispWindow,
-                         (LPVOID)&mesDispWindowHook,
-                         (LPVOID*)&gameExeMesDispWindowReal);
+    //scanCreateEnableHook("game", "MesDispWindow", (uintptr_t*)&gameExeMesDispWindow,
+    //                     (LPVOID)&mesDispWindowHook,
+    //                     (LPVOID*)&gameExeMesDispWindowReal);
     scanCreateEnableHook("game", "PokecomViewGeotag", (uintptr_t*)&gameExePokecomViewGeotag,
                          (LPVOID)&pokecomViewGeotagHook,
                          (LPVOID*)&gameExePokecomViewGeotagReal);
@@ -789,6 +785,16 @@ namespace rnd {
           int screenX = x - 84;
           int screenY = y - 138;
 
+          auto pokecomWidth = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 12);
+          auto pokecomHeight = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 14);
+          auto pokecomX = ((pokecomWidth / 2) + (gameExeScrWork[6402] + gameExeScrWork[6378]) + 960) - pokecomWidth;
+          auto pokecomY = ((pokecomHeight / 2) + (gameExeScrWork[6403] + gameExeScrWork[6379]) + 540) - pokecomHeight;
+
+          float pokecomScaleX = pokecomWidth / 1920.0f;
+          float pokecomScaleY = pokecomHeight / 1080.0f;
+          screenX = (screenX * pokecomScaleX) + pokecomX;
+          screenY = (screenY * pokecomScaleY) + pokecomY;
+
           int textWidth;
           if (ARSomeGeoTagArr2[ARSomeGeoTagArr[id]]) {
             textWidth = gameExeCountSC3Characters(gameExeGetSC3StringByID(13, *ARSomeGeoTagData + 200), 100, 0);
@@ -798,7 +804,7 @@ namespace rnd {
           }
           textWidth *= 2;
 
-          if (menuButtonHitTest(id, mouseX, mouseY, screenX, screenY, textWidth + 80, 62, ARSelectedGeoTag)) {
+          if (menuButtonHitTest(id, mouseX, mouseY, screenX, screenY + 62, (textWidth + 80) * pokecomScaleX, 62, ARSelectedGeoTag)) {
             if (InputObject->mouseButtons & MouseLeftClick) {
               dontMoveThisFrame = true;
               *InputMask |= PAD1A;
@@ -810,7 +816,18 @@ namespace rnd {
       }
 
       if (gameExeGetFlag(KRep_SearchMode) && *ARPointingAtReport) {
-        if (mouseSelectHitTest(mouseX, mouseY, 923, 581, 72, 70) && (InputObject->mouseButtons & MouseLeftClick))
+        auto pokecomWidth = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 12);
+        auto pokecomHeight = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 14);
+        auto pokecomX = ((pokecomWidth / 2) + (gameExeScrWork[6402] + gameExeScrWork[6378]) + 960) - pokecomWidth;
+        auto pokecomY = ((pokecomHeight / 2) + (gameExeScrWork[6403] + gameExeScrWork[6379]) + 540) - pokecomHeight;
+
+        float pokecomScaleX = pokecomWidth / 1920.0f;
+        float pokecomScaleY = pokecomHeight / 1080.0f;
+
+        int screenX = 923 * pokecomScaleX + pokecomX;
+        int screenY = 581 * pokecomScaleY + pokecomY;
+
+        if (mouseSelectHitTest(mouseX, mouseY, screenX, screenY, 72 * pokecomScaleX, 70 * pokecomScaleY) && (InputObject->mouseButtons & MouseLeftClick))
           *InputMask |= PAD1A;
       }
 
@@ -891,8 +908,8 @@ namespace rnd {
       // 6510 - MapPosX
       // 6511 - MapPosY
       if (InputObject->mouseButtonsHeld & MouseLeftClick) {
-        gameExeScrWork[SW_MAP_POSX] -= InputObject->mouseXAxis;
-        gameExeScrWork[SW_MAP_POSY] -= InputObject->mouseYAxis;
+        gameExeScrWork[SW_MAP_POSX] -= (InputObject->mouseXAxis) * 2;
+        gameExeScrWork[SW_MAP_POSY] -= (InputObject->mouseYAxis) * 2;
       }
 
       // 6517 - MapSize
@@ -903,15 +920,30 @@ namespace rnd {
         gameExeScrWork[SW_MAP_SIZE] = gameExeScrWork[SW_MAP_SIZE] + 50 < 2000 ? gameExeScrWork[SW_MAP_SIZE] + 50 : gameExeScrWork[SW_MAP_SIZE];
       }
 
-      // Modes 1 and 17 allow you to select a location to move to
-      if (gameExeScrWork[SW_MAP_MODE] == 1 || gameExeScrWork[SW_MAP_MODE] == 17) {
+      if ((int8_t)gameExeScrWork[SW_MAP_MODE] < 0) {
         for (int i = 0; i < *MapNumPoints; i++) {
           if (MapPointIsDisplayed[i]) {
             int id = MapPointsIDs[i];
-            int screenX = (960 * (MapPointsData[4 * id] - (gameExeScrWork[SW_MAP_POSX] - (960 * gameExeScrWork[SW_MAP_SIZE] / 1000) / 2)) / (960 * gameExeScrWork[SW_MAP_SIZE] / 1000) - 42) * 2;
-            int screenY = (544 * (MapPointsData[4 * id + 1] - (gameExeScrWork[SW_MAP_POSY] - (544 * gameExeScrWork[SW_MAP_SIZE] / 1000) / 2)) / (544 * gameExeScrWork[SW_MAP_SIZE] / 1000) - 69) * 2;
+            int screenX = 1920 * (MapPointsData[5 * id + 1] - (gameExeScrWork[SW_MAP_POSX] - (1920 * gameExeScrWork[SW_MAP_SIZE] / 1000) / 2)) / (1920 * gameExeScrWork[SW_MAP_SIZE] / 1000) - 84;
+            int screenY = 1080 * (MapPointsData[5 * id + 2] - (gameExeScrWork[SW_MAP_POSY] - (1080 * gameExeScrWork[SW_MAP_SIZE] / 1000) / 2)) / (1080 * gameExeScrWork[SW_MAP_SIZE] / 1000) - 138;
 
-            if (menuButtonHitTest(i, mouseX, mouseY, screenX + 18, screenY + 88, MapPointsData[4 * id + 2] * 2 + 120, 76, MapSelectedPointIndex)) {
+            int height = 93;
+            if (!gameExeScrWork[6377]) {
+              auto pokecomWidth = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 12);
+              auto pokecomHeight = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 14);
+              auto pokecomX = ((pokecomWidth / 2) + (gameExeScrWork[6402] + gameExeScrWork[6378]) + 960) - pokecomWidth;
+              auto pokecomY = ((pokecomHeight / 2) + (gameExeScrWork[6403] + gameExeScrWork[6379]) + 540) - pokecomHeight;
+
+              float pokecomScaleX = pokecomWidth / 1920.0f;
+              float pokecomScaleY = pokecomHeight / 1080.0f;
+              screenX = (screenX * pokecomScaleX) + pokecomX - 145;
+              screenY = (screenY * pokecomScaleY) + pokecomY + 25;
+              height = 54;
+            } else {
+              screenY += height;
+            }
+
+            if (menuButtonHitTest(i, mouseX, mouseY, screenX, screenY, MapPointsData[5 * id + 3], height, MapSelectedPointIndex)) {
               if (InputObject->mouseButtons & MouseLeftClick) {
                 *InputMask |= PAD1A;
               }
@@ -977,26 +1009,18 @@ namespace rnd {
       if (gameExeScrWork[SW_TWIPOMODE] == 0) {
         // Twipo tabs
         for (int i = 0; i < 4; i++) {
-          if (mouseSelectHitTest(mouseX, mouseY, 75, 275 + (i * 273), 90, 273) && (InputObject->mouseButtons & MouseLeftClick))
+          if (mouseSelectHitTest(mouseX, mouseY, 449, 385 + (i * 157), 59, 157) && (InputObject->mouseButtons & MouseLeftClick))
             gameExeScrWork[SW_TWIPOCURTAB] = i;
-        }
-
-        // Reply button
-        int data = *(int*)(TwipoDataPointers[gameExeScrWork[SW_TWIPOCURTAB]] + 8 * gameExeScrWork[SW_TWIPOCURTW]);
-        if ((TwipoData1[5 * data] != 0xFFFF) && TwipoData2[data]) {
-          if (mouseSelectHitTest(mouseX, mouseY, 1533, 1052, 357, 118) && (InputObject->mouseButtons & MouseLeftClick)) {
-            *InputMask |= PAD1A;
-          }
         }
 
         // Scroll tweeps up/down by clicking on them
         if ((TwipoTweepCountInTabs[gameExeScrWork[SW_TWIPOCURTAB]] - gameExeScrWork[SW_TWIPOCURTW]) > 1) {
-          if (mouseSelectHitTest(mouseX, mouseY, 166, 365, 677, 366) && (InputObject->mouseButtons & MouseLeftClick)) {
+          if (mouseSelectHitTest(mouseX, mouseY, 508, 437, 383, 209) && (InputObject->mouseButtons & MouseLeftClick)) {
             *InputMask4 |= PAD1RIGHTSTICKUP;
           }
         }
         if (gameExeScrWork[SW_TWIPOCURTW] > 0) {
-          if (mouseSelectHitTest(mouseX, mouseY, 166, 1079, 677, 355) && (InputObject->mouseButtons & MouseLeftClick)) {
+          if (mouseSelectHitTest(mouseX, mouseY, 508, 849, 383, 209) && (InputObject->mouseButtons & MouseLeftClick)) {
             *InputMask4 |= PAD1RIGHTSTICKDOWN;
           }
         }
@@ -1039,26 +1063,6 @@ namespace rnd {
       if (InputObject->mouseButtons & MouseRightClick) {
         *InputMask |= PAD1B;
       }
-    }
-
-    // Read mode
-    if (gameExeScrWork[SW_TWIPOMODE] == 0) {
-      //Tweep can be replied to check
-      int data = *(int*)(TwipoDataPointers[gameExeScrWork[SW_TWIPOCURTAB]] + 8 * gameExeScrWork[SW_TWIPOCURTW]);
-      if ((TwipoData1[5 * data] != 0xFFFF) && TwipoData2[data]) {
-        DWORD oldProtect;
-        VirtualProtect(TwipoReplyY, 11, PAGE_READWRITE, &oldProtect);
-        *TwipoReplyX = 1096.0f;
-        *TwipoReplyY = 1540.0f;
-        VirtualProtect(TwipoReplyY, 11, oldProtect, &oldProtect);
-      }
-    }
-    else if (gameExeScrWork[SW_TWIPOMODE] == 1) { // Reply mode
-      DWORD oldProtect;
-      VirtualProtect(TwipoReplyY, 11, PAGE_READWRITE, &oldProtect);
-      *TwipoReplyX = 1474.0f;
-      *TwipoReplyY = 1540.0f;
-      VirtualProtect(TwipoReplyY, 11, oldProtect, &oldProtect);
     }
 
     return gameExeTwipoMainReal();
@@ -1147,15 +1151,15 @@ namespace rnd {
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
 
-      if (menuButtonHitTest(0, mouseX, mouseY, 408, 382, 275, 154, &gameExeScrWork[SW_POKECOMSELNO]) ||
-        menuButtonHitTest(1, mouseX, mouseY, 684, 382, 275, 154, &gameExeScrWork[SW_POKECOMSELNO]) ||
-        menuButtonHitTest(2, mouseX, mouseY, 1236, 382, 275, 154, &gameExeScrWork[SW_POKECOMSELNO]) ||
-        menuButtonHitTest(3, mouseX, mouseY, 1236, 538, 275, 154, &gameExeScrWork[SW_POKECOMSELNO]) ||
-        menuButtonHitTest(4, mouseX, mouseY, 684, 693, 275, 154, &gameExeScrWork[SW_POKECOMSELNO]) ||
-        menuButtonHitTest(5, mouseX, mouseY, 960, 693, 275, 154, &gameExeScrWork[SW_POKECOMSELNO]) ||
-        menuButtonHitTest(6, mouseX, mouseY, 408, 849, 275, 154, &gameExeScrWork[SW_POKECOMSELNO]) ||
-        menuButtonHitTest(7, mouseX, mouseY, 960, 849, 275, 154, &gameExeScrWork[SW_POKECOMSELNO]) ||
-        menuButtonHitTest(8, mouseX, mouseY, 1236, 849, 275, 154, &gameExeScrWork[SW_POKECOMSELNO])) {
+      if (menuButtonHitTest(0, mouseX, mouseY, 408, 382, 275, 154, PokecomSelectionIndex) ||
+        menuButtonHitTest(1, mouseX, mouseY, 684, 382, 275, 154, PokecomSelectionIndex)   ||
+        menuButtonHitTest(3, mouseX, mouseY, 1236, 382, 275, 154, PokecomSelectionIndex)  ||
+        menuButtonHitTest(7, mouseX, mouseY, 1236, 538, 275, 154, PokecomSelectionIndex)  ||
+        menuButtonHitTest(9, mouseX, mouseY, 684, 693, 275, 154, PokecomSelectionIndex)   ||
+        menuButtonHitTest(10, mouseX, mouseY, 960, 693, 275, 154, PokecomSelectionIndex)  ||
+        menuButtonHitTest(12, mouseX, mouseY, 408, 849, 275, 154, PokecomSelectionIndex)  ||
+        menuButtonHitTest(14, mouseX, mouseY, 960, 849, 275, 154, PokecomSelectionIndex)  ||
+        menuButtonHitTest(15, mouseX, mouseY, 1236, 849, 275, 154, PokecomSelectionIndex)) {
         if (InputObject->mouseButtons & MouseLeftClick) {
           *InputMask |= PAD1A;
         }
@@ -1235,36 +1239,40 @@ namespace rnd {
       int mouseY = InputObject->scaledMouseY;
 
       if (TipsMenuTipData[6 * *TipsMenuSelectedTip] & 1 && *TipMenuTipTextHeight > 370) {
-        int scrollBarY = (316 * *TipsMenuTipTextStartOffset / (*TipMenuTipTextHeight - 370) + 114) * 2;
-        mouseScrollBar(mouseX, mouseY, 1802, scrollBarY + 105, 11, 105, 0, *TipMenuTipTextHeight - 370, 228, 860, *TipsMenuTipTextStartOffset, 0);
+        int scrollBarY = 530 * *TipsMenuTipTextStartOffset / (*TipMenuTipTextHeight - 370) + 374;
+        mouseScrollBar(mouseX, mouseY, 1822, scrollBarY + 60, 10, 60, 0, *TipMenuTipTextHeight - 370, 376, 906, *TipsMenuTipTextStartOffset, 0);
       }
 
-      if (TipsMenuTabTipCount[*TipsMenuCurrentTab] > 19) {
-        int scrollBarY = (350 * *TipsMenuStartIndex / (TipsMenuTabTipCount[*TipsMenuCurrentTab] - 19) + 79) * 2;
-        mouseScrollBar(mouseX, mouseY, 634, scrollBarY + 105, 11, 105, 0, TipsMenuTabTipCount[*TipsMenuCurrentTab] - 19, 158, 859, *TipsMenuStartIndex, 1);
+      if (TipsMenuTabTipCount[*TipsMenuCurrentTab] > 22) {
+        int scrollBarY = (671 * *TipsMenuStartIndex / (TipsMenuTabTipCount[*TipsMenuCurrentTab] - 22)) + 222;
+        mouseScrollBar(mouseX, mouseY, 555, scrollBarY + 60, 10, 60, 0, TipsMenuTabTipCount[*TipsMenuCurrentTab] - 22, 224, 895, *TipsMenuStartIndex, 1);
+        *((float*)(TipsMenuStartIndex + 3)) = (float)*TipsMenuStartIndex;
       }
 
       if (!SliderMoving) {
-        int count = TipsMenuTabTipCount[*TipsMenuCurrentTab] > 19 ? 19 : TipsMenuTabTipCount[*TipsMenuCurrentTab];
+        int count = TipsMenuTabTipCount[*TipsMenuCurrentTab] > 22 ? 22 : TipsMenuTabTipCount[*TipsMenuCurrentTab];
         for (int i = 0; i < count; i++) {
-          if (menuButtonHitTest(i, mouseX, mouseY, 97, 215 + (i * 44), 534, 43, TipsMenuSelectedIndex) && (InputObject->mouseButtons & MouseLeftClick))
+          if (menuButtonHitTest(i, mouseX, mouseY, 82, 287 + (i * 32), 467, 32, TipsMenuSelectedIndex) && (InputObject->mouseButtons & MouseLeftClick))
             *InputMask |= PAD1A;
         }
 
         for (int i = 0; i < 4; i++) {
           if (TipsMenuTabTipCount[i]) {
-            if (mouseSelectHitTest(mouseX, mouseY, 94 + (i * 144), 116, 140, 35) && (InputObject->mouseButtons & MouseLeftClick))
+            if (mouseSelectHitTest(mouseX, mouseY, 80 + (i * 126), 189, 126, 30) && (InputObject->mouseButtons & MouseLeftClick))
               *TipsMenuCurrentTab = i;
           }
         }
 
-        int maxStartIndex = TipsMenuTabTipCount[*TipsMenuCurrentTab] - 19;
-        if ((TipsMenuTabTipCount[*TipsMenuCurrentTab] > 19) && mouseHitTest(mouseX, mouseY, 97, 1013, 560, 890)) {
+        int maxStartIndex = TipsMenuTabTipCount[*TipsMenuCurrentTab] - 22;
+        if ((TipsMenuTabTipCount[*TipsMenuCurrentTab] > 22) && mouseHitTest(mouseX, mouseY, 97, 1013, 560, 890)) {
           if (InputObject->mouseButtonsHeld & MouseScrollWheelUp) {
             *TipsMenuStartIndex = *TipsMenuStartIndex == 0 ? 0 : *TipsMenuStartIndex - 1;
+            // Why???????
+            *((float*)(TipsMenuStartIndex + 3)) = (float)*TipsMenuStartIndex;
           }
           else if (InputObject->mouseButtonsHeld & MouseScrollWheelDown) {
             *TipsMenuStartIndex = *TipsMenuStartIndex == maxStartIndex ? maxStartIndex : *TipsMenuStartIndex + 1;
+            *((float*)(TipsMenuStartIndex + 3)) = (float)*TipsMenuStartIndex;
           }
         }
 
@@ -1283,7 +1291,8 @@ namespace rnd {
       }
     }
 
-    return gameExeInstTipsReal(thread);
+    int ret = gameExeInstTipsReal(thread);
+    return ret;
   }
 
   int __cdecl instSystemMenuHook(void* thread) {
