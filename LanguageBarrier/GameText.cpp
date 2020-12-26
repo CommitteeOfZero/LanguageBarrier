@@ -492,7 +492,9 @@ namespace lb {
 		int opacity);
 	void drawReportContentHook(int textureId, int maskId, int a3, int a4, int startX, int startY, unsigned int maskWidth, unsigned int a8, unsigned int a9, char* a10, unsigned int a11, unsigned int a12, int opacity, int a14, int a15, float a16);
 	int __cdecl rnDrawTextHook(signed int textureId, int a2, signed int startY, unsigned int a4, uint8_t* a5, signed int startX, int color, int height, int opacity);
-	void __cdecl DrawBacklogContentHook(int textureId, int maskTextureId, int startX, int startY, unsigned int maskY, int maskHeight, int opacity, int index);
+	void __cdecl DrawBacklogContentHookRND(int textureId, int maskTextureId, int startX, int startY, unsigned int maskY, int maskHeight, int opacity, int index);
+	void __cdecl DrawBacklogContentHookRNE(int textureId, int maskTextureId, int startX, int startY, unsigned int maskY, int maskHeight, int opacity, int index);
+
 	int __cdecl drawTwipoContentHook(int textureId, int a2, int a3, unsigned int a4, int a5, unsigned int a6, char* sc3, int a8, int a9, uint32_t opacity, int a11, int a12, int a13, int a14);
 	int __cdecl drawTipMessageHook(int textureId, int a2, int a3, char* a4, unsigned int a5, int color, unsigned int a7, uint32_t opacity);
 	int __cdecl drawChatMessageHook(int a2, float a3, float a4, float a5, char* a6, float a7, int color, float a9, uint32_t opacity);
@@ -501,7 +503,7 @@ namespace lb {
 	int* BacklogLineSave;
 	int* BacklogDispLinePos;
 	int* BacklogLineBufSize;
-	uint16_t* BacklogTextPos;
+	int16_t* BacklogTextPos;
 	int* BacklogLineBufUse;
 	uint16_t* BacklogText;
 	int* BacklogDispCurPosSX;
@@ -516,6 +518,7 @@ namespace lb {
 	int* BacklogDispLineSize;
 	int* BacklogDispPos;
 	int* dword_948628;
+	int* dword_AEDDB0;
 	uint8_t* BacklogTextCo;
 	int* BacklogLineVoice;
 	int* BacklogDispLinePosY;
@@ -672,6 +675,45 @@ namespace lb {
 		scanCreateEnableHook(
 			"game", "drawPhoneCallNameText", (uintptr_t*)&rnDrawPhoneCallName,
 			(LPVOID)drawPhoneCallNameHook, (LPVOID*)&rnDrawPhoneCallNameReal);
+
+		if (true) {
+
+			BacklogDispLinePos = (int*)sigScan("game", "BacklogDispLinePos");
+			BacklogLineBufSize = (int*)sigScan("game", "BacklogLineBufSize");
+			BacklogTextPos = (int16_t*)sigScan("game", "BacklogTextPos");
+			BacklogLineBufUse = (int*)sigScan("game", "BacklogLineBufUse");
+			BacklogText = (uint16_t*)sigScan("game", "BacklogText");
+			BacklogDispCurPosSX = (int*)sigScan("game", "BacklogDispCurPosSX");
+			BacklogDispCurPosEY = (int*)sigScan("game", "BacklogDispCurPosEY");
+			BacklogLineBufStartp = (int*)sigScan("game", "BacklogLineBufStartp");
+			BacklogTextSize = (unsigned char*)sigScan("game", "BacklogTextSize");
+			BacklogLineBufEndp = (int*)sigScan("game", "BacklogLineBufEndp");
+			BacklogBufStartp = (int*)sigScan("game", "BacklogBufStartp");
+			MesFontColor = (int*)sigScan("game", "MesFontColor");
+			BacklogBufUse = (int*)sigScan("game", "BacklogBufUse");
+			BacklogDispCurPosEX = (int*)sigScan("game", "BacklogDispCurPosEX");
+			BacklogDispLineSize = (int*)sigScan("game", "BacklogDispLineSize");
+			BacklogDispPos = (int*)sigScan("game", "BacklogDispPos");
+			dword_948628 = (int*)sigScan("game", "dword_948628");
+			BacklogTextCo = (uint8_t*)sigScan("game", "BacklogTextCo");
+			BacklogDispLinePosY = (int*)sigScan("game", "BacklogDispLinePosY");
+			BacklogDispCurPosSY = (int*)sigScan("game", "BacklogDispCurPosSY");
+
+
+
+			scanCreateEnableHook(
+				"game", "drawReportContent", (uintptr_t*)&gameExeDrawReportContent,
+				(LPVOID)drawReportContentHook, (LPVOID*)&gameExeDrawReportContentReal);
+
+			scanCreateEnableHook("game", "drawSprite", (uintptr_t*)&gameExeDrawSprite,
+				(LPVOID)drawSpriteHook,
+				(LPVOID*)&gameExeDrawSpriteReal);
+
+
+
+		}
+
+
 		if (config["gamedef"].count("dialoguePageVersion") == 1 &&
 			config["gamedef"]["dialoguePageVersion"].get<std::string>() == "cc") {
 			gameExeDialoguePages_CCDialoguePage_t =
@@ -713,6 +755,11 @@ namespace lb {
 				scanCreateEnableHook(
 					"game", "drawDialogue", (uintptr_t*)&gameExeDrawDialogue,
 					(LPVOID)rnDDrawDialogueHook, (LPVOID*)&gameExeDrawDialogueReal);
+				dword_AEDDB0 = (int*)sigScan("game", "dword_AEDDB0");
+
+				scanCreateEnableHook("game", "drawBacklogContent", (uintptr_t*)&gameExeDrawBacklogContent,
+					(LPVOID)DrawBacklogContentHookRND,
+					(LPVOID*)&gameExeDrawBacklogContentReal);
 			}
 		}
 		else {
@@ -725,6 +772,10 @@ namespace lb {
 				scanCreateEnableHook(
 					"game", "drawDialogue2", (uintptr_t*)&gameExeDrawDialogue2,
 					(LPVOID)drawDialogue2Hook, (LPVOID*)&gameExeDrawDialogue2Real);
+
+				scanCreateEnableHook("game", "drawBacklogContent", (uintptr_t*)&gameExeDrawBacklogContent,
+					(LPVOID)DrawBacklogContentHookRNE,
+					(LPVOID*)&gameExeDrawBacklogContentReal);
 			}
 		}
 
@@ -894,47 +945,7 @@ namespace lb {
 
 
 
-		if (true) {
 
-			/*BacklogLineSave = (int*)sigScan("game", "BacklogLineSave");
-			BacklogDispLinePos = (int*)sigScan("game", "BacklogDispLinePos");
-			BacklogLineBufSize = (int*)sigScan("game", "BacklogLineBufSize");
-			BacklogTextPos = (uint16_t*)sigScan("game", "BacklogTextPos");
-			BacklogLineBufUse = (int*)sigScan("game", "BacklogLineBufUse");
-			BacklogText = (uint16_t*)sigScan("game", "BacklogText");
-			BacklogDispCurPosSX = (int*)sigScan("game", "BacklogDispCurPosSX");
-			BacklogDispCurPosEY = (int*)sigScan("game", "BacklogDispCurPosEY");
-			BacklogLineBufStartp = (int*)sigScan("game", "BacklogLineBufStartp");
-			BacklogTextSize = (unsigned char*)sigScan("game", "BacklogTextSize");
-			BacklogLineBufEndp = (int*)sigScan("game", "BacklogLineBufEndp");
-			BacklogBufStartp = (int*)sigScan("game", "BacklogBufStartp");
-			MesFontColor = (int*)sigScan("game", "MesFontColor");
-			BacklogBufUse = (int*)sigScan("game", "BacklogBufUse");
-			BacklogDispCurPosEX = (int*)sigScan("game", "BacklogDispCurPosEX");
-			BacklogDispLineSize = (int*)sigScan("game", "BacklogDispLineSize");
-			BacklogDispPos = (int*)sigScan("game", "BacklogDispPos");
-			dword_948628 = (int*)sigScan("game", "dword_948628");
-			BacklogTextCo = (uint8_t*)sigScan("game", "BacklogTextCo");
-			BacklogLineVoice = (int*)sigScan("game", "BacklogLineVoice");
-			BacklogDispLinePosY = (int*)sigScan("game", "BacklogDispLinePosY");
-			BacklogDispCurPosSY = (int*)sigScan("game", "BacklogDispCurPosSY");*/
-
-
-
-			scanCreateEnableHook(
-				"game", "drawReportContent", (uintptr_t*)&gameExeDrawReportContent,
-				(LPVOID)drawReportContentHook, (LPVOID*)&gameExeDrawReportContentReal);
-
-			scanCreateEnableHook("game", "drawBacklogContent", (uintptr_t*)&gameExeDrawBacklogContent,
-				(LPVOID)DrawBacklogContentHook,
-				(LPVOID*)&gameExeDrawBacklogContentReal);
-			scanCreateEnableHook("game", "drawSprite", (uintptr_t*)&gameExeDrawSprite,
-				(LPVOID)drawSpriteHook,
-				(LPVOID*)&gameExeDrawSpriteReal);
-
-
-
-		}
 
 		if (CC_BACKLOG_HIGHLIGHT) {
 			gameExeCcBacklogCurLine = (int*)sigScan("game", "useOfCcBacklogCurLine");
@@ -1408,7 +1419,7 @@ namespace lb {
 
 
 
-	void __cdecl DrawBacklogContentHook(int textureId, int maskTextureId, int startX, int startY, unsigned int maskY, int maskHeight, int opacity, int index)
+	void __cdecl DrawBacklogContentHookRNE(int textureId, int maskTextureId, int startX, int startY, unsigned int maskY, int maskHeight, int opacity, int index)
 	{
 		unsigned int v8; // edi
 		unsigned int v9; // ecx
@@ -1659,6 +1670,221 @@ namespace lb {
 			}
 		}
 	}
+
+	void __cdecl DrawBacklogContentHookRND(int textureId, int maskTextureId, int startX, int startY, unsigned int maskY, int maskHeight, int opacity, int index)
+	{
+
+
+		bool newline = false;
+		float xPosition, yPosition;
+
+
+
+		if (!TextRendering::Get().enabled)
+
+			return gameExeDrawBacklogContentReal(78, maskTextureId, startX, startY, maskY, maskHeight, opacity, index);
+
+
+		unsigned int v8; // esi
+		unsigned int v9; // edx
+		int v10; // ebx
+		unsigned int v11; // ecx
+		int v12; // ecx
+		int v13; // edx
+		int strIndex; // edi
+		unsigned int v15; // ecx
+		__int16 v16; // cx
+		int v17; // eax
+		int v18; // eax
+		int v19; // edx
+		int color; // eax
+		int v21; // eax
+		unsigned int v22; // [esp+40h] [ebp-30h]
+		unsigned int v23; // [esp+44h] [ebp-2Ch]
+		int v24; // [esp+48h] [ebp-28h]
+		int v25; // [esp+4Ch] [ebp-24h]
+		int v26; // [esp+50h] [ebp-20h]
+		int v27; // [esp+54h] [ebp-1Ch]
+		int a10; // [esp+58h] [ebp-18h]
+		int a12; // [esp+5Ch] [ebp-14h]
+		int v30; // [esp+60h] [ebp-10h]
+		int v31; // [esp+64h] [ebp-Ch]
+		int v32; // [esp+68h] [ebp-8h]
+		int v33; // [esp+6Ch] [ebp-4h]
+
+		if (BacklogLineBufUse)
+		{
+			v8 = 0;
+			v23 = 0;
+			if (BacklogLineBufUse)
+			{
+				v9 = maskY;
+				do
+				{
+					v10 = 0xFFFF;
+					v11 = startY + BacklogDispLinePosY[v8] - *BacklogDispPos;
+					v31 = 0xFFFF;
+					v30 = 0xFFFF;
+					v25 = 0;
+					v32 = 0;
+					v22 = v11;
+					v24 = 0;
+					if (v11 + BacklogDispLineSize[v8] > v9 && v11 < v9 + maskHeight)
+					{
+						v12 = BacklogDispLinePos[v8];
+						v13 = 0;
+						v27 = 0;
+						strIndex = BacklogLineBufSize[v12];
+						v26 = BacklogLineBufEndp[v12];
+						if (v26)
+						{
+							do
+							{
+								v15 = BacklogText[strIndex];
+								if ((v15 & 0x8000u) == 0)
+								{
+									v18 = BacklogTextCo[strIndex];
+									v19 = MesFontColor[2 * v18];
+									color = MesFontColor[2 * v18 + 1];
+									a10 = v19;
+									if (v19 == 0xFFFFFF)
+									{
+										a12 = 0xFFFFFF;
+										a10 = color;
+									}
+									else
+									{
+										a12 = color;
+									}
+									v32 = v22 + BacklogTextPos[2 * strIndex + 1];
+									v33 = startX + BacklogTextPos[2 * strIndex];
+									v30 = v33 + BacklogTextSize[4 * strIndex + 2];
+
+
+
+									int colorIndex = BacklogTextCo[strIndex];
+									auto glyphSize = BacklogTextSize[4 * strIndex + 3] * 1.5f;
+
+									if (strIndex == 0 || strIndex > 0 && BacklogTextPos[2 * (strIndex)+1] != BacklogTextPos[2 * (strIndex - 1) + 1]) {
+										newline = true;
+									}
+									else newline = false;
+
+									if (newline == false && (BacklogText[strIndex - 1] & 0x8000) == 0) {
+										auto glyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(BacklogText[strIndex - 1], Regular);
+										xPosition += glyphInfo->advance;
+									}
+									else {
+										xPosition = (startX + BacklogTextPos[2 * strIndex]) * 1.5f;
+									}
+
+
+
+
+									TextRendering::Get().replaceFontSurface(glyphSize);
+									auto glyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(BacklogText[strIndex], Regular);
+									int dummy1, dummy2;
+									int	v35 = startY + BacklogDispLinePosY[v8] - *BacklogDispPos;
+									v35 *= 1.5f;
+									v35 += 19 * glyphSize / 48.0;
+
+									gameExeSg0DrawGlyph2(
+										TextRendering::Get().FONT_TEXTURE_ID, maskTextureId,
+										glyphInfo->x,
+										glyphInfo->y,
+										glyphInfo->width,
+										glyphInfo->rows,
+										32 * 2,
+										round(BacklogTextPos[2 * strIndex + 1] * 1.5f + v35 + glyphSize / 2.0f - glyphInfo->top),
+										round(xPosition + glyphInfo->left),
+										round(BacklogTextPos[2 * strIndex + 1] * 1.5f + v35 + glyphSize / 2.0f - glyphInfo->top),
+										round(xPosition + glyphInfo->left + glyphInfo->width),
+										round(BacklogTextPos[2 * strIndex + 1] * 1.5f + glyphInfo->rows + glyphSize / 2.0f - glyphInfo->top + v35),
+
+										a10, opacity, &dummy1, &dummy2);
+
+
+
+
+
+
+
+
+									/*
+
+																		sub_4D5B30(
+																			textureId,
+																			maskTextureId,
+																			(float)(int)(32 * (v15 - (v15 >> 6 << 6)) + 1),
+																			(float)(int)(32 * (v15 >> 6) + 1),
+																			(float)(BacklogTextSize[4 * strIndex] - 2),
+																			(float)(BacklogTextSize[4 * strIndex + 1] - 2),
+																			(float)(v33 + 1) * 1.5,
+																			(float)(v32 + 1) * 1.5,
+																			(float)(v30 + 1) * 1.5,
+																			(float)(v32 + 1 + BacklogTextSize[4 * strIndex + 3]) * 1.5,
+																			a10,
+																			opacity,
+																			a12,
+																			0.44999999,
+																			0.30000001);*/
+
+
+
+
+
+									v13 = v27;
+									if (!v27 && v31 == 0xFFFF)
+									{
+										v31 = v33;
+										v25 = v32;
+									}
+									if (v27 == 1 && v10 == 0xFFFF)
+										v10 = v33;
+								}
+								else
+								{
+									v16 = v15 & 0x7FFF;
+									if (v16 == 1)
+									{
+										v13 = 1;
+										v24 = 1;
+									}
+									v17 = 0;
+									if (v16 != 2)
+										v17 = v13;
+									v13 = v17;
+									v27 = v17;
+								}
+								v21 = strIndex + 1;
+								strIndex = 0;
+								if (v21 != 50000)
+									strIndex = v21;
+								--v26;
+							} while (v26);
+							v8 = v23;
+						}
+						v9 = maskY;
+					}
+					dword_AEDDB0[v8] = v31;
+					BacklogDispCurPosSX[v8] = v25;
+					BacklogDispCurPosSY[v8] = v30;
+					BacklogDispCurPosEX[v8] = v32;
+					BacklogDispCurPosEY[v8] = v24;
+					dword_948628[v8++] = v10;
+					v23 = v8;
+				} while (v8 < *BacklogLineBufUse);
+			}
+
+
+
+
+
+		}
+	}
+
+
+
 
 	int __cdecl drawTipMessageHook(int textureId, int a2, int a3, char* sc3String, unsigned int a5, int color, unsigned int glyphSize, uint32_t opacity) {
 

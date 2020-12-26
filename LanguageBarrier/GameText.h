@@ -62,7 +62,7 @@ LB_GLOBAL float CC_BACKLOG_HIGHLIGHT_YOFFSET_SHIFT;
 GAMETEXT_H_IMPORT int* BacklogLineSave;
 GAMETEXT_H_IMPORT int* BacklogDispLinePos;
 GAMETEXT_H_IMPORT int* BacklogLineBufSize;
-GAMETEXT_H_IMPORT uint16_t* BacklogTextPos;
+GAMETEXT_H_IMPORT int16_t* BacklogTextPos;
 GAMETEXT_H_IMPORT int* BacklogLineBufUse;
 GAMETEXT_H_IMPORT uint16_t* BacklogText;
 GAMETEXT_H_IMPORT int* BacklogDispCurPosSX;
