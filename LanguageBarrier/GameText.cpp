@@ -2716,8 +2716,7 @@ namespace lb {
 
 	int setTipContentHook(char* sc3string) {
 		tipContent = sc3string;
-
-		return gameExeSetTipContentReal(sc3string);
+		return 1;
 	}
 
 	void drawReportContentHook(int textureId, int maskId, int a3, int a4, int startX, int startY, unsigned int maskWidth, unsigned int a8, unsigned int a9, char* a10, unsigned int a11, unsigned int a12, int opacity, int a14, int a15, float a16) {
@@ -2738,6 +2737,9 @@ namespace lb {
 			mData.xOffset = 1.5f;
 			mData.yOffset = 1.5f;
 		}
+
+
+
 		semiTokeniseSc3String(a10, words, 64,
 			TIP_REIMPL_LINE_LENGTH);
 		processSc3TokenList(startX, startY, a3, words, 255, a11,
@@ -2870,15 +2872,29 @@ namespace lb {
 		int dummy1;
 		int dummy2;
 		char name[256];
+		if (GetAsyncKeyState(VK_RBUTTON)) {
+			TextRendering::Get().enableReplacement();
+		}
+		if (GetAsyncKeyState(VK_LBUTTON)) {
+			TextRendering::Get().disableReplacement();
 
+		}
 		if (!TextRendering::Get().enabled) {
 			gameExeDrawTipContentReal(textureId, maskId, startX, startY, maskStartY, maskHeight, a7, color, shadowColor, opacity);
 			return;
 		}
 		std::list<StringWord_t> words;
 		MultiplierData mData;
-		mData.xOffset = 2.0f;
-		mData.yOffset = 2.0f;
+		if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
+
+			mData.xOffset = 2.0f;
+			mData.yOffset = 2.0f;
+		}
+		else {
+			mData.xOffset = 1.5f;
+			mData.yOffset = 1.5f;
+		}
+
 		semiTokeniseSc3String(tipContent, words, TIP_REIMPL_GLYPH_SIZE,
 			TIP_REIMPL_LINE_LENGTH);
 		processSc3TokenList(startX, startY, TIP_REIMPL_LINE_LENGTH, words, 255, color,
