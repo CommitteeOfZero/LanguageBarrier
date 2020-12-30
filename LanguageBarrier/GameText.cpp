@@ -200,10 +200,18 @@ static DrawSpriteProc gameExeDrawSprite =
 NULL;  // = (DrawSpriteProc)0x431280; (CHAOS;CHILD)
 static DrawSpriteProc gameExeDrawSpriteReal = NULL;
 
+typedef int(__cdecl* SetDialoguePageValuesProc)(int, uint8_t*);
+static SetDialoguePageValuesProc gameExeSetDialoguePageValues =
+NULL;  // = (DrawSpriteProc)0x431280; (CHAOS;CHILD)
+static SetDialoguePageValuesProc gameExeSetDialoguePageValuesReal = NULL;
+
+
 typedef void(__cdecl* DrawBacklogContentProc)(int textureId, int maskTextureId, int startX, int startY, unsigned int maskY, int maskHeight, int opacity, int index);
 static DrawBacklogContentProc gameExeDrawBacklogContent =
 NULL;  // = (DrawSpriteProc)0x431280; (CHAOS;CHILD)
 static DrawBacklogContentProc gameExeDrawBacklogContentReal = NULL;
+
+
 
 typedef int(__cdecl* DrawPhoneTextProc)(int textureId, int xOffset, int yOffset,
 	int lineLength, char* sc3string,
@@ -499,6 +507,7 @@ namespace lb {
 	int __cdecl drawTipMessageHook(int textureId, int a2, int a3, char* a4, unsigned int a5, int color, unsigned int a7, uint32_t opacity);
 	int __cdecl drawChatMessageHook(int a2, float a3, float a4, float a5, char* a6, float a7, int color, float a9, uint32_t opacity);
 	void drawPhoneCallNameHook(int textureId, int maskId, int startX, int startY, int maskStartY, int maskHeight, unsigned int a7, char* a8, int a9, int color, unsigned int a11, signed int opacity);
+	int __cdecl SetDialoguePageValuesHook(int page, uint8_t* data);
 
 	int* BacklogLineSave;
 	int* BacklogDispLinePos;
@@ -778,7 +787,10 @@ namespace lb {
 					(LPVOID*)&gameExeDrawBacklogContentReal);
 			}
 		}
-
+		TextRendering::Get().dialogueWidth = (uint16_t*)sigScan("game", "dialoguePageWidth");
+		scanCreateEnableHook("game", "setDialoguePageValues", (uintptr_t*)&gameExeSetDialoguePageValues,
+			(LPVOID)SetDialoguePageValuesHook,
+			(LPVOID*)&gameExeSetDialoguePageValuesReal);
 		/*  scanCreateEnableHook("game", "dialogueLayoutRelated",
 					 (uintptr_t *)&gameExeDialogueLayoutRelated,
 					 (LPVOID)dialogueLayoutRelatedHook,
@@ -1883,7 +1895,13 @@ namespace lb {
 		}
 	}
 
+	int __cdecl SetDialoguePageValuesHook(int page, uint8_t* data) {
 
+		int ret = gameExeSetDialoguePageValuesReal(page, data);
+		*TextRendering::Get().dialogueWidth = lb::config["patch"]["dialogueWidth"].get<uint16_t>();
+
+		return ret;
+	}
 
 
 	int __cdecl drawTipMessageHook(int textureId, int a2, int a3, char* sc3String, unsigned int a5, int color, unsigned int glyphSize, uint32_t opacity) {
