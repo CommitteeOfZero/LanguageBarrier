@@ -2716,7 +2716,29 @@ namespace lb {
 
 	int setTipContentHook(char* sc3string) {
 		tipContent = sc3string;
-		return 1;
+		ProcessedSc3String_t str;
+
+		std::list<StringWord_t> words;
+		MultiplierData mData;
+		if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
+
+			mData.xOffset = 2.0f;
+			mData.yOffset = 2.0f;
+		}
+		else {
+			mData.xOffset = 1.5f;
+			mData.yOffset = 1.5f;
+		}
+
+		semiTokeniseSc3String(tipContent, words, TIP_REIMPL_GLYPH_SIZE,
+			TIP_REIMPL_LINE_LENGTH);
+		processSc3TokenList(0, 0, TIP_REIMPL_LINE_LENGTH, words, 255, 0,
+			TIP_REIMPL_GLYPH_SIZE, &str, false, COORDS_MULTIPLIER, -1,
+			NOT_A_LINK, 0, TIP_REIMPL_GLYPH_SIZE * 1.5f, &mData);
+
+
+
+		return str.displayEndY[str.length - 1];  // scroll height
 	}
 
 	void drawReportContentHook(int textureId, int maskId, int a3, int a4, int startX, int startY, unsigned int maskWidth, unsigned int a8, unsigned int a9, char* a10, unsigned int a11, unsigned int a12, int opacity, int a14, int a15, float a16) {
@@ -2727,7 +2749,10 @@ namespace lb {
 		char name[256];
 		std::list<StringWord_t> words;
 		MultiplierData mData;
-
+		if (!TextRendering::Get().enabled) {
+			gameExeDrawReportContentReal(textureId, maskId, a3, a4, startX, startY, maskWidth, a8, a9, a10, a11, a12, opacity, a14, a15, a16);
+			return;
+		}
 		if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
 
 			mData.xOffset = 2.0f;
@@ -2746,10 +2771,7 @@ namespace lb {
 			64, &str, false, COORDS_MULTIPLIER, -1,
 			NOT_A_LINK, a11, 64 * 1.25f, &mData);
 
-		if (!TextRendering::Get().enabled) {
-			gameExeDrawReportContentReal(textureId, maskId, a3, a4, startX, startY, maskWidth, a8, a9, a10, a11, a12, opacity, a14, a15, a16);
-			return;
-		}
+	
 		if (a8 <= startY + a12 && a9 >= startY) {
 
 			for (int i = 0; i < str.length; i++) {
@@ -2872,13 +2894,13 @@ namespace lb {
 		int dummy1;
 		int dummy2;
 		char name[256];
-		if (GetAsyncKeyState(VK_RBUTTON)) {
+	/*	if (GetAsyncKeyState(VK_RBUTTON)) {
 			TextRendering::Get().enableReplacement();
 		}
 		if (GetAsyncKeyState(VK_LBUTTON)) {
 			TextRendering::Get().disableReplacement();
 
-		}
+		}*/
 		if (!TextRendering::Get().enabled) {
 			gameExeDrawTipContentReal(textureId, maskId, startX, startY, maskStartY, maskHeight, a7, color, shadowColor, opacity);
 			return;
