@@ -179,7 +179,8 @@ namespace lb {
 			}
 		}
 		for (int i = lastletter; i < *gameExeDlgWordwrapLength; i++) {
-			gameExeDlgWordwrapMask[i] = mask_bytes::letter;
+			if (gameExeDlgWordwrapMask[i] != mask_bytes::linebreak)
+				gameExeDlgWordwrapMask[i] = mask_bytes::letter;
 		}
 
 
