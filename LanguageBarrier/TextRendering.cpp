@@ -47,7 +47,7 @@ void TextRendering::enableReplacement()
 	}
 	this->widthData[0] = lb::config["patch"]["spaceWidthPixels"].get<uint16_t>();
 	this->widthData[lb::config["gamedef"]["glyphIdFullwidthSpace"].get<uint16_t>()] = lb::config["patch"]["spaceWidthPixels"].get<uint16_t>();;
-	*this->dialogueWidth = lb::config["patch"]["dialogueWidth"].get<uint16_t>();
+	*this->dialogueSettings = lb::config["patch"]["dialogueWidth"].get<uint16_t>();
 }
 
 TextRendering::TextRendering()

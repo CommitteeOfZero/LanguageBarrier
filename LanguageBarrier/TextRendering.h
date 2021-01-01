@@ -171,7 +171,7 @@ struct TextRendering
 	void disableReplacement();
 	void enableReplacement();
 	TextRendering();
-	uint16_t* dialogueWidth;
+	uint16_t* dialogueSettings;
 	uint8_t originalWidth[32000];
 	uint8_t originalWidth2[32000];
 	uint8_t* widthData;

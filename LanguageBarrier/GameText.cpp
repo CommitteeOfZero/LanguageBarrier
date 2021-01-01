@@ -11,6 +11,8 @@
 #include "SigScan.h"
 #include "TextRendering.h"
 #include <d3d9.h>
+#include <string_view>
+#include <string>
 // this is my own, not from the game
 typedef struct {
 	int lines;
@@ -409,7 +411,7 @@ BOOL __cdecl skipFix(int a1, int a2)
 
 	char flBit[] = { 1,2,4,8,16,32,64,128 };
 	char* MesView = *viewMessageList;
-	return  (MesView[ (a2 + TextNum[2 * a1]) >> 3] & (unsigned __int8)flBit[(a2 + TextNum[2 * a1]) & 7]) != 0;
+	return  (MesView[(a2 + TextNum[2 * a1]) >> 3] & (unsigned __int8)flBit[(a2 + TextNum[2 * a1]) & 7]) != 0;
 }
 
 
@@ -769,6 +771,9 @@ namespace lb {
 				scanCreateEnableHook("game", "drawBacklogContent", (uintptr_t*)&gameExeDrawBacklogContent,
 					(LPVOID)DrawBacklogContentHookRND,
 					(LPVOID*)&gameExeDrawBacklogContentReal);
+
+				auto call = (void*)sigScan("game", "backlogHighlight");
+				memset_perms(call, INST_NOP, 3);
 			}
 		}
 		else {
@@ -787,7 +792,7 @@ namespace lb {
 					(LPVOID*)&gameExeDrawBacklogContentReal);
 			}
 		}
-		TextRendering::Get().dialogueWidth = (uint16_t*)sigScan("game", "dialoguePageWidth");
+		TextRendering::Get().dialogueSettings = (uint16_t*)sigScan("game", "dialoguePageSettings");
 		scanCreateEnableHook("game", "setDialoguePageValues", (uintptr_t*)&gameExeSetDialoguePageValues,
 			(LPVOID)SetDialoguePageValuesHook,
 			(LPVOID*)&gameExeSetDialoguePageValuesReal);
@@ -1046,7 +1051,7 @@ namespace lb {
 		fclose(widthsfile);
 		memcpy(gameExeGlyphWidthsFont1, widths, GLYPH_RANGE_FULLWIDTH_START);
 		memcpy(gameExeGlyphWidthsFont2, widths, GLYPH_RANGE_FULLWIDTH_START);*/
-		TextRendering::Get().Init(gameExeGlyphWidthsFont1, gameExeGlyphWidthsFont2,(FontDataLanguage)*gameExeLanguage);
+		TextRendering::Get().Init(gameExeGlyphWidthsFont1, gameExeGlyphWidthsFont2, (FontDataLanguage)*gameExeLanguage);
 
 
 	}
@@ -1067,16 +1072,16 @@ namespace lb {
 		static char* dateTime2 = "%10d";
 		static char* dateTime3 = "%010d";
 
-		int leadingZeroFixAddr1=sigScan("game", "leadingZeroFix1");
-		int leadingZeroFixAddr2=sigScan("game", "leadingZeroFix2");
-		int leadingZeroFixAddr3=sigScan("game", "leadingZeroFix3");
+		int leadingZeroFixAddr1 = sigScan("game", "leadingZeroFix1");
+		int leadingZeroFixAddr2 = sigScan("game", "leadingZeroFix2");
+		int leadingZeroFixAddr3 = sigScan("game", "leadingZeroFix3");
 
 		memcpy_perms((void*)leadingZeroFixAddr1, &dateTime2, sizeof(char*));
 		memcpy_perms((void*)leadingZeroFixAddr2, &dateTime3, sizeof(char*));
 		memcpy_perms((void*)leadingZeroFixAddr3, &dateTime, sizeof(char*));
 
 
-	}	
+	}
 
 
 	int __cdecl dialogueLayoutRelatedHook(int unk0, int* unk1, int* unk2, int unk3,
@@ -1249,8 +1254,8 @@ namespace lb {
 				}\
 		}\
 	}
-																																							
-																																													 
+
+
 
 
 
@@ -1260,7 +1265,7 @@ namespace lb {
 	DEF_RNDRAW_DIALOGUE_HOOK(rnDrawDialogueHook, RNEDialoguePage_t);
 	DEF_RNDRAW_DIALOGUE_HOOK(rnDDrawDialogueHook, RNDDialoguePage_t);
 
-	
+
 
 	void __cdecl drawDialogue2Hook(int fontNumber, int pageNumber,
 		uint32_t opacity) {
@@ -1407,7 +1412,7 @@ namespace lb {
 		a4[3] = (textureSizeY);
 		initColor(&colorStruct, color);
 		GameExeGetShader(40);
-		a1[0] =lb::SurfaceWrapper::ptr(surfaceArray,textureId);
+		a1[0] = lb::SurfaceWrapper::ptr(surfaceArray, textureId);
 		a1[1] = lb::SurfaceWrapper::ptr(surfaceArray, maskTextureId);
 
 		int shaderPtr = *(int*)gameExeShaderPtr;
@@ -1683,13 +1688,28 @@ namespace lb {
 		}
 	}
 
+
+	struct BacklogSize {
+		uint8_t a;
+		uint8_t b;
+		uint8_t c;
+		uint8_t d;
+
+	};
+
 	void __cdecl DrawBacklogContentHookRND(int textureId, int maskTextureId, int startX, int startY, unsigned int maskY, int maskHeight, int opacity, int index)
 	{
 
 
 		bool newline = false;
 		float xPosition, yPosition;
+		//if (GetAsyncKeyState(VK_RBUTTON)) {
+		//	TextRendering::Get().enableReplacement();
+		//}
+		//if (GetAsyncKeyState(VK_LBUTTON)) {
+		//	TextRendering::Get().disableReplacement();
 
+		//}
 
 
 		if (!TextRendering::Get().enabled)
@@ -1723,7 +1743,8 @@ namespace lb {
 		int v31; // [esp+64h] [ebp-Ch]
 		int v32; // [esp+68h] [ebp-8h]
 		int v33; // [esp+6Ch] [ebp-4h]
-
+		int maxXX = 0;
+		startX += 80;
 		if (BacklogLineBufUse)
 		{
 			v8 = 0;
@@ -1750,6 +1771,32 @@ namespace lb {
 						v26 = BacklogLineBufEndp[v12];
 						if (v26)
 						{
+							auto ws = std::wstring_view((wchar_t*)BacklogText);
+							auto nameStart = ws.find(0x8001, strIndex);
+							auto nameEnd = ws.find(0x8002, strIndex);
+							auto c = nameEnd - nameStart;
+							short lastNameX = BacklogTextPos[2 * nameEnd - 2];
+							short maxX = -60;
+							short diff = lastNameX - maxX;
+							auto glyphSize = BacklogTextSize[4 * (strIndex + 1) + 3] * 1.5f;
+							int length = 0;
+
+							if (diff != 0 && nameStart < nameEnd && (nameEnd - nameStart) < v26) {
+
+								for (int i = nameStart + 1; i < nameEnd; i++) {
+									length += TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(BacklogText[i], Regular)->advance;
+								}
+								int initialX = maxX - length;
+
+								for (int i = nameStart + 1; i < nameEnd; i++) {
+									BacklogTextPos[2 * i] = initialX;
+									initialX += TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(BacklogText[i], Regular)->advance;
+								}
+
+							}
+							maxXX = 0;
+							v32 = 0;
+							v25 = 10000;
 							do
 							{
 								v15 = BacklogText[strIndex];
@@ -1769,12 +1816,13 @@ namespace lb {
 										a12 = color;
 									}
 									v32 = v22 + BacklogTextPos[2 * strIndex + 1];
-									v33 = startX + BacklogTextPos[2 * strIndex];
+									v33 = startX + BacklogTextPos[2 * strIndex] / 1.5f;
 									v30 = v33 + BacklogTextSize[4 * strIndex + 2];
 
 
 
 									int colorIndex = BacklogTextCo[strIndex];
+									BacklogSize* size = (BacklogSize*)&BacklogTextSize[4 * strIndex];
 									auto glyphSize = BacklogTextSize[4 * strIndex + 3] * 1.5f;
 
 									if (strIndex == 0 || strIndex > 0 && BacklogTextPos[2 * (strIndex)+1] != BacklogTextPos[2 * (strIndex - 1) + 1]) {
@@ -1787,9 +1835,8 @@ namespace lb {
 										xPosition += glyphInfo->advance;
 									}
 									else {
-										xPosition = (startX + BacklogTextPos[2 * strIndex]) * 1.5f;
+										xPosition = (startX * 1.5f + BacklogTextPos[2 * strIndex]);
 									}
-
 
 
 
@@ -1798,8 +1845,9 @@ namespace lb {
 									int dummy1, dummy2;
 									int	v35 = startY + BacklogDispLinePosY[v8] - *BacklogDispPos;
 									v35 *= 1.5f;
-									v35 += 19 * glyphSize / 48.0;
-
+									v35 += 24 * glyphSize / 48.0;
+									maxXX = max(maxXX,max(v30, xPosition + glyphInfo->left + glyphInfo->width));
+				
 									gameExeSg0DrawGlyph2(
 										TextRendering::Get().FONT_TEXTURE_ID, maskTextureId,
 										glyphInfo->x,
@@ -1807,7 +1855,7 @@ namespace lb {
 										glyphInfo->width,
 										glyphInfo->rows,
 										32 * 2,
-										round(BacklogTextPos[2 * strIndex + 1] * 1.5f + v35 + glyphSize / 2.0f - glyphInfo->top),
+										round(BacklogTextPos[2 * strIndex + 1] * 1.5f + v35 + glyphSize / 2.0f - glyphInfo->top)-13,
 										round(xPosition + glyphInfo->left),
 										round(BacklogTextPos[2 * strIndex + 1] * 1.5f + v35 + glyphSize / 2.0f - glyphInfo->top),
 										round(xPosition + glyphInfo->left + glyphInfo->width),
@@ -1850,6 +1898,9 @@ namespace lb {
 									{
 										v31 = v33;
 										v25 = v32;
+									//	v25 = min(v25, BacklogTextPos[2 * strIndex + 1] * 1.5f + glyphInfo->rows + glyphSize / 2.0f - glyphInfo->top);
+
+										v32 = max(v32, BacklogTextPos[2 * strIndex + 1] * 1.5f + glyphInfo->rows + glyphSize / 2.0f - glyphInfo->top);
 									}
 									if (v27 == 1 && v10 == 0xFFFF)
 										v10 = v33;
@@ -1880,8 +1931,8 @@ namespace lb {
 					}
 					dword_AEDDB0[v8] = v31;
 					BacklogDispCurPosSX[v8] = v25;
-					BacklogDispCurPosSY[v8] = v30;
-					BacklogDispCurPosEX[v8] = v32;
+					BacklogDispCurPosSY[v8] = maxXX/1.5f;
+					BacklogDispCurPosEX[v8] = v32-8;
 					BacklogDispCurPosEY[v8] = v24;
 					dword_948628[v8++] = v10;
 					v23 = v8;
@@ -1898,8 +1949,15 @@ namespace lb {
 	int __cdecl SetDialoguePageValuesHook(int page, uint8_t* data) {
 
 		int ret = gameExeSetDialoguePageValuesReal(page, data);
-		*TextRendering::Get().dialogueWidth = lb::config["patch"]["dialogueWidth"].get<uint16_t>();
-
+		if (page == 0) {
+			TextRendering::Get().dialogueSettings[10] = lb::config["patch"]["dialogueWidth"].get<uint16_t>();
+			TextRendering::Get().dialogueSettings[14] = lb::config["patch"]["dialogueFontSize"].get<uint16_t>();
+			TextRendering::Get().dialogueSettings[15] = lb::config["patch"]["dialogueFontSize"].get<uint16_t>();
+		}
+		if (page == 9) {
+			TextRendering::Get().dialogueSettings[page*24+14] = lb::config["patch"]["dialogueFontSize"].get<uint16_t>()*0.8;
+			TextRendering::Get().dialogueSettings[page*24+15] = lb::config["patch"]["dialogueFontSize"].get<uint16_t>()*0.8;
+		}
 		return ret;
 	}
 
@@ -1998,19 +2056,19 @@ namespace lb {
 
 		//Twipo regular text
 		if (glyphSize == 55 && maxLineLength == 645) {
-			 
+
 			glyphSize = 48;
 			lineHeight = glyphSize * 1.25;
-			a5 = ceil(a5 / 1.25)+1;
-			 
+			a5 = ceil(a5 / 1.25) + 1;
+
 		}
 		//Twipo reply 
 		if (glyphSize == 63 && maxLineLength == 613) {
 
 			glyphSize = 55;
 			lineHeight = glyphSize * 1.25;
-			a5= ceil(a5 / 1.25);
-		} 
+			a5 = ceil(a5 / 1.25);
+		}
 
 
 		//Twipo header 
@@ -2041,11 +2099,11 @@ namespace lb {
 		int lineLength = maxLineLength * 1.5f;
 		semiTokeniseSc3String(sc3, words, glyphSize * 1.5, lineLength);
 
-		 processSc3TokenList(startX, startY, lineLength, words, a5, color,
+		processSc3TokenList(startX, startY, lineLength, words, a5, color,
 			glyphSize, &str, true, COORDS_MULTIPLIER, -1,
 			NOT_A_LINK, color, lineHeight, &mData);
 
-			processSc3TokenList(startX, startY, lineLength, words, a5,
+		processSc3TokenList(startX, startY, lineLength, words, a5,
 			color, glyphSize, &str, false, COORDS_MULTIPLIER,
 			str.linkCount - 1, str.curLinkNumber, str.curColor, lineHeight, &mData);
 
@@ -2068,23 +2126,23 @@ namespace lb {
 				float endUnderScoreX = str.displayStartX[i] + glyphInfo->advance;
 
 
-	    		if (i + 1 < str.length && str.displayStartY[i] == str.displayStartY[i + 1]) {
+				if (i + 1 < str.length && str.displayStartY[i] == str.displayStartY[i + 1]) {
 					endUnderScoreX = str.displayStartX[i + 1];
 				}
 
 				int remaining = endUnderScoreX - str.displayStartX[i];
 				int offset = 0;
-			/*	while (remaining > 0) {
-				if (glyphInfo->width > 0 && str.textureHeight[i] > 0)
+				/*	while (remaining > 0) {
+					if (glyphInfo->width > 0 && str.textureHeight[i] > 0)
 
-					/*	drawSpriteHook(TextRendering::Get().FONT_TEXTURE_ID, linkGlyphInfo->x+1,
-							linkGlyphInfo->y, min(linkGlyphInfo->width-2, remaining),
-							linkGlyphInfo->rows, round(str.displayStartX[i] + offset ),
-							round(str.displayStartY[i] + glyphSize+2 - linkGlyphInfo->top), curColor, opacity, 4);
-							
-					remaining -= linkGlyphInfo->width-2;
-					offset += linkGlyphInfo->width-2;
-				}*/
+						/*	drawSpriteHook(TextRendering::Get().FONT_TEXTURE_ID, linkGlyphInfo->x+1,
+								linkGlyphInfo->y, min(linkGlyphInfo->width-2, remaining),
+								linkGlyphInfo->rows, round(str.displayStartX[i] + offset ),
+								round(str.displayStartY[i] + glyphSize+2 - linkGlyphInfo->top), curColor, opacity, 4);
+
+						remaining -= linkGlyphInfo->width-2;
+						offset += linkGlyphInfo->width-2;
+					}*/
 			}
 
 			if (str.textureWidth[i] > 0 && str.textureHeight[i] > 0)
@@ -2198,7 +2256,7 @@ namespace lb {
 		int spaceCost =
 			TextRendering::Get().getFont(baseGlyphSize * 1.5f, true)->getGlyphInfo(GLYPH_ID_FULLWIDTH_SPACE, Regular)->advance;
 		int ellipsisCost =
-			TextRendering::Get().getFont(baseGlyphSize * 1.5f, true)->getGlyphInfoByChar('.', Regular)->advance *3+4;
+			TextRendering::Get().getFont(baseGlyphSize * 1.5f, true)->getGlyphInfoByChar('.', Regular)->advance * 3 + 4;
 
 		MultiplierData multiplierData;
 		if (mData != NULL) {
@@ -2365,7 +2423,7 @@ namespace lb {
 			else if (c < 0) {
 				int glyphId = (uint8_t)sc3string[1] + ((c & 0x7f) << 8);
 				if (TextRendering::Get().enabled) {
-					int adv=TextRendering::Get().getFont(baseGlyphSize, true)->getGlyphInfo(glyphId, Regular)->advance;
+					int adv = TextRendering::Get().getFont(baseGlyphSize, true)->getGlyphInfo(glyphId, Regular)->advance;
 					result += adv;
 				}
 				else {
@@ -2593,7 +2651,7 @@ namespace lb {
 			}
 			std::list<StringWord_t> words;
 
-			semiTokeniseSc3String((char*)sc3, words, height*1.5, a4 * 1.5);
+			semiTokeniseSc3String((char*)sc3, words, height * 1.5, a4 * 1.5);
 			int xOffset, yOffset;
 			xOffset = 0;
 			yOffset = 0;
@@ -2718,8 +2776,8 @@ namespace lb {
 					glyphInTextureStartY, glyphInTextureWidth,
 					glyphInTextureHeight, a7, a8, a9, a10, a11,
 					a12, inColor, opacity, a15, a16);
-				}
-			
+			}
+
 		else {
 			return gameExeSg0DrawGlyph2Real(textureId, a2, glyphInTextureStartX,
 				glyphInTextureStartY, glyphInTextureWidth,
@@ -2789,7 +2847,7 @@ namespace lb {
 			64, &str, false, COORDS_MULTIPLIER, -1,
 			NOT_A_LINK, a11, 64 * 1.25f, &mData);
 
-	
+
 		if (a8 <= startY + a12 && a9 >= startY) {
 
 			for (int i = 0; i < str.length; i++) {
@@ -2912,13 +2970,13 @@ namespace lb {
 		int dummy1;
 		int dummy2;
 		char name[256];
-	/*	if (GetAsyncKeyState(VK_RBUTTON)) {
-			TextRendering::Get().enableReplacement();
-		}
-		if (GetAsyncKeyState(VK_LBUTTON)) {
-			TextRendering::Get().disableReplacement();
+		/*	if (GetAsyncKeyState(VK_RBUTTON)) {
+				TextRendering::Get().enableReplacement();
+			}
+			if (GetAsyncKeyState(VK_LBUTTON)) {
+				TextRendering::Get().disableReplacement();
 
-		}*/
+			}*/
 		if (!TextRendering::Get().enabled) {
 			gameExeDrawTipContentReal(textureId, maskId, startX, startY, maskStartY, maskHeight, a7, color, shadowColor, opacity);
 			return;
