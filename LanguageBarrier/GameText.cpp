@@ -1701,7 +1701,7 @@ namespace lb {
 	{
 
 
-		bool newline = false;
+		bool newline = true;
 		float xPosition, yPosition;
 		//if (GetAsyncKeyState(VK_RBUTTON)) {
 		//	TextRendering::Get().enableReplacement();
@@ -1781,7 +1781,7 @@ namespace lb {
 							auto glyphSize = BacklogTextSize[4 * (strIndex + 1) + 3] * 1.5f;
 							int length = 0;
 
-							if (diff != 0 && nameStart < nameEnd && (nameEnd - nameStart) < v26) {
+							if (diff != 0 && nameStart < nameEnd  && nameStart < strIndex+v26 && (nameEnd - nameStart) < v26) {
 
 								for (int i = nameStart + 1; i < nameEnd; i++) {
 									length += TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(BacklogText[i], Regular)->advance;
@@ -1828,7 +1828,6 @@ namespace lb {
 									if (strIndex == 0 || strIndex > 0 && BacklogTextPos[2 * (strIndex)+1] != BacklogTextPos[2 * (strIndex - 1) + 1]) {
 										newline = true;
 									}
-									else newline = false;
 
 									if (newline == false && (BacklogText[strIndex - 1] & 0x8000) == 0) {
 										auto glyphInfo = TextRendering::Get().getFont(glyphSize, false)->getGlyphInfo(BacklogText[strIndex - 1], Regular);
@@ -1836,6 +1835,7 @@ namespace lb {
 									}
 									else {
 										xPosition = (startX * 1.5f + BacklogTextPos[2 * strIndex]);
+										newline = false;
 									}
 
 
@@ -1930,6 +1930,7 @@ namespace lb {
 						v9 = maskY;
 					}
 					dword_AEDDB0[v8] = v31;
+					newline = true;
 					BacklogDispCurPosSX[v8] = v25;
 					BacklogDispCurPosSY[v8] = maxXX/1.5f;
 					BacklogDispCurPosEX[v8] = v32-8;
