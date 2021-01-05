@@ -772,6 +772,13 @@ namespace rnd {
       int mouseY = InputObject->scaledMouseY;
 
       bool dontMoveThisFrame = false;
+      auto pokecomWidth = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 12);
+      auto pokecomHeight = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 14);
+      auto pokecomX = (gameExeScrWork[6402] + gameExeScrWork[6378] + 960) - (pokecomWidth / 2);
+      auto pokecomY = (gameExeScrWork[6403] + gameExeScrWork[6379] + 540) - (pokecomHeight / 2);
+
+      float pokecomScaleX = pokecomWidth / 1920.0f;
+      float pokecomScaleY = pokecomHeight / 1080.0f;
 
       if (*ARNumDisplayedGeoTags) {
         for (int i = 0; i < *ARNumDisplayedGeoTags; i++) {
@@ -785,13 +792,6 @@ namespace rnd {
           int screenX = x - 84;
           int screenY = y - 138;
 
-          auto pokecomWidth = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 12);
-          auto pokecomHeight = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 14);
-          auto pokecomX = ((pokecomWidth / 2) + (gameExeScrWork[6402] + gameExeScrWork[6378]) + 960) - pokecomWidth;
-          auto pokecomY = ((pokecomHeight / 2) + (gameExeScrWork[6403] + gameExeScrWork[6379]) + 540) - pokecomHeight;
-
-          float pokecomScaleX = pokecomWidth / 1920.0f;
-          float pokecomScaleY = pokecomHeight / 1080.0f;
           screenX = (screenX * pokecomScaleX) + pokecomX;
           screenY = (screenY * pokecomScaleY) + pokecomY;
 
@@ -816,14 +816,6 @@ namespace rnd {
       }
 
       if (gameExeGetFlag(KRep_SearchMode) && *ARPointingAtReport) {
-        auto pokecomWidth = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 12);
-        auto pokecomHeight = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 14);
-        auto pokecomX = ((pokecomWidth / 2) + (gameExeScrWork[6402] + gameExeScrWork[6378]) + 960) - pokecomWidth;
-        auto pokecomY = ((pokecomHeight / 2) + (gameExeScrWork[6403] + gameExeScrWork[6379]) + 540) - pokecomHeight;
-
-        float pokecomScaleX = pokecomWidth / 1920.0f;
-        float pokecomScaleY = pokecomHeight / 1080.0f;
-
         int screenX = 923 * pokecomScaleX + pokecomX;
         int screenY = 581 * pokecomScaleY + pokecomY;
 
@@ -931,13 +923,13 @@ namespace rnd {
             if (!gameExeScrWork[6377]) {
               auto pokecomWidth = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 12);
               auto pokecomHeight = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 14);
-              auto pokecomX = ((pokecomWidth / 2) + (gameExeScrWork[6402] + gameExeScrWork[6378]) + 960) - pokecomWidth;
-              auto pokecomY = ((pokecomHeight / 2) + (gameExeScrWork[6403] + gameExeScrWork[6379]) + 540) - pokecomHeight;
+              auto pokecomX = 960 - (pokecomWidth / 2);
+              auto pokecomY =  540 - (pokecomHeight / 2);
 
               float pokecomScaleX = pokecomWidth / 1920.0f;
               float pokecomScaleY = pokecomHeight / 1080.0f;
-              screenX = (screenX * pokecomScaleX) + pokecomX - 145;
-              screenY = (screenY * pokecomScaleY) + pokecomY + 25;
+              screenX = (screenX * pokecomScaleX) + pokecomX + 12;
+              screenY = (screenY * pokecomScaleY) + pokecomY + 54;
               height = 54;
             } else {
               screenY += height;
