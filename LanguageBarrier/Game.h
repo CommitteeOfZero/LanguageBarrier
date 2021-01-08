@@ -41,6 +41,8 @@ struct MgsD3D11State
 	IDXGISwapChain* pidxgiswapchain10;
 	D3D_FEATURE_LEVEL d3d_feature_level14;
 	ID3D11DeviceContext* pid3d11devicecontext18;
+	ID3D11DeviceContext* pid3d11deferredcontext1;
+	ID3D11DeviceContext* pid3d11deferredcontext2;
 };
 extern MgsD3D11State* gameExePMgsD3D11State;
 
