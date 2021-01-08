@@ -140,7 +140,7 @@ typedef int(__cdecl* DrawMovieFrameProc)(int tint, int opacity);
 static DrawMovieFrameProc gameExeDrawMovieFrame = NULL;
 static DrawMovieFrameProc gameExeDrawMovieFrameReal = NULL;
 
-typedef int(__cdecl* DrawMovieFrameRNDProc)(int tint, int opacity, int unk1);
+typedef int(__cdecl* DrawMovieFrameRNDProc)(int unk1, int tint, int opacity, int unk2);
 static DrawMovieFrameRNDProc gameExeDrawMovieFrameRND = NULL;
 static DrawMovieFrameRNDProc gameExeDrawMovieFrameRNDReal = NULL;
 
@@ -154,7 +154,7 @@ int __fastcall mgsMovieCPlayerPlayByIdHook(void* pThis, void* dummy, int a2,
 int __fastcall mgsMovieCPlayerStopHook(void* pThis);
 int __fastcall mgsMovieCPlayerRenderHook(void* pThis);
 int __cdecl drawMovieFrameHook(int tint, int opacity);
-int __cdecl drawMovieFrameHookRND(int tint, int opacity, int unk1);
+int __cdecl drawMovieFrameHookRND(int unk1, int tint, int opacity, int unk2);
 
 bool criManaModInit() {
   if (config["patch"].count("fmv") != 1) {
@@ -211,18 +211,19 @@ void drawSubs(bool deferred) {
   for (const auto& kv : stateMap) {
     auto state = kv.second;
     if (!state->keepLastFrame) {
-      ID3D11DeviceContext* device;
       if (deferred) {
-        device = gameExePMgsD3D11State->pid3d11deferredcontext1;
-      } else {
-        device = gameExePMgsD3D11State->pid3d11devicecontext18;
+        ID3D11CommandList* pCommandList;
+        ID3D11DeviceContext* test = (&gameExePMgsD3D11State->pid3d11deferredcontext1)[*(uint32_t*)&gameExePMgsD3D11State->gap0];
+        HRESULT hr = test->FinishCommandList(1, &pCommandList);
+        gameExePMgsD3D11State->pid3d11devicecontext18->ExecuteCommandList(pCommandList, 0);
+        pCommandList->Release();
       }
 
-      device->CopyResource(state->stagingTexture, lb::SurfaceWrapper::getTexPtr(surfaceArray, RENDER_TARGET_SURF_ID, 0));
+      gameExePMgsD3D11State->pid3d11devicecontext18->CopyResource(state->stagingTexture, lb::SurfaceWrapper::getTexPtr(surfaceArray, RENDER_TARGET_SURF_ID, 0));
 
       D3D11_MAPPED_SUBRESOURCE rsc;
       memset(&rsc, 0, sizeof(D3D11_MAPPED_SUBRESOURCE));
-      HRESULT hr = device->Map(state->stagingTexture, 0, D3D11_MAP_READ_WRITE, 0, &rsc);
+      HRESULT hr = gameExePMgsD3D11State->pid3d11devicecontext18->Map(state->stagingTexture, 0, D3D11_MAP_READ_WRITE, 0, &rsc);
 
       uint8_t* imagePtr = (uint8_t*)rsc.pData;
       csri_frame frame;
@@ -234,14 +235,14 @@ void drawSubs(bool deferred) {
         csri_render(state->csri, &frame, state->time);
       }
 
-      device->Unmap(state->stagingTexture, 0);
-      device->CopyResource(lb::SurfaceWrapper::getTexPtr(surfaceArray, RENDER_TARGET_SURF_ID, 0), state->stagingTexture);
+      gameExePMgsD3D11State->pid3d11devicecontext18->Unmap(state->stagingTexture, 0);
+      gameExePMgsD3D11State->pid3d11devicecontext18->CopyResource(lb::SurfaceWrapper::getTexPtr(surfaceArray, RENDER_TARGET_SURF_ID, 0), state->stagingTexture);
     }
   }
 }
 
-int __cdecl drawMovieFrameHookRND(int tint, int opacity, int unk1) {
-  int ret = gameExeDrawMovieFrameRNDReal(tint, opacity, unk1);
+int __cdecl drawMovieFrameHookRND(int unk1, int tint, int opacity, int unk2) {
+  int ret = gameExeDrawMovieFrameRNDReal(unk1, tint, opacity, unk2);
   drawSubs(true);
   return ret;
 }
