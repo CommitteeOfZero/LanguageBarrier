@@ -562,6 +562,13 @@ namespace lb {
 				*dotX = 1638.0f;
 				VirtualProtect(dotX, sizeof(float), oldProtect, &oldProtect);
 			}
+
+			if (config["patch"].count("RNDHiDPIFix") == 1 &&
+				config["patch"]["RNDHiDPIFix"].get<bool>() == true) {
+				void* jump = (void*)sigScan("game", "rndSetResolutionJump");
+				memset_perms(jump, INST_NOP, 10);
+			}
+
 		}
 		catch (std::exception& e) {
 			MessageBoxA(NULL, e.what(), "LanguageBarrier exception", MB_ICONSTOP);
