@@ -130,7 +130,7 @@ namespace rnd {
     MOVIE_ENA = 863,
     MUSIC_ENA = 864,
     SF_MESALLSKIP = 1234,
-    CALENDAR_DISP = 2640,
+    CALENDAR_DISP = 1615,
     AR_SUPERMODE = 2817,
     Pokecom_ManualMode = 2903,
     Pokecom_Disable = 2904,
@@ -214,6 +214,7 @@ namespace rnd {
   typedef int(__cdecl* InstOptionProc)(void*);
   static InstOptionProc gameExeInstOption = NULL;
   static InstOptionProc gameExeInstOptionReal = NULL;
+  typedef int(__thiscall* SetConfigOptionProc)(int*, int);
 
   typedef int(__cdecl* MesDispWindowProc)(int, int, int, int, int, int, int, int);
   static MesDispWindowProc gameExeMesDispWindow = NULL;
@@ -317,38 +318,21 @@ namespace rnd {
   int* MapSelectedPointIndex = NULL; //(int*)0xC804B0;
   int* MapPointIsDisplayed = NULL; //(int*)0xC80460;
 
-  int* ConfigMenuCurrentPage = NULL; //(int*)0xC6D700;
-  int* ConfigPage1SelectedItem = NULL; //(int*)0xC6D70C;
-  int* ConfigPage2SelectedItem = NULL; //(int*)0xC6D714;
-  int* ConfigPage3SelectedItem = NULL; //(int*)0xC6D71C;
-  int* ConfigSwitchAnimCounter = NULL; //(int*)0xC6D73C;
-  int* ConfigTipsInfo = NULL; //(int*)0x2706978;
+  SetConfigOptionProc gameExeSetConfigProc;
+  int* ConfigUnkArray = NULL; //(int*)0xC6D700;
+  int* ConfigSelectedItem = NULL; //(int*)0xC6D70C;
   int* ConfigFullScreen = NULL; //(int*)0x2706990;
   int* ConfigFullScreen1 = NULL; //(int*)0x270650C;
-  int* ConfigFullScreen2 = NULL; //(int*)0x27064D0;
   int* ConfigResolution = NULL; //(int*)0x2706994;
   int* ConfigResolution1 = NULL; //(int*)0x2706510;
-  int* ConfigResolution2 = NULL; //(int*)0x27064D4;
-  int* ConfigSkipMode = NULL; //(int*)0x2706954;
-  int* ConfigSyncVoice = NULL; //(int*)0x2706950;
-  int* ConfigSkipVoice = NULL; //(int*)0x2706974;
-  int* ConfigTwipoNotifs = NULL; //(int*)0xC6D8CC;
-  int* ConfigVoiceIDs = NULL; //(int*)0x6E3148;
-  int* ConfigVoiceCharaVolume = NULL; //(int*)0x2706A20;
-  int* ConfigVoiceCharaVolumeCur = NULL; //(int*)0xC6D828;
-  int* ConfigVoiceEnableFlags = NULL; //(int*)0x2706998;
   int* ConfigMessageSpeed = NULL; //(int*)0x2706948;
   int* ConfigMessageSpeedCur = NULL; //(int*)0xC6D78C;
   int* ConfigAutoModeDelay = NULL; //(int*)0x270694C;
   int* ConfigAutoModeDelayCur = NULL; //(int*)0xC6D790;
   int* ConfigVoiceVolume = NULL; //(int*)0x2706934;
-  int* ConfigVoiceVolumeCur = NULL; //(int*)0xC6D778;
   int* ConfigBGMVolume = NULL; //(int*)0x2706938;
-  int* ConfigBGMVolumeCur = NULL; //(int*)0xC6D77C;
   int* ConfigSEVolume = NULL; //(int*)0x270693C;
-  int* ConfigSEVolumeCur = NULL; //(int*)0xC6D780;
   int* ConfigMovieVolume = NULL; //(int*)0x2706944;
-  int* ConfigMovieVolumeCur = NULL; //(int*)0xC6D788;
   SetScreenResProc gameExeSetScreenRes;
   PlaySEProc gameExePlaySE;
 
@@ -566,38 +550,20 @@ namespace rnd {
     MapSelectedPointIndex = (int*)sigScan("game", "useOfMapSelectedPointIndex");
     MapPointIsDisplayed = (int*)sigScan("game", "useOfMapPointIsDisplayed");
 
-    //ConfigMenuCurrentPage = (int*)sigScan("game", "useOfConfigMenuCurrentPage");
-    //ConfigPage1SelectedItem = (int*)sigScan("game", "useOfConfigPage1SelectedItem");
-    //ConfigPage2SelectedItem = (int*)sigScan("game", "useOfConfigPage2SelectedItem");
-    //ConfigPage3SelectedItem = (int*)sigScan("game", "useOfConfigPage3SelectedItem");
-    //ConfigSwitchAnimCounter = (int*)sigScan("game", "useOfConfigSwitchAnimCounter");
-    //ConfigTipsInfo = (int*)sigScan("game", "useOfConfigTipsInfo");
+    ConfigUnkArray = (int*)sigScan("game", "useOfConfigUnkArray");
+    ConfigSelectedItem = (int*)sigScan("game", "useOfConfigSelectedItem");
     ConfigFullScreen = (int*)sigScan("game", "useOfConfigFullScreen");
-    //ConfigFullScreen1 = (int*)sigScan("game", "useOfConfigFullScreen1");
-    //ConfigFullScreen2 = (int*)sigScan("game", "useOfConfigFullScreen2");
-    //ConfigResolution = (int*)sigScan("game", "useOfConfigResolution");
-    //ConfigResolution1 = (int*)sigScan("game", "useOfConfigResolution1");
-    //ConfigResolution2 = (int*)sigScan("game", "useOfConfigResolution2");
-    //ConfigSkipMode = (int*)sigScan("game", "useOfConfigSkipMode");
-    //ConfigSyncVoice = (int*)sigScan("game", "useOfConfigSyncVoice");
-    //ConfigSkipVoice = (int*)sigScan("game", "useOfConfigSkipVoice");
-    //ConfigTwipoNotifs = (int*)sigScan("game", "useOfConfigTwipoNotifs");
-    //ConfigVoiceIDs = (int*)sigScan("game", "useOfConfigVoiceIDs");
-    //ConfigVoiceCharaVolume = (int*)sigScan("game", "useOfConfigVoiceCharaVolume");
-    //ConfigVoiceCharaVolumeCur = (int*)sigScan("game", "useOfConfigVoiceCharaVolumeCur");
-    //ConfigVoiceEnableFlags = (int*)sigScan("game", "useOfConfigVoiceEnableFlags");
-    //ConfigMessageSpeed = (int*)sigScan("game", "useOfConfigMessageSpeed");
-    //ConfigMessageSpeedCur = (int*)sigScan("game", "useOfConfigMessageSpeedCur");
-    //ConfigAutoModeDelay = (int*)sigScan("game", "useOfConfigAutoModeDelay");
-    //ConfigAutoModeDelayCur = (int*)sigScan("game", "useOfConfigAutoModeDelayCur");
-    //ConfigVoiceVolume = (int*)sigScan("game", "useOfConfigVoiceVolume");
-    //ConfigVoiceVolumeCur = (int*)sigScan("game", "useOfConfigVoiceVolumeCur");
-    //ConfigBGMVolume = (int*)sigScan("game", "useOfConfigBGMVolume");
-    //ConfigBGMVolumeCur = (int*)sigScan("game", "useOfConfigBGMVolumeCur");
-    //ConfigSEVolume = (int*)sigScan("game", "useOfConfigSEVolume");
-    //ConfigSEVolumeCur = (int*)sigScan("game", "useOfConfigSEVolumeCur");
-    //ConfigMovieVolume = (int*)sigScan("game", "useOfConfigMovieVolume");
-    //ConfigMovieVolumeCur = (int*)sigScan("game", "useOfConfigMovieVolumeCur");
+    ConfigFullScreen1 = (int*)sigScan("game", "useOfConfigFullScreen1");
+    ConfigResolution = (int*)sigScan("game", "useOfConfigResolution");
+    ConfigResolution1 = (int*)sigScan("game", "useOfConfigResolution1");
+    ConfigMessageSpeed = (int*)sigScan("game", "useOfConfigMessageSpeed");
+    ConfigMessageSpeedCur = (int*)sigScan("game", "useOfConfigMessageSpeedCur");
+    ConfigAutoModeDelay = (int*)sigScan("game", "useOfConfigAutoModeDelay");
+    ConfigAutoModeDelayCur = (int*)sigScan("game", "useOfConfigAutoModeDelayCur");
+    ConfigVoiceVolume = (int*)sigScan("game", "useOfConfigVoiceVolume");
+    ConfigBGMVolume = (int*)sigScan("game", "useOfConfigBGMVolume");
+    ConfigSEVolume = (int*)sigScan("game", "useOfConfigSEVolume");
+    ConfigMovieVolume = (int*)sigScan("game", "useOfConfigMovieVolume");
 
     CGviewModeAlpha = (int*)sigScan("game", "useOfCGviewModeAlpha");
 
@@ -660,12 +626,13 @@ namespace rnd {
     scanCreateEnableHook("game", "PokecomARMain", (uintptr_t*)&gameExePokecomARMain,
                          (LPVOID)&pokecomARMainHook,
                          (LPVOID*)&gameExePokecomARMainReal);
+    gameExeSetConfigProc = (SetConfigOptionProc)sigScan("game", "SetConfigProc");
     scanCreateEnableHook("game", "InstOption", (uintptr_t*)&gameExeInstOption,
                          (LPVOID)&instOptionHook,
                          (LPVOID*)&gameExeInstOptionReal);
-    //scanCreateEnableHook("game", "MesDispWindow", (uintptr_t*)&gameExeMesDispWindow,
-    //                     (LPVOID)&mesDispWindowHook,
-    //                     (LPVOID*)&gameExeMesDispWindowReal);
+    scanCreateEnableHook("game", "MesDispWindow", (uintptr_t*)&gameExeMesDispWindow,
+                         (LPVOID)&mesDispWindowHook,
+                         (LPVOID*)&gameExeMesDispWindowReal);
     scanCreateEnableHook("game", "PokecomViewGeotag", (uintptr_t*)&gameExePokecomViewGeotag,
                          (LPVOID)&pokecomViewGeotagHook,
                          (LPVOID*)&gameExePokecomViewGeotagReal);
@@ -757,6 +724,61 @@ namespace rnd {
       LockMouseControls = true;
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
+
+      mouseSlider(mouseX, mouseY, 163, 469, 156, 30, 256, 4096, *ConfigMessageSpeed, 0);
+      *ConfigMessageSpeedCur = *ConfigMessageSpeed;
+      mouseSlider(mouseX, mouseY, 163, 525, 156, 30, 2048, 256, *ConfigAutoModeDelay, 1);
+      *ConfigAutoModeDelayCur = *ConfigAutoModeDelay;
+      mouseSlider(mouseX, mouseY, 163, 697, 156, 30, 0, 128, *ConfigVoiceVolume, 2);
+      mouseSlider(mouseX, mouseY, 163, 753, 156, 30, 0, 128, *ConfigBGMVolume, 3);
+      mouseSlider(mouseX, mouseY, 163, 809, 156, 30, 0, 128, *ConfigSEVolume, 4);
+      mouseSlider(mouseX, mouseY, 163, 865, 156, 30, 0, 128, *ConfigMovieVolume, 5);
+
+      for (int i = 13; i < 28; i++) {
+        int* val = (int*)ConfigUnkArray[9 * i + 6];
+        mouseSlider(mouseX, mouseY, 914, 259 + ((i - 13) * 50), 159, 25, 0, 128, *val, i);
+      }
+
+      if (!SliderMoving) {
+        int index = 0;
+        for (int i = 0; i < 3; i++) {
+          if (index == 1) index++;
+          if (menuButtonHitTest(index++, mouseX, mouseY, 149, 249 + (i * 56), 637, 48, ConfigSelectedItem) && InputObject->mouseButtons & MouseLeftClick) {
+            gameExePlaySE(18);
+            gameExeSetConfigProc(&ConfigUnkArray[9 * *ConfigSelectedItem], 2);
+            if (index == 3 || index == 4) {
+              *ConfigFullScreen = *ConfigFullScreen1;
+              *ConfigResolution1 = *ConfigResolution;
+              gameExeSetScreenRes();
+            }
+          }
+        }
+        for (int i = 0; i < 3; i++) {
+          if (menuButtonHitTest(index++, mouseX, mouseY, 149, 477 + (i * 56), 637, 48, ConfigSelectedItem) && InputObject->mouseButtons & MouseLeftClick) {
+            if (index == 7) {
+              gameExePlaySE(18);
+              gameExeSetConfigProc(&ConfigUnkArray[9 * *ConfigSelectedItem], 2);
+            }
+          }
+        }
+        for (int i = 0; i < 6; i++) {
+          if (menuButtonHitTest(index++, mouseX, mouseY, 149, 706 + (i * 56), 637, 48, ConfigSelectedItem) && InputObject->mouseButtons & MouseLeftClick) {
+            if (index == 12 || index == 13) {
+              gameExePlaySE(18);
+              gameExeSetConfigProc(&ConfigUnkArray[9 * *ConfigSelectedItem], 2);
+            }
+          }
+        }
+        for (int i = 0; i < 15; i++) {
+          if (menuButtonHitTest(index++, mouseX, mouseY, 904, 265 + (i * 50), 433, 41, ConfigSelectedItem)) {
+            if (mouseHitTest(mouseX, mouseY, 1089, 265 + (i * 50), 247, 41) && InputObject->mouseButtons & MouseLeftClick) {
+              *InputMask |= PAD1Y;
+              gameExePlaySE(18);
+            }
+          }
+        }
+      }
+
 
       if (InputObject->mouseButtons & MouseRightClick) {
         *InputMask |= PAD1B;
@@ -1430,37 +1452,64 @@ namespace rnd {
     return gameExeMovieModeDispReal(thread);
   }
 
-
   int __cdecl instTitleMenuHook(void* thread) {
     if (*MouseEnabled) {
       LockMouseControls = true;
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
-      int* selIndexVar = TitleMenuSelectionIndex;
-      // Number of main menu items
       // Flag 810 means Phase Aki menu item has been unlocked, 811 - Last Phase
-      int numItems = 6 + gameExeGetFlag(OPEN_START2) + gameExeGetFlag(OPEN_START3);
-      if (*SubMenuSelIndex) {
+      // Flags: 860 - Album, 863 - Movie, 864 - Sound
+
+      if (!*TitleSubMenuAnimCounter) {
         switch (*SubMenuSelIndex) {
+        case 0: {
+          int flagVal = gameExeGetFlag(OPEN_START2) + gameExeGetFlag(OPEN_START3);
+          if (menuButtonHitTest(0, mouseX, mouseY, 72, 591 + (0 * 48), 333, 41, TitleMenuSelectionIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
+          if (gameExeGetFlag(OPEN_START2)) {
+            if (menuButtonHitTest(1, mouseX, mouseY, 72, 591 + (1 * 48), 321, 41, TitleMenuSelectionIndex) && (InputObject->mouseButtons & MouseLeftClick))
+              *InputMask |= PAD1A;
+          }
+          if (gameExeGetFlag(OPEN_START3)) {
+            if (menuButtonHitTest(2, mouseX, mouseY, 72, 591 + (2 * 48), 311, 41, TitleMenuSelectionIndex) && (InputObject->mouseButtons & MouseLeftClick))
+              *InputMask |= PAD1A;
+          }
+          if (menuButtonHitTest(1 + flagVal, mouseX, mouseY, 72, 591 + ((1 + flagVal) * 48), 262, 41, TitleMenuSelectionIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
+          if (menuButtonHitTest(2 + flagVal, mouseX, mouseY, 72, 591 + ((2 + flagVal) * 48), 186, 41, TitleMenuSelectionIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
+          if (menuButtonHitTest(3 + flagVal, mouseX, mouseY, 72, 591 + ((3 + flagVal) * 48), 198, 41, TitleMenuSelectionIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
+          if (menuButtonHitTest(4 + flagVal, mouseX, mouseY, 72, 591 + ((4 + flagVal) * 48), 151, 41, TitleMenuSelectionIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
+          if (menuButtonHitTest(5 + flagVal, mouseX, mouseY, 72, 591 + ((5 + flagVal) * 48), 262, 41, TitleMenuSelectionIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
+        } break;
         case 1: {
-          selIndexVar = LoadMenuSelIndex;
-          numItems = 2;
+          if (menuButtonHitTest(0, mouseX, mouseY, 72, 591, 366, 41, LoadMenuSelIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
+          if (menuButtonHitTest(1, mouseX, mouseY, 72, 591 + (1 * 48), 150, 41, LoadMenuSelIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
         } break;
         case 2: {
-          selIndexVar = ExtrasMenuSelIndex;
-          // Get number of Extras menu items based on unlocked menus
-          // Flags: 860 - Album, 863 - Movie, 864 - Sound
-          numItems = 2 + (gameExeGetFlag(ALBUM_ENA) + gameExeGetFlag(MOVIE_ENA) + gameExeGetFlag(MUSIC_ENA));
+          int flagVal = (gameExeGetFlag(ALBUM_ENA) + gameExeGetFlag(MOVIE_ENA) + gameExeGetFlag(MUSIC_ENA));
+          if (menuButtonHitTest(0, mouseX, mouseY, 72, 591, 287, 41, ExtrasMenuSelIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
+          if (gameExeGetFlag(ALBUM_ENA) && gameExeGetFlag(MOVIE_ENA) && gameExeGetFlag(MUSIC_ENA)) {
+            if (menuButtonHitTest(1, mouseX, mouseY, 72, 591 + (1 * 48), 299, 41, ExtrasMenuSelIndex) && (InputObject->mouseButtons & MouseLeftClick))
+              *InputMask |= PAD1A;
+            if (menuButtonHitTest(2, mouseX, mouseY, 72, 591 + (2 * 48), 384, 41, ExtrasMenuSelIndex) && (InputObject->mouseButtons & MouseLeftClick))
+              *InputMask |= PAD1A;
+            if (menuButtonHitTest(3, mouseX, mouseY, 72, 591 + (3 * 48), 365, 41, ExtrasMenuSelIndex) && (InputObject->mouseButtons & MouseLeftClick))
+              *InputMask |= PAD1A;
+          }
+          if (menuButtonHitTest(1 + flagVal, mouseX, mouseY, 72, 591 + ((1 + flagVal) * 48), 240, 41, ExtrasMenuSelIndex) && (InputObject->mouseButtons & MouseLeftClick))
+            *InputMask |= PAD1A;
         } break;
         }
       }
 
-      if (!*TitleSubMenuAnimCounter) {
-        for (int i = 0; i < numItems; i++) {
-          if (menuButtonHitTest(i, mouseX, mouseY, 72, 591 + (i * 48), 384, 41, selIndexVar) && (InputObject->mouseButtons & MouseLeftClick))
-            *InputMask |= PAD1A;
-        }
-      }
+
 
       if (InputObject->mouseButtons & MouseRightClick) {
         *InputMask |= PAD1B;
