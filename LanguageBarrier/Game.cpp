@@ -564,10 +564,17 @@ namespace lb {
 				VirtualProtect(dotX, sizeof(float), oldProtect, &oldProtect);
 			}
 
-			if (config["patch"].count("RNDHiDPIFix") == 1 &&
-				config["patch"]["RNDHiDPIFix"].get<bool>() == true) {
+			if (config["patch"].count("rndMiscFixes") == 1 &&
+				config["patch"]["rndMiscFixes"].get<bool>() == true) {
+				// Fix game not being full screen at >1080p@100%
 				void* jump = (void*)sigScan("game", "rndSetResolutionJump");
 				memset_perms(jump, INST_NOP, 10);
+				// Make config voice names area wider
+				float* width = (float*)sigScan("game", "useOfRNDConfigVoiceNameWidth");
+				DWORD oldProtect;
+				VirtualProtect(width, sizeof(float), PAGE_READWRITE, &oldProtect);
+				*width = 311.0f;
+				VirtualProtect(width, sizeof(float), oldProtect, &oldProtect);
 			}
 
 		}
