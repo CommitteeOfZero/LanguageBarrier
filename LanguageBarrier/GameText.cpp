@@ -1080,6 +1080,15 @@ namespace lb {
 		memcpy_perms((void*)leadingZeroFixAddr2, &dateTime3, sizeof(char*));
 		memcpy_perms((void*)leadingZeroFixAddr3, &dateTime, sizeof(char*));
 
+		if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rnd") {
+			void* leadingZeroFixAddr1RND = (void*)sigScan("game", "leadingZeroFix1RND");
+			void* leadingZeroFixAddr2RND = (void*)sigScan("game", "leadingZeroFix2RND");
+			void* leadingZeroFixAddr3RND = (void*)sigScan("game", "leadingZeroFix3RND");
+			memset_perms(leadingZeroFixAddr1RND, 1, 1);
+			memset_perms(leadingZeroFixAddr2RND, 1, 1);
+			memset_perms(leadingZeroFixAddr3RND, 1, 1);
+
+		}
 
 	}
 

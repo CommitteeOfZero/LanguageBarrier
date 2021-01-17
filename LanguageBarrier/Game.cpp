@@ -326,6 +326,7 @@ namespace lb {
                                   int unk01, int unk02, int unk03);
 
 	void gameInit() {
+		SetProcessDPIAware();
 		std::ifstream in("languagebarrier\\stringReplacementTable.bin",
 			std::ios::in | std::ios::binary);
 		in.seekg(0, std::ios::end);
