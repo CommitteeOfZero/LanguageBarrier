@@ -980,13 +980,13 @@ namespace lb {
 			config["gamedef"]["dialogueLayoutWidthLookupRetOffsets"]
 			.get<std::string>() == "ccsteam") {
 			lookup1retoffset = 0x2B;
-			lookup2retoffset = 0x10;
-			lookup3retoffset = 0x7;
+lookup2retoffset = 0x10;
+lookup3retoffset = 0x7;
 		}
 		else {
-			lookup1retoffset = 0x27;
-			lookup2retoffset = 0x12;
-			lookup3retoffset = 0x7;
+		lookup1retoffset = 0x27;
+		lookup2retoffset = 0x12;
+		lookup3retoffset = 0x7;
 		}
 
 		const json& signatures = config["gamedef"]["signatures"]["game"];
@@ -1089,6 +1089,8 @@ namespace lb {
 			memset_perms(leadingZeroFixAddr3RND, 1, 1);
 
 		}
+
+		
 
 	}
 
@@ -2064,46 +2066,103 @@ namespace lb {
 		str.curLinkNumber = 0xFF;
 		int lineHeight = glyphSize;
 
-		//Twipo regular text
-		if (glyphSize == 55 && maxLineLength == 645) {
+		if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
 
-			glyphSize = 48;
-			lineHeight = glyphSize * 1.25;
-			a5 = ceil(a5 / 1.25) + 1;
+			//Twipo regular text
+			if (glyphSize == 55 && maxLineLength == 645) {
 
+				glyphSize = 48;
+				lineHeight = glyphSize * 1.25;
+				a5 = ceil(a5 / 1.25) + 1;
+
+			}
+			//Twipo reply 
+			if (glyphSize == 63 && maxLineLength == 613) {
+
+				glyphSize = 55;
+				lineHeight = glyphSize * 1.25;
+				a5 = ceil(a5 / 1.25);
+			}
+
+
+			//Twipo header 
+			if (glyphSize == 55 && maxLineLength == 461) {
+
+				maxLineLength = 600;
+
+			}
+
+			//Kimijima report list
+
+			if (glyphSize == 33 && maxLineLength == 138) {
+
+				glyphSize = 29;
+				mData.displayYOffset = -4.0f * glyphSize / 48.0f;
+
+			}
+			if (glyphSize == 63 && maxLineLength == 0x1CD) {
+				maxLineLength = 600;
+			}
+
+			if (glyphSize == 0x27 && maxLineLength == 0xD5) {
+
+				maxLineLength = 0x10f;
+
+			}
 		}
-		//Twipo reply 
-		if (glyphSize == 63 && maxLineLength == 613) {
+		else 
+			if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rnd") {
+			
+				if (glyphSize == 55 && maxLineLength == 645) {
 
-			glyphSize = 55;
-			lineHeight = glyphSize * 1.25;
-			a5 = ceil(a5 / 1.25);
-		}
+					glyphSize = 48;
+					lineHeight = glyphSize * 1.25;
+					a5 = ceil(a5 / 1.25) + 1;
+
+				}
+
+				if (glyphSize == 67) {
+					glyphSize = 55;
+				}
 
 
-		//Twipo header 
-		if (glyphSize == 55 && maxLineLength == 461) {
+				if (glyphSize == 63 && maxLineLength == 400) {
 
-			maxLineLength = 600;
+					glyphSize = 52;
+					lineHeight = glyphSize * 1.25;
+					a5 = ceil(a5 / 1.25);
+					maxLineLength = 600;
+				}
 
-		}
 
-		//Kimijima report list
+				//Twipo header 
+				if ((glyphSize == 63 || glyphSize == 55) && maxLineLength == 493) {
 
-		if (glyphSize == 33 && maxLineLength == 138) {
+					glyphSize = 55;
+					maxLineLength = 800;
 
-			glyphSize = 29;
-			mData.displayYOffset = -4.0f * glyphSize / 48.0f;
+				}
 
-		}
-		if (glyphSize == 63 && maxLineLength == 0x1CD) {
-			maxLineLength = 600;
-		}
+			
+				//Kimijima report list
 
-		if (glyphSize == 0x27 && maxLineLength == 0xD5) {
+				if (glyphSize == 33 && maxLineLength == 138) {
 
-			maxLineLength = 0x10f;
+					glyphSize = 29;
+					mData.displayYOffset = -4.0f * glyphSize / 48.0f;
 
+				}
+				if (glyphSize == 63 && maxLineLength == 0x1CD) {
+					maxLineLength = 600;
+				}
+
+				if (glyphSize == 0x27 && maxLineLength == 0xD5) {
+
+					maxLineLength = 0x10f;
+
+				}
+
+		
 		}
 
 		int lineLength = maxLineLength * 1.5f;
