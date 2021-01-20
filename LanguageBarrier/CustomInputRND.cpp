@@ -132,6 +132,7 @@ namespace rnd {
     SF_MESALLSKIP = 1234,
     CALENDAR_DISP = 1615,
     AR_SUPERMODE = 2817,
+    Pokecom_Open = 2900,
     Pokecom_ManualMode = 2903,
     Pokecom_Disable = 2904,
     KRep_SearchMode = 3030
@@ -687,7 +688,7 @@ namespace rnd {
         AutoSkipAlpha = 0;
       }
 
-      if (!gameExeGetFlag(Pokecom_Disable) && gameExeGetFlag(CALENDAR_DISP)) {
+      if ((gameExeScrWork[SW_GAMEMODE] & 1) && gameExeGetFlag(CALENDAR_DISP) && !gameExeGetFlag(Pokecom_Disable) && !gameExeGetFlag(Pokecom_Open)) {
         if (mouseSelectHitTest(mouseX, mouseY, 1246, 153, 674, 86) && (InputObject->mouseButtons & MouseLeftClick))
           CarryInputToTheNextFrame |= PAD1R2;
       }
@@ -944,6 +945,8 @@ namespace rnd {
             int screenY = 1080 * (MapPointsData[5 * id + 2] - (gameExeScrWork[SW_MAP_POSY] - (1080 * gameExeScrWork[SW_MAP_SIZE] / 1000) / 2)) / (1080 * gameExeScrWork[SW_MAP_SIZE] / 1000) - 138;
 
             int height = 93;
+            int width = 150;
+            width += (2 * MapPointsData[5 * id + 3] + 54) > 96 ? 2 * MapPointsData[5 * id + 3] - 42 : 0;
             if (!gameExeScrWork[6377]) {
               auto pokecomWidth = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 12);
               auto pokecomHeight = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 14);
@@ -955,11 +958,13 @@ namespace rnd {
               screenX = (screenX * pokecomScaleX) + pokecomX + 12;
               screenY = (screenY * pokecomScaleY) + pokecomY + 54;
               height = 54;
+              width *= pokecomScaleX;
             } else {
+              screenX += 20;
               screenY += height;
             }
 
-            if (menuButtonHitTest(i, mouseX, mouseY, screenX, screenY, MapPointsData[5 * id + 3], height, MapSelectedPointIndex)) {
+            if (menuButtonHitTest(i, mouseX, mouseY, screenX, screenY, width, height, MapSelectedPointIndex)) {
               if (InputObject->mouseButtons & MouseLeftClick) {
                 *InputMask |= PAD1A;
               }
@@ -1572,7 +1577,8 @@ namespace rnd {
       if (InputObject->mouseButtons & MouseLeftClick) {
         if (gameExeScrWork[SW_GAMEMODE] & 1) {
           if (!mouseHitTest(InputObject->scaledMouseX, InputObject->scaledMouseY, 13, 1064, 270, 40) &&
-              !(mouseSelectHitTest(InputObject->scaledMouseX, InputObject->scaledMouseY, 1246, 153, 674, 86) && gameExeGetFlag(CALENDAR_DISP))) {
+              !(mouseSelectHitTest(InputObject->scaledMouseX, InputObject->scaledMouseY, 1246, 153, 674, 86) 
+                && gameExeGetFlag(CALENDAR_DISP) && !gameExeGetFlag(Pokecom_Disable) && !gameExeGetFlag(Pokecom_Open))) {
             *InputMask |= PAD1A;
           }
         } else {
