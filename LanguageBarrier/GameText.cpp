@@ -1961,14 +1961,15 @@ lookup3retoffset = 0x7;
 	int __cdecl SetDialoguePageValuesHook(int page, uint8_t* data) {
 
 		int ret = gameExeSetDialoguePageValuesReal(page, data);
+		const uint16_t fontSize = lb::config["patch"]["dialogueFontSize"].get<uint16_t>();
 		if (page == 0) {
 			TextRendering::Get().dialogueSettings[10] = lb::config["patch"]["dialogueWidth"].get<uint16_t>();
-			TextRendering::Get().dialogueSettings[14] = lb::config["patch"]["dialogueFontSize"].get<uint16_t>();
-			TextRendering::Get().dialogueSettings[15] = lb::config["patch"]["dialogueFontSize"].get<uint16_t>();
+			TextRendering::Get().dialogueSettings[14] = fontSize;
+			TextRendering::Get().dialogueSettings[15] = fontSize;
 		}
 		if (page == 9) {
-			TextRendering::Get().dialogueSettings[page*24+14] = lb::config["patch"]["dialogueFontSize"].get<uint16_t>()*0.8;
-			TextRendering::Get().dialogueSettings[page*24+15] = lb::config["patch"]["dialogueFontSize"].get<uint16_t>()*0.8;
+			TextRendering::Get().dialogueSettings[page*24+14] = fontSize *0.85f;
+			TextRendering::Get().dialogueSettings[page*24+15] = fontSize *0.85f;
 		}
 		return ret;
 	}
