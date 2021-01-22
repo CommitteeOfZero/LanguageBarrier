@@ -132,6 +132,7 @@ namespace rnd {
     SF_MESALLSKIP = 1234,
     CALENDAR_DISP = 1615,
     AR_SUPERMODE = 2817,
+    Pokecom_Open = 2900,
     Pokecom_ManualMode = 2903,
     Pokecom_Disable = 2904,
     KRep_SearchMode = 3030
@@ -241,117 +242,118 @@ namespace rnd {
   bool LockMouseControls = false;
   uint32_t CarryInputToTheNextFrame = 0;
 
-  MgsInputObj_t* InputObject = NULL; //(MgsInputObj_t*)0x2A3F6F0;
-  uint8_t* MouseEnabled = NULL; //(uint8_t*)0x2706461;
-  HWND* WindowHandle = NULL; //(HWND*)0x6F8CC4;
-  uint8_t* MousePointing = NULL; //(uint8_t*)0x2E3F8B4;
+  MgsInputObj_t* InputObject = NULL;
+  uint8_t* MouseEnabled = NULL;
+  HWND* WindowHandle = NULL;
+  uint8_t* MousePointing = NULL;
 
-  int* TitleMenuSelectionIndex = NULL; //(int*)0xC6DA48;
-  int* SubMenuSelIndex = NULL; //(int*)0xC6DA64;
-  int* LoadMenuSelIndex = NULL; //(int*)0xC6DA50;
-  int* ExtrasMenuSelIndex = NULL; //(int*)0xC6DA54;
-  int* TitleSubMenuAnimCounter = NULL; //(int*)0xC6DA70;
+  int* TitleMenuSelectionIndex = NULL;
+  int* SubMenuSelIndex = NULL;
+  int* LoadMenuSelIndex = NULL;
+  int* ExtrasMenuSelIndex = NULL;
+  int* TitleSubMenuAnimCounter = NULL;
 
-  int* MovieModeSelectionIndex = NULL; //(int*)0xC6DBD4;
+  int* MovieModeSelectionIndex = NULL;
+  int* MovieModeIsPlaying = NULL;
 
-  int* SelectedSaveEntryIndex = NULL; //(int*)0xC6D628;
-  int* CurrentSaveMenuPage = NULL; //(int*)0xC6D62C;
-  int* DailyRecordsItemIndex = NULL; //(int*)0x6E2CCC;
+  int* SelectedSaveEntryIndex = NULL;
+  int* CurrentSaveMenuPage = NULL;
+  int* DailyRecordsItemIndex = NULL;
 
-  int* SysMesBoxMesNum = NULL; //(int*)0xC6D900;
-  int* SysMesBoxChoiceNum = NULL; //(int*)0xC6D904;
-  int* SysMesBoxChoiceIndex = NULL; //(int*)0xC6D908;
-  int* SysMesBoxMesNumAlt = NULL; //(int*)0xC6D9A0;
-  int* SysMesBoxChoiceNumAlt = NULL; //(int*)0xC6D9A4;
-  int* SysMesBoxChoiceIndexAlt = NULL; //(int*)0xC6D9A8;
+  int* SysMesBoxMesNum = NULL;
+  int* SysMesBoxChoiceNum = NULL;
+  int* SysMesBoxChoiceIndex = NULL;
+  int* SysMesBoxMesNumAlt = NULL;
+  int* SysMesBoxChoiceNumAlt = NULL;
+  int* SysMesBoxChoiceIndexAlt = NULL;
 
-  int* CGLibraryPageIndex = NULL; //(int*)0x74CAB0;
-  int* CGLibraryItemIndex = NULL; //(int*)0x74CABC;
+  int* CGLibraryPageIndex = NULL;
+  int* CGLibraryItemIndex = NULL;
 
-  int* AlbumCGScale = NULL; //(int*)0x74CB34;
-  int* AlbumCGScaleMin = NULL; //(int*)0x74CB1C;
-  int* AlbumCGScaleMax = NULL; //(int*)0x74CB20;
-  int* AlbumCGX = NULL; //(int*)0x74CB2C;
-  int* AlbumCGY = NULL; //(int*)0x74CB30;
+  int* AlbumCGScale = NULL;
+  int* AlbumCGScaleMin = NULL;
+  int* AlbumCGScaleMax = NULL;
+  int* AlbumCGX = NULL;
+  int* AlbumCGY = NULL;
 
-  int* MusicModeCurrentIndex = NULL; //(int*)0xC6D4E4;
-  int* MusicModeStartIndex = NULL; //(int*)0xC6D4E8;
+  int* MusicModeCurrentIndex = NULL;
+  int* MusicModeStartIndex = NULL;
 
-  int* TipsMenuTabTipCount = NULL; //(int*)0x9524C8;
-  int* TipsMenuCurrentTab = NULL; //(int*)0x6E0AC8;
-  int* TipsMenuSelectedIndex = NULL; //(int*)0x9525C0;
-  int* TipsMenuStartIndex = NULL; //(int*)0x9525BC;
-  int* TipsMenuTipTextStartOffset = NULL; //(int*)0x9525C8;
-  int* TipMenuTipTextHeight = NULL; //(int*)0x9525CC;
-  int* TipsMenuTipData = NULL; //(int*)0x953510;
-  int* TipsMenuSelectedTip = NULL; //(int*)0x6E0AD0;
+  int* TipsMenuTabTipCount = NULL;
+  int* TipsMenuCurrentTab = NULL;
+  int* TipsMenuSelectedIndex = NULL;
+  int* TipsMenuStartIndex = NULL;
+  int* TipsMenuTipTextStartOffset = NULL;
+  int* TipMenuTipTextHeight = NULL;
+  int* TipsMenuTipData = NULL;
+  int* TipsMenuSelectedTip = NULL;
 
-  int* TwipoTweepCountInTabs = NULL; //(int*)0x2706450;
+  int* TwipoTweepCountInTabs = NULL;
 
   int* PokecomSelectionIndex = NULL;
   int* PokecomWindowCoords = NULL;
 
-  int* ARNumberOfGeoTags = NULL; //(int*)0x996B0C;
-  float* ARGeoTagsXYZCoords = NULL; //(float*)0x998BE0;
-  int* ARSelectedGeoTag = NULL; //(int*)0x74CC94;
-  int* ARPointingAtReport = NULL; //(int*)0x74CC88;
-  int* ARDisplayedGeoTags = NULL; //(int*)0x74CB94;
-  int* ARNumDisplayedGeoTags = NULL; //(int*)0x74CB90;
-  int* ARSomeGeoTagArr = NULL; //(int*)0x999220;
-  int* ARSomeGeoTagArr2 = NULL; //(int*)0x996B10;
-  int* ARSomeGeoTagArr3 = NULL; //(int*)0x9961A8;
-  int* ARSomeGeoTagData = NULL; //(int*)0x995CF4;
+  int* ARNumberOfGeoTags = NULL;
+  float* ARGeoTagsXYZCoords = NULL;
+  int* ARSelectedGeoTag = NULL;
+  int* ARPointingAtReport = NULL;
+  int* ARDisplayedGeoTags = NULL;
+  int* ARNumDisplayedGeoTags = NULL;
+  int* ARSomeGeoTagArr = NULL;
+  int* ARSomeGeoTagArr2 = NULL;
+  int* ARSomeGeoTagArr3 = NULL;
+  int* ARSomeGeoTagData = NULL;
   GetScreenCoordsProc gameExeGetScreenCoords;
   CountSC3CharactersProc gameExeCountSC3Characters;
   GetSC3StringByIDProc gameExeGetSC3StringByID;
   GeoTagHasLinkProc gameExeGeoTagHasLink;
 
   BacklogRecalcMovementProc gameExeBacklogRecalcMovement;
-  int* BacklogDispPosMax = NULL; //(int*)0x947358;
-  int* BacklogSelectedIndex = NULL; //(int*)0x947340;
-  int* BacklogFirstFullDispLine = NULL; //(int*)0x947350;
-  int* BacklogLastFullDispLine = NULL; //(int*)0x947354;
+  int* BacklogDispPosMax = NULL;
+  int* BacklogSelectedIndex = NULL;
+  int* BacklogFirstFullDispLine = NULL;
+  int* BacklogLastFullDispLine = NULL;
 
-  int* MapNumPoints = NULL; //(int*)0xC800EC;
-  int* MapPointsData = NULL; //(int*)0xC800F0;
-  int* MapPointsIDs = NULL; //(int*)0xC80410;
-  int* MapSelectedPointIndex = NULL; //(int*)0xC804B0;
-  int* MapPointIsDisplayed = NULL; //(int*)0xC80460;
+  int* MapNumPoints = NULL;
+  int* MapPointsData = NULL;
+  int* MapPointsIDs = NULL;
+  int* MapSelectedPointIndex = NULL;
+  int* MapPointIsDisplayed = NULL;
 
   SetConfigOptionProc gameExeSetConfigProc;
-  int* ConfigUnkArray = NULL; //(int*)0xC6D700;
-  int* ConfigSelectedItem = NULL; //(int*)0xC6D70C;
-  int* ConfigFullScreen = NULL; //(int*)0x2706990;
-  int* ConfigFullScreen1 = NULL; //(int*)0x270650C;
-  int* ConfigResolution = NULL; //(int*)0x2706994;
-  int* ConfigResolution1 = NULL; //(int*)0x2706510;
-  int* ConfigMessageSpeed = NULL; //(int*)0x2706948;
-  int* ConfigMessageSpeedCur = NULL; //(int*)0xC6D78C;
-  int* ConfigAutoModeDelay = NULL; //(int*)0x270694C;
-  int* ConfigAutoModeDelayCur = NULL; //(int*)0xC6D790;
-  int* ConfigVoiceVolume = NULL; //(int*)0x2706934;
-  int* ConfigBGMVolume = NULL; //(int*)0x2706938;
-  int* ConfigSEVolume = NULL; //(int*)0x270693C;
-  int* ConfigMovieVolume = NULL; //(int*)0x2706944;
+  int* ConfigUnkArray = NULL;
+  int* ConfigSelectedItem = NULL;
+  int* ConfigFullScreen = NULL;
+  int* ConfigFullScreen1 = NULL;
+  int* ConfigResolution = NULL;
+  int* ConfigResolution1 = NULL;
+  int* ConfigMessageSpeed = NULL;
+  int* ConfigMessageSpeedCur = NULL;
+  int* ConfigAutoModeDelay = NULL;
+  int* ConfigAutoModeDelayCur = NULL;
+  int* ConfigVoiceVolume = NULL;
+  int* ConfigBGMVolume = NULL;
+  int* ConfigSEVolume = NULL;
+  int* ConfigMovieVolume = NULL;
   SetScreenResProc gameExeSetScreenRes;
   PlaySEProc gameExePlaySE;
 
-  int* CGviewModeAlpha = NULL; //(int*)0x270691C;
+  int* CGviewModeAlpha = NULL;
   int AutoSkipAlpha = 256;
   int AutoSkipAlphaStep = 0;
 
   bool SliderMoving = false;
   int MovingSliderId = -1;
 
-  uint32_t* InputMask = NULL; //(uint32_t*)0xC71040;
-  uint32_t* InputMask3 = NULL; //(uint32_t*)0xC71044;
-  uint32_t* InputMask2 = NULL; //(uint32_t*)0xC71048;
-  uint32_t* InputMask4 = NULL; //(uint32_t*)0xC7104C;
-  LPDIRECTINPUTDEVICEA* MouseDevice = NULL; //(LPDIRECTINPUTDEVICEA*)0x2A3F684;
-  int* GameScreenTopLeftX = NULL; //(uint32_t*)0x6F8CCC;
-  int* GameScreenTopLeftY = NULL; //(uint32_t*)0x6F8CD0;
-  int* GameScreenBottomRightX = NULL; //(uint32_t*)0x6F8CD4;
-  int* GameScreenBottomRightY = NULL; //(uint32_t*)0x6F8CD8;
+  uint32_t* InputMask = NULL;
+  uint32_t* InputMask3 = NULL;
+  uint32_t* InputMask2 = NULL;
+  uint32_t* InputMask4 = NULL;
+  LPDIRECTINPUTDEVICEA* MouseDevice = NULL;
+  int* GameScreenTopLeftX = NULL;
+  int* GameScreenTopLeftY = NULL;
+  int* GameScreenBottomRightX = NULL;
+  int* GameScreenBottomRightY = NULL;
 
   int __fastcall mgsInputExecuteServerHook(MgsInputObj_t* pThis);
   int __cdecl padMainHook();
@@ -490,6 +492,7 @@ namespace rnd {
     TitleSubMenuAnimCounter = (int*)sigScan("game", "useOfTitleSubMenuAnimCounter");
 
     MovieModeSelectionIndex = (int*)sigScan("game", "useOfMovieModeSelectionIndex");
+    MovieModeIsPlaying = (int*)sigScan("game", "useOfMovieModeIsPlaying");
 
     SelectedSaveEntryIndex = (int*)sigScan("game", "useOfSelectedSaveEntryIndex");
     CurrentSaveMenuPage = (int*)sigScan("game", "useOfCurrentSaveMenuPage");
@@ -685,7 +688,7 @@ namespace rnd {
         AutoSkipAlpha = 0;
       }
 
-      if (!gameExeGetFlag(Pokecom_Disable) && gameExeGetFlag(CALENDAR_DISP)) {
+      if ((gameExeScrWork[SW_GAMEMODE] & 1) && gameExeGetFlag(CALENDAR_DISP) && !gameExeGetFlag(Pokecom_Disable) && !gameExeGetFlag(Pokecom_Open)) {
         if (mouseSelectHitTest(mouseX, mouseY, 1246, 153, 674, 86) && (InputObject->mouseButtons & MouseLeftClick))
           CarryInputToTheNextFrame |= PAD1R2;
       }
@@ -942,6 +945,8 @@ namespace rnd {
             int screenY = 1080 * (MapPointsData[5 * id + 2] - (gameExeScrWork[SW_MAP_POSY] - (1080 * gameExeScrWork[SW_MAP_SIZE] / 1000) / 2)) / (1080 * gameExeScrWork[SW_MAP_SIZE] / 1000) - 138;
 
             int height = 93;
+            int width = 150;
+            width += (2 * MapPointsData[5 * id + 3] + 54) > 96 ? 2 * MapPointsData[5 * id + 3] - 42 : 0;
             if (!gameExeScrWork[6377]) {
               auto pokecomWidth = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 12);
               auto pokecomHeight = *(signed __int16*)((char*)PokecomWindowCoords + (16 * gameExeScrWork[6374]) + 14);
@@ -953,11 +958,13 @@ namespace rnd {
               screenX = (screenX * pokecomScaleX) + pokecomX + 12;
               screenY = (screenY * pokecomScaleY) + pokecomY + 54;
               height = 54;
+              width *= pokecomScaleX;
             } else {
+              screenX += 20;
               screenY += height;
             }
 
-            if (menuButtonHitTest(i, mouseX, mouseY, screenX, screenY, MapPointsData[5 * id + 3], height, MapSelectedPointIndex)) {
+            if (menuButtonHitTest(i, mouseX, mouseY, screenX, screenY, width, height, MapSelectedPointIndex)) {
               if (InputObject->mouseButtons & MouseLeftClick) {
                 *InputMask |= PAD1A;
               }
@@ -1436,12 +1443,16 @@ namespace rnd {
       int mouseX = InputObject->scaledMouseX;
       int mouseY = InputObject->scaledMouseY;
 
-      int id = 0;
-      for (int i = 0; i < 2; i++) {
-        for (int j = 0; j < 3; j++) {
-          if (menuButtonHitTest(id++, mouseX, mouseY, 143 + (j * 560), 560 + (i * 336), 514, 291, MovieModeSelectionIndex) && (InputObject->mouseButtons & MouseLeftClick))
-            *InputMask |= PAD1A;
+      if (!*MovieModeIsPlaying) {
+        int id = 0;
+        for (int i = 0; i < 2; i++) {
+          for (int j = 0; j < 3; j++) {
+            if (menuButtonHitTest(id++, mouseX, mouseY, 143 + (j * 560), 560 + (i * 336), 514, 291, MovieModeSelectionIndex) && (InputObject->mouseButtons & MouseLeftClick))
+              *InputMask |= PAD1A;
+          }
         }
+      } else if (InputObject->mouseButtons & MouseLeftClick) {
+        *InputMask |= PAD1A;
       }
 
       if (InputObject->mouseButtons & MouseRightClick) {
@@ -1566,7 +1577,8 @@ namespace rnd {
       if (InputObject->mouseButtons & MouseLeftClick) {
         if (gameExeScrWork[SW_GAMEMODE] & 1) {
           if (!mouseHitTest(InputObject->scaledMouseX, InputObject->scaledMouseY, 13, 1064, 270, 40) &&
-              !(mouseSelectHitTest(InputObject->scaledMouseX, InputObject->scaledMouseY, 1246, 153, 674, 86) && gameExeGetFlag(CALENDAR_DISP))) {
+              !(mouseSelectHitTest(InputObject->scaledMouseX, InputObject->scaledMouseY, 1246, 153, 674, 86) 
+                && gameExeGetFlag(CALENDAR_DISP) && !gameExeGetFlag(Pokecom_Disable) && !gameExeGetFlag(Pokecom_Open))) {
             *InputMask |= PAD1A;
           }
         } else {
