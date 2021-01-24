@@ -1756,11 +1756,11 @@ lookup3retoffset = 0x7;
 		int v33; // [esp+6Ch] [ebp-4h]
 		int maxXX = 0;
 		startX += 80;
-		if (BacklogLineBufUse)
+		if (*BacklogLineBufUse)
 		{
 			v8 = 0;
 			v23 = 0;
-			if (BacklogLineBufUse)
+			if (*BacklogLineBufUse)
 			{
 				v9 = maskY;
 				do
