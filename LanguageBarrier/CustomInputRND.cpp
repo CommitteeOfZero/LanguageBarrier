@@ -688,34 +688,37 @@ namespace rnd {
         AutoSkipAlpha = 0;
       }
 
-      if ((gameExeScrWork[SW_GAMEMODE] & 1) && gameExeGetFlag(CALENDAR_DISP) && !gameExeGetFlag(Pokecom_Disable) && !gameExeGetFlag(Pokecom_Open)) {
-        if (mouseSelectHitTest(mouseX, mouseY, 1246, 153, 674, 86) && (InputObject->mouseButtons & MouseLeftClick))
-          CarryInputToTheNextFrame |= PAD1R2;
-      }
-
-      int alpha = (AutoSkipAlpha * *CGviewModeAlpha) >> 8;
-
-      if (mouseSelectHitTest(mouseX, mouseY, 13, 1064, 128, 38)) {
-        drawSpriteHook(80, 3805.0f, 1937.0f, 135.0f, 45.0f, 8.0f, 1022.0f, 0xFFFFFF, alpha, 1);
-        if (InputObject->mouseButtons & MouseLeftClick) {
-          CarryInputToTheNextFrame |= PAD1X;
+      if (!LockMouseControls) {
+        if ((gameExeScrWork[SW_GAMEMODE] & 1) && gameExeGetFlag(CALENDAR_DISP) && !gameExeGetFlag(Pokecom_Disable)
+          && !gameExeGetFlag(Pokecom_Open)) {
+          if (mouseSelectHitTest(mouseX, mouseY, 1246, 153, 674, 86) && (InputObject->mouseButtons & MouseLeftClick))
+            CarryInputToTheNextFrame |= PAD1R2;
         }
-      }
-      else {
-        drawSpriteHook(80, 3805.0f, 1987.0f, 135.0f, 45.0f, 8.0f, 1022.0f, 0xFFFFFF, alpha, 1);
-      }
 
-      if (mouseSelectHitTest(mouseX, mouseY, 152, 1064, 128, 38)) {
-        drawSpriteHook(80, 3944.0f, 1937.0f, 135.0f, 45.0f, 147.0f, 1022.0f, 0xFFFFFF, alpha, 1);
-        if (InputObject->mouseButtons & MouseLeftClick) {
-          if (gameExeGetFlag(SF_MESALLSKIP))
-            CarryInputToTheNextFrame |= PAD1B;
-          else
-            CarryInputToTheNextFrame |= PAD1R1;
+        int alpha = (AutoSkipAlpha * *CGviewModeAlpha) >> 8;
+
+          if (mouseSelectHitTest(mouseX, mouseY, 13, 1064, 128, 38)) {
+            drawSpriteHook(80, 3805.0f, 1937.0f, 135.0f, 45.0f, 8.0f, 1022.0f, 0xFFFFFF, alpha, 1);
+              if (InputObject->mouseButtons & MouseLeftClick) {
+                CarryInputToTheNextFrame |= PAD1X;
+              }
+          }
+          else {
+            drawSpriteHook(80, 3805.0f, 1987.0f, 135.0f, 45.0f, 8.0f, 1022.0f, 0xFFFFFF, alpha, 1);
+          }
+
+        if (mouseSelectHitTest(mouseX, mouseY, 152, 1064, 128, 38)) {
+          drawSpriteHook(80, 3944.0f, 1937.0f, 135.0f, 45.0f, 147.0f, 1022.0f, 0xFFFFFF, alpha, 1);
+          if (InputObject->mouseButtons & MouseLeftClick) {
+            if (gameExeGetFlag(SF_MESALLSKIP))
+              CarryInputToTheNextFrame |= PAD1B;
+            else
+              CarryInputToTheNextFrame |= PAD1R1;
+          }
         }
-      }
-      else {
-        drawSpriteHook(80, 3944.0f, 1987.0f, 135.0f, 45.0f, 147.0f, 1022.0f, 0xFFFFFF, alpha, 1);
+        else {
+          drawSpriteHook(80, 3944.0f, 1987.0f, 135.0f, 45.0f, 147.0f, 1022.0f, 0xFFFFFF, alpha, 1);
+        }
       }
     }
 
