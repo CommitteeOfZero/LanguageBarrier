@@ -697,18 +697,18 @@ namespace rnd {
 
         int alpha = (AutoSkipAlpha * *CGviewModeAlpha) >> 8;
 
-          if (mouseSelectHitTest(mouseX, mouseY, 13, 1064, 128, 38)) {
-            drawSpriteHook(80, 3805.0f, 1937.0f, 135.0f, 45.0f, 8.0f, 1022.0f, 0xFFFFFF, alpha, 1);
+          if (mouseSelectHitTest(mouseX, mouseY, 34, 1010, 155, 45)) {
+            drawSpriteHook(80, 3837.0f, 1180.0f, 155.0f, 45.0f, 34.0f, 966.0f, 0xFFFFFF, alpha, 1);
               if (InputObject->mouseButtons & MouseLeftClick) {
                 CarryInputToTheNextFrame |= PAD1X;
               }
           }
           else {
-            drawSpriteHook(80, 3805.0f, 1987.0f, 135.0f, 45.0f, 8.0f, 1022.0f, 0xFFFFFF, alpha, 1);
+            drawSpriteHook(80, 3637.0f, 1180.0f, 155.0f, 45.0f, 34.0f, 966.0f, 0xFFFFFF, alpha, 1);
           }
 
-        if (mouseSelectHitTest(mouseX, mouseY, 152, 1064, 128, 38)) {
-          drawSpriteHook(80, 3944.0f, 1937.0f, 135.0f, 45.0f, 147.0f, 1022.0f, 0xFFFFFF, alpha, 1);
+        if (mouseSelectHitTest(mouseX, mouseY, 65, 1063, 155, 45)) {
+          drawSpriteHook(80, 3868.0f, 1234.0f, 155.0f, 45.0f, 65.0f, 1020.0f, 0xFFFFFF, alpha, 1);
           if (InputObject->mouseButtons & MouseLeftClick) {
             if (gameExeGetFlag(SF_MESALLSKIP))
               CarryInputToTheNextFrame |= PAD1B;
@@ -717,7 +717,7 @@ namespace rnd {
           }
         }
         else {
-          drawSpriteHook(80, 3944.0f, 1987.0f, 135.0f, 45.0f, 147.0f, 1022.0f, 0xFFFFFF, alpha, 1);
+          drawSpriteHook(80, 3668.0f, 1234.0f, 155.0f, 45.0f, 65.0f, 1020.0f, 0xFFFFFF, alpha, 1);
         }
       }
     }
