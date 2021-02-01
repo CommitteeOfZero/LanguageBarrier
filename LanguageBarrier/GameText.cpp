@@ -1962,14 +1962,25 @@ lookup3retoffset = 0x7;
 
 		int ret = gameExeSetDialoguePageValuesReal(page, data);
 		const uint16_t fontSize = lb::config["patch"]["dialogueFontSize"].get<uint16_t>();
+		const uint16_t backlogFontSize = lb::config["patch"]["backlogFontSize"].get<uint16_t>();
+
+		uint32_t* useOfStringWidthCalcMagic = (uint32_t*)sigScan("game", "useOfStringWidthCalcMagic");
+
+		if (useOfStringWidthCalcMagic) {
+			DWORD oldProtect;
+			VirtualProtect(useOfStringWidthCalcMagic, sizeof(uint32_t), PAGE_READWRITE, &oldProtect);
+			*useOfStringWidthCalcMagic = lb::config["patch"]["dialogueFontSizeMagic"].get<uint32_t>();
+			VirtualProtect(useOfStringWidthCalcMagic, sizeof(uint32_t), oldProtect, &oldProtect);
+		}
+
 		if (page == 0) {
 			TextRendering::Get().dialogueSettings[10] = lb::config["patch"]["dialogueWidth"].get<uint16_t>();
 			TextRendering::Get().dialogueSettings[14] = fontSize;
 			TextRendering::Get().dialogueSettings[15] = fontSize;
 		}
 		if (page == 9) {
-			TextRendering::Get().dialogueSettings[page*24+14] = fontSize *0.85f;
-			TextRendering::Get().dialogueSettings[page*24+15] = fontSize *0.85f;
+			TextRendering::Get().dialogueSettings[page*24+14] = backlogFontSize;
+			TextRendering::Get().dialogueSettings[page*24+15] = backlogFontSize;
 		}
 		return ret;
 	}

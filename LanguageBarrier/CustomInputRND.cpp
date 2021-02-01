@@ -372,7 +372,7 @@ namespace rnd {
   int __cdecl pokecomDocMainHook();
   int __cdecl pokecomMapMainHook();
   int __cdecl pokecomARMainHook();
-  int __cdecl instOptionHook(void* thread);
+  int __cdecl instOptionHook(uint8_t* thread);
   int __cdecl mesDispWindowHook(int a1, int a2, int a3, int a4, 
                                 int a5, int a6, int a7, int a8);
   int __cdecl pokecomViewGeotagHook();
@@ -725,11 +725,13 @@ namespace rnd {
     return ret;
   }
 
-  int __cdecl instOptionHook(void* thread) {
-    if (*MouseEnabled) {
+  int __cdecl instOptionHook(uint8_t* thread) {
+    uint8_t type = *((uint8_t*)(*(uint32_t*)(thread + 332)) + 2);
+
+    if (*MouseEnabled && type == 1) {
       LockMouseControls = true;
       int mouseX = InputObject->scaledMouseX;
-      int mouseY = InputObject->scaledMouseY;
+      int mouseY = InputObject->scaledMouseY;     
 
       mouseSlider(mouseX, mouseY, 163, 469, 156, 30, 256, 4096, *ConfigMessageSpeed, 0);
       *ConfigMessageSpeedCur = *ConfigMessageSpeed;
