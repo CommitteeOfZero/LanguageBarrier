@@ -2989,19 +2989,26 @@ lookup3retoffset = 0x7;
 		char name[256];
 		std::list<StringWord_t> words;
 		MultiplierData mData;
-		mData.xOffset = 2.0f;
-		mData.yOffset = 2.0f;
 
 		if (!TextRendering::Get().enabled) {
 			rnDrawPhoneCallNameReal(textureId, maskId, a3, a4, a5, a6, a7, a8, a9, color, a11, opacity);
 			return;
 		}
 		a11 *= 1.75;
+		if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
+
+			mData.xOffset = 2.0f;
+			mData.yOffset = 2.0f;
+		}
+		else {
+			mData.xOffset = 1.5f;
+			mData.yOffset = 1.5f;
+		}
 		semiTokeniseSc3String(a8, words, a11,
 			TIP_REIMPL_LINE_LENGTH);
 		processSc3TokenList(a3, a4, a7, words, 255, color,
 			a11, &str, false, COORDS_MULTIPLIER, -1,
-			NOT_A_LINK, color, a11 * 1.25f, &mData);
+			NOT_A_LINK,color,  a11 * 1.25f, &mData);
 		for (int i = 0; i < str.length; i++) {
 			/*	if (str.displayStartY[i] / COORDS_MULTIPLIER > a8 / 1.5f &&
 					str.displayEndY[i] / COORDS_MULTIPLIER < (a8 + a9 * 1.5f) * 1.0f)*/ {
@@ -3015,7 +3022,7 @@ lookup3retoffset = 0x7;
 					TextRendering::Get().FONT_TEXTURE_ID, maskId, str.textureStartX[i], str.textureStartY[i],
 					str.textureWidth[i], str.textureHeight[i],
 					str.displayStartX[i] + a5 * 2,
-					(a4 + a6) * 2 + 64 - glyphInfo->top,
+					(a4 + a6) * 1.5 + 64 - glyphInfo->top,
 					((float)str.displayStartX[i] + (1.0f * COORDS_MULTIPLIER)),
 					((float)str.displayStartY[i] - glyphInfo->top + 64 +
 						((1.0f + (float)0) * COORDS_MULTIPLIER)),
