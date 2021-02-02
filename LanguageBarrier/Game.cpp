@@ -572,6 +572,10 @@ namespace lb {
 				VirtualProtect(width, sizeof(float), PAGE_READWRITE, &oldProtect);
 				*width = 311.0f;
 				VirtualProtect(width, sizeof(float), oldProtect, &oldProtect);
+				width = (float*)sigScan("game", "useOfRNDConfigVoiceNameUnderlineWidth");
+				VirtualProtect(width, sizeof(float), PAGE_READWRITE, &oldProtect);
+				*width = 515.0f;
+				VirtualProtect(width, sizeof(float), oldProtect, &oldProtect);
 			}
 
 		}
