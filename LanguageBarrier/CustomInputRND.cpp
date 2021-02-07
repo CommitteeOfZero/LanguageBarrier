@@ -758,6 +758,7 @@ namespace rnd {
               *ConfigFullScreen = *ConfigFullScreen1;
               *ConfigResolution1 = *ConfigResolution;
               gameExeSetScreenRes();
+              InputObject->mouseButtons ^= MouseLeftClick;
             }
           }
         }
