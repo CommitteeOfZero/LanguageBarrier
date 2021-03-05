@@ -570,12 +570,12 @@ FontData* TextRendering::getFont(int height, bool measure)
 	if (fontData[height].fontTexturePtr == nullptr && !measure) {
 		this->buildFont(height, measure);
 	}
-	return &fontData[height];
+	return &fontData.at(height);
 }
 
 void TextRendering::replaceFontSurface(int size)
 {
-
+	if (currentSize == size) return;
 	auto currentFontData = this->getFont(size, false);
 
 	if (lb::SurfaceWrapper::getTexPtr(surfaceArray, OUTLINE_TEXTURE_ID, 0) == nullptr && currentFontData->texture.GetBufferPointer() != nullptr) {
@@ -599,6 +599,7 @@ void TextRendering::replaceFontSurface(int size)
 	lb::SurfaceWrapper::setTexPtr(surfaceArray, OUTLINE_TEXTURE_ID, 0, currentFontData->outlineTexturePtr);
 	lb::SurfaceWrapper::setShaderRscView(surfaceArray, FONT_TEXTURE_ID,  currentFontData->fontShaderRscView);
 	lb::SurfaceWrapper::setShaderRscView(surfaceArray, OUTLINE_TEXTURE_ID, currentFontData->outlineShaderRscView);
+	currentSize = size;
 
 
 }
@@ -620,20 +621,18 @@ FontGlyph* FontData::getGlyphInfoByChar(wchar_t character, FontType type)
 
 	}
 }
-
-
 FontGlyph* FontData::getGlyphInfo(int id, FontType type)
 {
 
 	switch (type) {
 	case Regular:
-		return &this->glyphData.glyphMap[TextRendering::Get().fullCharMap[id]];
+		return &this->glyphData.glyphMap.at(TextRendering::Get().fullCharMap[id]);
 		break;
 	case Outline:
-		return &this->glyphData.outlineMap[TextRendering::Get().fullCharMap[id]];
+		return &this->glyphData.outlineMap.at(TextRendering::Get().fullCharMap[id]);
 		break;
 	case Italics:
-		return &this->glyphData.glyphMap[TextRendering::Get().fullCharMap[id]];
+		return &this->glyphData.glyphMap.at(TextRendering::Get().fullCharMap[id]);
 		break;
 	default:
 		break;

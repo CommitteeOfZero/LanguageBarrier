@@ -129,6 +129,7 @@ static uintptr_t gameExeShaderPtr = NULL;
 static uintptr_t gameExeBlendMode = NULL;
 static int* gameExeLanguage = NULL;
 
+std::string gameId;
 
 typedef int(__cdecl* drawTwipoContentHookProc)(int textureId, int a2, int a3, unsigned int a4, int a5, unsigned int a6, char* sc3, int a8, int a9, uint32_t opacity, int a11, int a12, int a13, int a14
 	);
@@ -546,6 +547,16 @@ namespace lb {
 	// (which some functions do, and others don't, except for symbols (also used in
 	// Western translations) it considers full-width)
 
+	enum GameID {
+		CC,
+		SG,
+		SG0,
+		RNE,
+		RND
+	};
+
+	GameID currentGame;
+
 	void gameTextInit() {
 
 
@@ -559,7 +570,7 @@ namespace lb {
 
 		if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
 
-
+			currentGame = RNE;
 			fixSkipRN();
 
 		}
@@ -755,6 +766,7 @@ namespace lb {
 		}
 		else if (config["gamedef"].count("dialoguePageVersion") == 1 &&
 			config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rnd") {
+			currentGame = RND;
 			SurfaceWrapper::game = 1;
 			gameExeDialoguePages_RNDDialoguePage_t =
 				(RNDDialoguePage_t*)sigScan("game", "useOfDialoguePages");
@@ -1305,6 +1317,8 @@ lookup3retoffset = 0x7;
 		ScriptThreadState sc3;
 		int sc3evalResult;
 		StringWord_t word = { sc3string, NULL, 0, false, false };
+		const auto& fontData = TextRendering::Get().getFont(baseGlyphSize, true);
+
 		char c;
 		while (sc3string != NULL) {
 			c = *sc3string;
@@ -1338,7 +1352,6 @@ lookup3retoffset = 0x7;
 						(baseGlyphSize * widths[glyphId]) / FONT_CELL_WIDTH;
 				}
 				else {
-					const auto& fontData = TextRendering::Get().getFont(baseGlyphSize, true);
 					glyphWidth =
 						fontData->glyphData.glyphMap[TextRendering::Get().fullCharMap[glyphId]].advance;
 				}
@@ -2495,6 +2508,7 @@ lookup3retoffset = 0x7;
 		int result = 0;
 		int i = 0;
 		signed char c;
+		FontData* fontData = TextRendering::Get().getFont(baseGlyphSize, true);
 		while (i <= maxCharacters && (c = *sc3string) != -1) {
 			if (c == 4) {
 				sc3.pc = sc3string + 1;
@@ -2504,7 +2518,7 @@ lookup3retoffset = 0x7;
 			else if (c < 0) {
 				int glyphId = (uint8_t)sc3string[1] + ((c & 0x7f) << 8);
 				if (TextRendering::Get().enabled) {
-					int adv = TextRendering::Get().getFont(baseGlyphSize, true)->getGlyphInfo(glyphId, Regular)->advance;
+					int adv = fontData->getGlyphInfo(glyphId, Regular)->advance;
 					result += adv;
 				}
 				else {
@@ -2845,7 +2859,7 @@ lookup3retoffset = 0x7;
 		}
 
 		if (TextRendering::Get().enabled)
-			if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
+			if (currentGame==RNE) {
 
 				return gameExeSg0DrawGlyph2Real(TextRendering::Get().FONT_TEXTURE_ID, a2, glyphInTextureStartX / 1.5f,
 					glyphInTextureStartY / 1.5f, glyphInTextureWidth / 1.5f,
@@ -2872,12 +2886,14 @@ lookup3retoffset = 0x7;
 	}
 
 	int setTipContentHook(char* sc3string) {
+
+		if (!TextRendering::Get().enabled) return gameExeSetTipContentReal(sc3string);
 		tipContent = sc3string;
 		ProcessedSc3String_t str;
 
 		std::list<StringWord_t> words;
 		MultiplierData mData;
-		if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
+		if (currentGame==RNE) {
 
 			mData.xOffset = 2.0f;
 			mData.yOffset = 2.0f;
@@ -2910,7 +2926,7 @@ lookup3retoffset = 0x7;
 			gameExeDrawReportContentReal(textureId, maskId, a3, a4, startX, startY, maskWidth, a8, a9, a10, a11, a12, opacity, a14, a15, a16);
 			return;
 		}
-		if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
+		if (currentGame==RNE) {
 
 			mData.xOffset = 2.0f;
 			mData.yOffset = 2.0f;
@@ -3006,7 +3022,7 @@ lookup3retoffset = 0x7;
 			return;
 		}
 		a11 *= 1.75;
-		if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
+		if (currentGame==RNE) {
 
 			mData.xOffset = 2.0f;
 			mData.yOffset = 2.0f;
@@ -3064,14 +3080,16 @@ lookup3retoffset = 0x7;
 			if (GetAsyncKeyState(VK_LBUTTON)) {
 				TextRendering::Get().disableReplacement();
 
-			}*/
+			}
+			*/
+
 		if (!TextRendering::Get().enabled) {
 			gameExeDrawTipContentReal(textureId, maskId, startX, startY, maskStartY, maskHeight, a7, color, shadowColor, opacity);
 			return;
 		}
 		std::list<StringWord_t> words;
-		MultiplierData mData;
-		if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
+		MultiplierData mData; 
+		if (currentGame==RNE) {
 
 			mData.xOffset = 2.0f;
 			mData.yOffset = 2.0f;
@@ -3086,12 +3104,13 @@ lookup3retoffset = 0x7;
 		processSc3TokenList(startX, startY, TIP_REIMPL_LINE_LENGTH, words, 255, color,
 			TIP_REIMPL_GLYPH_SIZE, &str, false, COORDS_MULTIPLIER, -1,
 			NOT_A_LINK, color, TIP_REIMPL_GLYPH_SIZE * 1.5f, &mData);
+		TextRendering::Get().replaceFontSurface(TIP_REIMPL_GLYPH_SIZE);
+		auto fontData = TextRendering::Get().getFont(TIP_REIMPL_GLYPH_SIZE, false);
 		maskHeight *= 1.5f;
 		for (int i = 0; i < str.length; i++) {
 			if (str.displayStartY[i] / COORDS_MULTIPLIER > maskStartY &&
 				str.displayEndY[i] / COORDS_MULTIPLIER < (maskStartY + maskHeight) * 1.0f) {
-				TextRendering::Get().replaceFontSurface(TIP_REIMPL_GLYPH_SIZE);
-				auto fontData = TextRendering::Get().getFont(TIP_REIMPL_GLYPH_SIZE, false);
+
 				auto glyphInfo = fontData->getGlyphInfo(str.glyph[i], FontType::Regular);
 
 				gameExeSg0DrawGlyph2(

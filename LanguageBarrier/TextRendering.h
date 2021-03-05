@@ -207,6 +207,7 @@ struct TextRendering
 	void replaceFontSurface(int size);
 	int SurfacePointSize[512];
 
+	int currentSize = 0;
 	static const uint16_t FONT_TEXTURE_ID = 400;
 	static const uint16_t OUTLINE_TEXTURE_ID = 401;
 
