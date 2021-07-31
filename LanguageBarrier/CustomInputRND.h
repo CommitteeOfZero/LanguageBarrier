@@ -6,8 +6,8 @@
 
 namespace lb {
 namespace rnd {
-  bool customInputInit();
+bool customInputInit();
 }
-}
+}  // namespace lb
 
 #endif  // !__CUSTOMINPUT_H__

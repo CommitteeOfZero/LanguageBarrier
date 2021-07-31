@@ -89,7 +89,8 @@ static bool MatchByte(const unsigned char byte, const PatternByte& pbyte) {
   return (matched == 2);
 }
 
-uintptr_t FindPattern(const unsigned char* dataStart, const unsigned char* dataEnd, const char* pszPattern,
+uintptr_t FindPattern(const unsigned char* dataStart,
+                      const unsigned char* dataEnd, const char* pszPattern,
                       uintptr_t baseAddress, size_t offset, int occurrence) {
   // Build vectored pattern..
   vector<PatternByte> patterndata;
@@ -101,9 +102,8 @@ uintptr_t FindPattern(const unsigned char* dataStart, const unsigned char* dataE
 
   while (true) {
     // Search for the pattern..
-    const unsigned char* ret =
-        search(scanStart, dataEnd, patterndata.begin(), patterndata.end(),
-               MatchByte);
+    const unsigned char* ret = search(scanStart, dataEnd, patterndata.begin(),
+                                      patterndata.end(), MatchByte);
 
     // Did we find a match..
     if (ret != dataEnd) {
@@ -123,7 +123,8 @@ uintptr_t FindPattern(const unsigned char* dataStart, const unsigned char* dataE
 }  // namespace
 
 namespace lb {
-uintptr_t sigScanRaw(const char* category, const char* sigName, bool isData = false) {
+uintptr_t sigScanRaw(const char* category, const char* sigName,
+                     bool isData = false) {
   std::stringstream logstr;
   logstr << "SigScan: looking for " << category << "/" << sigName << "... "
          << std::endl;
@@ -149,8 +150,8 @@ uintptr_t sigScanRaw(const char* category, const char* sigName, bool isData = fa
     uintptr_t baseAddress = (uintptr_t)hModule + pSectionHdr->VirtualAddress;
     uintptr_t retval = (uintptr_t)FindPattern(
         (unsigned char*)baseAddress,
-        (unsigned char*)baseAddress + pSectionHdr->Misc.VirtualSize,
-        pattern, baseAddress, offset, sig["occurrence"].get<int>());
+        (unsigned char*)baseAddress + pSectionHdr->Misc.VirtualSize, pattern,
+        baseAddress, offset, sig["occurrence"].get<int>());
 
     if (retval != NULL) {
       logstr << " found at 0x" << std::hex << retval;
@@ -168,7 +169,8 @@ uintptr_t sigScanRaw(const char* category, const char* sigName, bool isData = fa
   return NULL;
 }
 
-uintptr_t sigScan(const char* category, const char* sigName, bool isData = false) {
+uintptr_t sigScan(const char* category, const char* sigName,
+                  bool isData = false) {
   uintptr_t raw = sigScanRaw(category, sigName, isData);
   json sig = config["gamedef"]["signatures"][category][sigName];
   if (sig.count("expr") == 0) return raw;

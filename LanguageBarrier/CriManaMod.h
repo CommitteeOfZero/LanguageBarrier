@@ -4,8 +4,8 @@
 #include <cstdint>
 #include <d3d11.h>
 
-typedef int(__thiscall* SurfMapProc)(void* pThis, int dummy,
-                                     int texId, int unk2);
+typedef int(__thiscall* SurfMapProc)(void* pThis, int dummy, int texId,
+                                     int unk2);
 typedef int(__thiscall* SurfUnMapProc)(void* pThis, int texId);
 
 extern uint32_t RENDER_TARGET_SURF_ID;

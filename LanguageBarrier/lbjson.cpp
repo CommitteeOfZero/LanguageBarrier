@@ -18,4 +18,4 @@ json json_merge(const json &a, const json &b) {
 
   return result;
 }
-}
+}  // namespace lb

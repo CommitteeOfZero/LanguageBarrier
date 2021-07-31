@@ -4,6 +4,6 @@
 namespace lb {
 void globalTextReplacementsInit();
 const char* processTextReplacements(const char* base, int fileId, int stringId);
-}
+}  // namespace lb
 
 #endif

@@ -58,6 +58,6 @@ class SigExpr {
   uintptr_t expression();
   uintptr_t summand(bool onlyDereferable);
 };
-}
+}  // namespace lb
 
 #endif  // !__SIGEXPR_H__

@@ -47,11 +47,15 @@ typedef int32_t(__stdcall* BINKCOPYTOBUFFER)(BINK* bnk, void* dest,
 typedef BINKTRACK*(__stdcall* BINKOPENTRACK)(BINK* bnk, uint32_t trackindex);
 typedef void(__stdcall* BINKCLOSETRACK)(BINKTRACK* bnkt);
 typedef void(__stdcall* BINKNEXTFRAME)(BINK* bnk);
-typedef int(__stdcall* BINKDOFRAMEASYNCMULTI)(BINK* bnk, const int32_t* threadIds, int32_t numThreads);
+typedef int(__stdcall* BINKDOFRAMEASYNCMULTI)(BINK* bnk,
+                                              const int32_t* threadIds,
+                                              int32_t numThreads);
 typedef int(__stdcall* BINKDOFRAMEASYNCWAIT)(BINK* bnk, int32_t timeout);
 typedef int(__stdcall* BINKSETVIDEOONOFF)(BINK* bnk, int32_t enable);
-typedef void(__stdcall* BINKSETSOUNDTRACK)(uint32_t numTracks, const uint32_t* trackIds);
-typedef uint32_t(__stdcall* BINKGETKEYFRAME)(BINK* bnk, uint32_t frame, uint32_t flags);
+typedef void(__stdcall* BINKSETSOUNDTRACK)(uint32_t numTracks,
+                                           const uint32_t* trackIds);
+typedef uint32_t(__stdcall* BINKGETKEYFRAME)(BINK* bnk, uint32_t frame,
+                                             uint32_t flags);
 typedef int32_t(__stdcall* RADTIMERREAD)(void);
 
 static BINKOPEN BinkOpen = NULL;
@@ -234,7 +238,8 @@ size_t rb_read(short* dest, size_t shorts) {
     }
     if (shorts_to_output_first + shorts_to_output_second < shorts)
       memset(dest + shorts_to_output_first + shorts_to_output_second, 0,
-             sizeof(short) * (shorts - shorts_to_output_first - shorts_to_output_second));
+             sizeof(short) *
+                 (shorts - shorts_to_output_first - shorts_to_output_second));
   }
   return shorts_to_output_total;
 }
@@ -263,7 +268,8 @@ typedef struct {
   bool shouldCloseBink;
 } BinkPartialRedirect_t;
 
-bool operator<(const BinkPartialRedirect_t& left, const BinkPartialRedirect_t& right) {
+bool operator<(const BinkPartialRedirect_t& left,
+               const BinkPartialRedirect_t& right) {
   return left.startFrame < right.startFrame;
 }
 
@@ -300,7 +306,8 @@ int __cdecl decompAudioInnerHook(int samplesPerChannelPerChunk, float a5,
                                  int a14, char* overlapDest);
 int decompAudioInnerHookThunk();
 void __stdcall BinkNextFrameHook(BINK* bnk);
-int __stdcall BinkDoFrameAsyncMultiHook(BINK* bnk, const int32_t* threadIds, int32_t numThreads);
+int __stdcall BinkDoFrameAsyncMultiHook(BINK* bnk, const int32_t* threadIds,
+                                        int32_t numThreads);
 int __stdcall BinkDoFrameAsyncWaitHook(BINK* bnk, int32_t timeout);
 
 bool binkModInit() {
@@ -325,9 +332,12 @@ bool binkModInit() {
   BinkOpenTrack = (BINKOPENTRACK)GetProcAddress(hmodBink, "_BinkOpenTrack@8");
   BinkCloseTrack =
       (BINKCLOSETRACK)GetProcAddress(hmodBink, "_BinkCloseTrack@4");
-  BinkSetVideoOnOff = (BINKSETVIDEOONOFF)GetProcAddress(hmodBink, "_BinkSetVideoOnOff@8");
-  BinkSetSoundTrack = (BINKSETSOUNDTRACK)GetProcAddress(hmodBink, "_BinkSetSoundTrack@8");
-  BinkGetKeyFrame = (BINKGETKEYFRAME)GetProcAddress(hmodBink, "_BinkGetKeyFrame@12");
+  BinkSetVideoOnOff =
+      (BINKSETVIDEOONOFF)GetProcAddress(hmodBink, "_BinkSetVideoOnOff@8");
+  BinkSetSoundTrack =
+      (BINKSETSOUNDTRACK)GetProcAddress(hmodBink, "_BinkSetSoundTrack@8");
+  BinkGetKeyFrame =
+      (BINKGETKEYFRAME)GetProcAddress(hmodBink, "_BinkGetKeyFrame@12");
   RADTimerRead = (RADTIMERREAD)GetProcAddress(hmodBink, "_RADTimerRead@0");
 
   if (config["patch"]["fmv"].count("fonts") == 1) {
@@ -377,9 +387,11 @@ bool binkModInit() {
   if (config["patch"]["fmv"].count("videoPartialRedirection") == 1) {
     createEnableApiHook(L"bink2w32", "_BinkNextFrame@4", BinkNextFrameHook,
                         (LPVOID*)&BinkNextFrame);
-    createEnableApiHook(L"bink2w32", "_BinkDoFrameAsyncMulti@12", BinkDoFrameAsyncMultiHook,
+    createEnableApiHook(L"bink2w32", "_BinkDoFrameAsyncMulti@12",
+                        BinkDoFrameAsyncMultiHook,
                         (LPVOID*)&BinkDoFrameAsyncMulti);
-    createEnableApiHook(L"bink2w32", "_BinkDoFrameAsyncWait@8", BinkDoFrameAsyncWaitHook,
+    createEnableApiHook(L"bink2w32", "_BinkDoFrameAsyncWait@8",
+                        BinkDoFrameAsyncWaitHook,
                         (LPVOID*)&BinkDoFrameAsyncWait);
   }
 
@@ -388,8 +400,7 @@ bool binkModInit() {
 
 void updatePartialRedirectState(BINK* bnk, BinkModState_t* state) {
   size_t pos = state->currentPartialRedirectPos;
-  if (pos >= state->partialRedirects.size())
-    return;
+  if (pos >= state->partialRedirects.size()) return;
   BinkPartialRedirect_t* redir = &state->partialRedirects[pos];
   // frames in BINK are 1-based, and I prefer 0-based frames in config, so +1
   // check end-of-redirection condition before start-of-redirection
@@ -400,8 +411,7 @@ void updatePartialRedirectState(BINK* bnk, BinkModState_t* state) {
     state->nowRedirected = NULL;
     ++pos;
     ++redir;
-    if (pos >= state->partialRedirects.size())
-      return;
+    if (pos >= state->partialRedirects.size()) return;
   }
   if (bnk->FrameNum == redir->startFrame + 1) {
     state->nowRedirected = redir->otherFile;
@@ -416,15 +426,15 @@ void updatePartialRedirectState(BINK* bnk, BinkModState_t* state) {
       // If there is no keyframe, we can't skip decoding at all.
       //
       // flags=0 == search the frame before or equal to the given one
-      uint32_t lastKeyFrame = BinkGetKeyFrame(bnk, bnk->FrameNum + redir->frameCount, 0);
+      uint32_t lastKeyFrame =
+          BinkGetKeyFrame(bnk, bnk->FrameNum + redir->frameCount, 0);
       if (lastKeyFrame > bnk->FrameNum) {
         BinkSetVideoOnOff(bnk, 0);
         state->redirectKeyFrame = lastKeyFrame;
       }
     }
   }
-  if (bnk->FrameNum == state->redirectKeyFrame)
-    BinkSetVideoOnOff(bnk, 1);
+  if (bnk->FrameNum == state->redirectKeyFrame) BinkSetVideoOnOff(bnk, 1);
 }
 
 BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
@@ -559,10 +569,10 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
   if (config["patch"]["fmv"].count("videoPartialRedirection") == 1 &&
       config["patch"]["fmv"]["videoPartialRedirection"].count(tmp) == 1) {
     std::unordered_map<std::string, BINK*> otherFiles;
-    for (const json& part : config["patch"]["fmv"]["videoPartialRedirection"][tmp]) {
+    for (const json& part :
+         config["patch"]["fmv"]["videoPartialRedirection"][tmp]) {
       auto namePtr = part.find("name");
-      if (namePtr == part.end() || !namePtr->is_string())
-        continue;
+      if (namePtr == part.end() || !namePtr->is_string()) continue;
       std::string name = namePtr->get<std::string>();
       unsigned startFrame = part.value<unsigned>("startFrame", 0);
       unsigned frameCount = part.value<unsigned>("frameCount", 0);
@@ -571,13 +581,15 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
       bool shouldCloseBink = false;
       if (otherFile == otherFiles.end()) {
         std::string fullName = videoFilesDir + name;
-        std::string log = "Trying to open " + fullName + " for videoPartialRedirection ... ";
+        std::string log =
+            "Trying to open " + fullName + " for videoPartialRedirection ... ";
         // 0x100000 means decoding alpha if it is present in the file
         // 0x4000 means use tracks from BinkSetSoundTrack
-        BinkSetSoundTrack(0, NULL); // no audio
-        BINK* otherBink = BinkOpen(fullName.c_str(), preload ? 0x106000 : 0x104000);
+        BinkSetSoundTrack(0, NULL);  // no audio
+        BINK* otherBink =
+            BinkOpen(fullName.c_str(), preload ? 0x106000 : 0x104000);
         const static uint32_t zero = 0;
-        BinkSetSoundTrack(1, &zero); // reset to defaults
+        BinkSetSoundTrack(1, &zero);  // reset to defaults
         if (!otherBink) {
           log += "failed";
           LanguageBarrierLog(log);
@@ -625,9 +637,9 @@ void __stdcall BinkCloseHook(BINK* bnk) {
     delete pVorbisFile;
     pVorbisFile = NULL;
   }
-  for (auto it = state->partialRedirects.begin(); it != state->partialRedirects.end(); ++it)
-    if (it->shouldCloseBink)
-      BinkClose(it->otherFile);
+  for (auto it = state->partialRedirects.begin();
+       it != state->partialRedirects.end(); ++it)
+    if (it->shouldCloseBink) BinkClose(it->otherFile);
   delete state;
   stateMap.erase(bnk);
 }
@@ -644,8 +656,8 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
   uint32_t destwidth = destpitch / 4;
 
   if (state->csri == NULL)
-    return BinkCopyToBuffer(videoSourceBnk, dest, destpitch, destheight, destx, desty,
-                            flags);
+    return BinkCopyToBuffer(videoSourceBnk, dest, destpitch, destheight, destx,
+                            desty, flags);
 
   double time = ((double)bnk->FrameRateDiv * (double)bnk->FrameNum) /
                 (double)bnk->FrameRate;
@@ -670,8 +682,8 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
 
   // TODO: actually use destx and desty (figure out if Bink clips output or
   // expects destpitch/destheight to match)
-  int32_t retval = BinkCopyToBuffer(videoSourceBnk, state->framebuffer, destpitch,
-                                    destheight, destx, desty, flags);
+  int32_t retval = BinkCopyToBuffer(videoSourceBnk, state->framebuffer,
+                                    destpitch, destheight, destx, desty, flags);
 
   csri_frame frame;
   frame.planes[0] = (uint8_t*)state->framebuffer;
@@ -703,19 +715,19 @@ int32_t __stdcall BinkCopyToBufferHook(BINK* bnk, void* dest, int32_t destpitch,
 void __stdcall BinkNextFrameHook(BINK* bnk) {
   BinkNextFrame(bnk);
   auto stateIter = stateMap.find(bnk);
-  if (stateIter == stateMap.end())
-    return;
+  if (stateIter == stateMap.end()) return;
   BinkModState_t* state = stateIter->second;
-  if (state->nowRedirected)
-    BinkNextFrame(state->nowRedirected);
+  if (state->nowRedirected) BinkNextFrame(state->nowRedirected);
   updatePartialRedirectState(bnk, state);
 }
 
-int __stdcall BinkDoFrameAsyncMultiHook(BINK* bnk, const int32_t* threadIds, int32_t numThreads) {
+int __stdcall BinkDoFrameAsyncMultiHook(BINK* bnk, const int32_t* threadIds,
+                                        int32_t numThreads) {
   int ret = BinkDoFrameAsyncMulti(bnk, threadIds, numThreads);
   auto stateIter = stateMap.find(bnk);
   if (stateIter != stateMap.end() && stateIter->second->nowRedirected) {
-    int ret2 = BinkDoFrameAsyncMulti(stateIter->second->nowRedirected, threadIds, numThreads);
+    int ret2 = BinkDoFrameAsyncMulti(stateIter->second->nowRedirected,
+                                     threadIds, numThreads);
     ret = ret && ret2;
   }
   return ret;
@@ -733,12 +745,11 @@ int __stdcall BinkDoFrameAsyncWaitHook(BINK* bnk, int32_t timeout) {
     int ret2 = BinkDoFrameAsyncWait(other, timeout);
     return ret1 && ret2;
   }
-  // GetTickCount() instead of (RADTimerRead() / 1000) would probably suffice as well,
-  // but let's be closer to how the bink engine measures time
+  // GetTickCount() instead of (RADTimerRead() / 1000) would probably suffice as
+  // well, but let's be closer to how the bink engine measures time
   uint32_t start = RADTimerRead();
   int ret1 = BinkDoFrameAsyncWait(bnk, timeout);
-  if (!ret1)
-    return 0;
+  if (!ret1) return 0;
   int32_t passed = (RADTimerRead() - start) / 1000;
   if (timeout > passed)
     timeout -= passed;
@@ -748,10 +759,11 @@ int __stdcall BinkDoFrameAsyncWaitHook(BINK* bnk, int32_t timeout) {
 }
 
 #pragma warning(push)
-#pragma warning(disable:4414) // short jump to function converted to near
+#pragma warning(disable : 4414)  // short jump to function converted to near
 int __declspec(naked) decompAudioInnerHookThunk() {
   __asm {
-    // remember to save/restore ecx if [binkDllDecompAudioInnerReal] is going to be used
+    // remember to save/restore ecx if [binkDllDecompAudioInnerReal] is going to
+    // be used
     cmp [pVorbis], 0
     jnz decompAudioInnerHook
     jmp [binkDllDecompAudioInnerReal]
@@ -771,6 +783,6 @@ int __cdecl decompAudioInnerHook(int samplesPerChannelPerChunk, float a5,
   memmove(overlapSrcBase,
           dest + sizeof(short) * CHANNEL_COUNT * samplesPerChannelPerChunk,
           sizeof(short) * CHANNEL_COUNT * samplesPerChannelPerChunk);
-  return 0; // number of bytes to advance a8; we don't use it, so we don't care
+  return 0;  // number of bytes to advance a8; we don't use it, so we don't care
 }
 }  // namespace lb
