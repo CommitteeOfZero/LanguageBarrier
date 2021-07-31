@@ -2055,6 +2055,16 @@ int __cdecl drawTwipoContentHook(int textureId, int startX, int startY,
       maxLineLength = 600;
     }
 
+    if (currentGame == RNE) {
+      if (glyphSize == 63 && maxLineLength == 421) {
+        maxLineLength = 530;
+        int length = getSc3StringDisplayWidthHook(sc3, 0xFF, glyphSize);
+        while (getSc3StringDisplayWidthHook(sc3, 0xFF, glyphSize) >=
+               maxLineLength)
+          glyphSize--;
+      }
+    }
+
     // Kimijima report list
 
     if (glyphSize == 33 && maxLineLength == 138) {
@@ -2101,6 +2111,10 @@ int __cdecl drawTwipoContentHook(int textureId, int startX, int startY,
     }
     if (glyphSize == 63 && maxLineLength == 0x1CD) {
       maxLineLength = 600;
+      int length = getSc3StringDisplayWidthHook(sc3, 0xFF, glyphSize);
+      while (getSc3StringDisplayWidthHook(sc3, 0xFF, glyphSize) >=
+             maxLineLength)
+        glyphSize--;
     }
 
     if (glyphSize == 0x27 && maxLineLength == 0xD5) {
@@ -2109,7 +2123,11 @@ int __cdecl drawTwipoContentHook(int textureId, int startX, int startY,
   }
 
   int lineLength = maxLineLength * 1.5f;
-  semiTokeniseSc3String(sc3, words, glyphSize * 1.5, lineLength);
+  if (currentGame == RNE) {
+    semiTokeniseSc3String(sc3, words, glyphSize, lineLength);
+  } else {
+    semiTokeniseSc3String(sc3, words, glyphSize * 1.5, lineLength);
+  }
 
   processSc3TokenList(startX, startY, lineLength, words, a5, color, glyphSize,
                       &str, true, COORDS_MULTIPLIER, -1, NOT_A_LINK, color,
