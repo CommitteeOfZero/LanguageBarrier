@@ -214,8 +214,6 @@ ModelManifest.xml
 ##### manual additions
 dinput8-Debug/
 dinput8-Release/
-winmm-Debug/
-winmm-Release/
 # keep xy-VSFilter build / csri headers
 LanguageBarrier/data/*.h
 *.opendb

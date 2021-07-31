@@ -128,16 +128,8 @@
     <ClCompile Include="CustomInputRNE.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="winmm.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CustomInputRND.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="winmm.def">
-      <Filter>Source Files</Filter>
-    </None>
   </ItemGroup>
 </Project>

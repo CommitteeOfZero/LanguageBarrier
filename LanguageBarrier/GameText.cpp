@@ -762,6 +762,9 @@ namespace lb {
 				scanCreateEnableHook(
 					"game", "drawDialogue2", (uintptr_t*)&gameExeDrawDialogue2,
 					(LPVOID)rnDrawDialogue2Hook, (LPVOID*)&gameExeDrawDialogue2Real);
+				scanCreateEnableHook("game", "drawBacklogContent", (uintptr_t*)&gameExeDrawBacklogContent,
+					(LPVOID)DrawBacklogContentHookRNE,
+					(LPVOID*)&gameExeDrawBacklogContentReal);
 			}
 		}
 		else if (config["gamedef"].count("dialoguePageVersion") == 1 &&
@@ -783,6 +786,10 @@ namespace lb {
 				scanCreateEnableHook("game", "drawBacklogContent", (uintptr_t*)&gameExeDrawBacklogContent,
 					(LPVOID)DrawBacklogContentHookRND,
 					(LPVOID*)&gameExeDrawBacklogContentReal);
+				TextRendering::Get().dialogueSettings = (uint16_t*)sigScan("game", "dialoguePageSettings");
+				scanCreateEnableHook("game", "setDialoguePageValues", (uintptr_t*)&gameExeSetDialoguePageValues,
+					(LPVOID)SetDialoguePageValuesHook,
+					(LPVOID*)&gameExeSetDialoguePageValuesReal);
 
 				auto call = (void*)sigScan("game", "backlogHighlight");
 				memset_perms(call, INST_NOP, 3);
@@ -798,16 +805,8 @@ namespace lb {
 				scanCreateEnableHook(
 					"game", "drawDialogue2", (uintptr_t*)&gameExeDrawDialogue2,
 					(LPVOID)drawDialogue2Hook, (LPVOID*)&gameExeDrawDialogue2Real);
-
-				scanCreateEnableHook("game", "drawBacklogContent", (uintptr_t*)&gameExeDrawBacklogContent,
-					(LPVOID)DrawBacklogContentHookRNE,
-					(LPVOID*)&gameExeDrawBacklogContentReal);
 			}
 		}
-		TextRendering::Get().dialogueSettings = (uint16_t*)sigScan("game", "dialoguePageSettings");
-		scanCreateEnableHook("game", "setDialoguePageValues", (uintptr_t*)&gameExeSetDialoguePageValues,
-			(LPVOID)SetDialoguePageValuesHook,
-			(LPVOID*)&gameExeSetDialoguePageValuesReal);
 		/*  scanCreateEnableHook("game", "dialogueLayoutRelated",
 					 (uintptr_t *)&gameExeDialogueLayoutRelated,
 					 (LPVOID)dialogueLayoutRelatedHook,

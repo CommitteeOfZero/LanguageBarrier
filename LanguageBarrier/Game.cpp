@@ -577,6 +577,22 @@ namespace lb {
 				*width = 515.0f;
 				VirtualProtect(width, sizeof(float), oldProtect, &oldProtect);
 			}
+			
+			if (config["patch"].count("RNERenderTargetClearColourFix") == 1 &&
+				  config["patch"]["RNERenderTargetClearColourFix"].get<bool>() == true) {
+				float* r = (float*)sigScan("game", "useOfRNEClearColourR");
+				DWORD oldProtect;
+				VirtualProtect(r, sizeof(float), PAGE_READWRITE, &oldProtect);
+				*r = 0.0f;
+				VirtualProtect(r, sizeof(float), oldProtect, &oldProtect);
+			}
+
+			if (config["patch"].count("RNEAddOriginalOPToMovieLibrary") == 1 &&
+				config["patch"]["RNEAddOriginalOPToMovieLibrary"].get<bool>() == true) {
+				int* ids = (int*)sigScan("game", "useOfRNEMovieLibraryIndexes");
+				ids[1] = 1;
+				ids[2] = 22;
+			}
 
 		}
 		catch (std::exception& e) {
