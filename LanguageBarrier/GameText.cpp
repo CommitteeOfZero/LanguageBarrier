@@ -731,7 +731,7 @@ void gameTextInit() {
       "game", "drawPhoneCallNameText", (uintptr_t*)&rnDrawPhoneCallName,
       (LPVOID)drawPhoneCallNameHook, (LPVOID*)&rnDrawPhoneCallNameReal);
 
-  if (true) {
+  if (currentGame == RNE || currentGame == RND) {
     BacklogDispLinePos = (int*)sigScan("game", "BacklogDispLinePos");
     BacklogLineBufSize = (int*)sigScan("game", "BacklogLineBufSize");
     BacklogTextPos = (int16_t*)sigScan("game", "BacklogTextPos");
@@ -779,20 +779,18 @@ void gameTextInit() {
                  "rn") {
     gameExeDialoguePages_RNEDialoguePage_t =
         (RNEDialoguePage_t*)sigScan("game", "useOfDialoguePages");
-    if (true) {
-      SurfaceWrapper::game = 0;
+    SurfaceWrapper::game = 0;
 
-      scanCreateEnableHook(
-          "game", "drawDialogue", (uintptr_t*)&gameExeDrawDialogue,
-          (LPVOID)rnDrawDialogueHook, (LPVOID*)&gameExeDrawDialogueReal);
-      scanCreateEnableHook(
-          "game", "drawDialogue2", (uintptr_t*)&gameExeDrawDialogue2,
-          (LPVOID)rnDrawDialogue2Hook, (LPVOID*)&gameExeDrawDialogue2Real);
-      scanCreateEnableHook("game", "drawBacklogContent",
-                           (uintptr_t*)&gameExeDrawBacklogContent,
-                           (LPVOID)DrawBacklogContentHookRNE,
-                           (LPVOID*)&gameExeDrawBacklogContentReal);
-    }
+    scanCreateEnableHook(
+        "game", "drawDialogue", (uintptr_t*)&gameExeDrawDialogue,
+        (LPVOID)rnDrawDialogueHook, (LPVOID*)&gameExeDrawDialogueReal);
+    scanCreateEnableHook(
+        "game", "drawDialogue2", (uintptr_t*)&gameExeDrawDialogue2,
+        (LPVOID)rnDrawDialogue2Hook, (LPVOID*)&gameExeDrawDialogue2Real);
+    scanCreateEnableHook("game", "drawBacklogContent",
+                         (uintptr_t*)&gameExeDrawBacklogContent,
+                         (LPVOID)DrawBacklogContentHookRNE,
+                         (LPVOID*)&gameExeDrawBacklogContentReal);
   } else if (config["gamedef"].count("dialoguePageVersion") == 1 &&
              config["gamedef"]["dialoguePageVersion"].get<std::string>() ==
                  "rnd") {
@@ -800,29 +798,27 @@ void gameTextInit() {
     SurfaceWrapper::game = 1;
     gameExeDialoguePages_RNDDialoguePage_t =
         (RNDDialoguePage_t*)sigScan("game", "useOfDialoguePages");
-    if (true) {
-      scanCreateEnableHook(
-          "game", "drawDialogue2", (uintptr_t*)&gameExeDrawDialogue2,
-          (LPVOID)rnDDrawDialogue2Hook, (LPVOID*)&gameExeDrawDialogue2Real);
-      scanCreateEnableHook(
-          "game", "drawDialogue", (uintptr_t*)&gameExeDrawDialogue,
-          (LPVOID)rnDDrawDialogueHook, (LPVOID*)&gameExeDrawDialogueReal);
-      dword_AEDDB0 = (int*)sigScan("game", "dword_AEDDB0");
+    scanCreateEnableHook(
+        "game", "drawDialogue2", (uintptr_t*)&gameExeDrawDialogue2,
+        (LPVOID)rnDDrawDialogue2Hook, (LPVOID*)&gameExeDrawDialogue2Real);
+    scanCreateEnableHook(
+        "game", "drawDialogue", (uintptr_t*)&gameExeDrawDialogue,
+        (LPVOID)rnDDrawDialogueHook, (LPVOID*)&gameExeDrawDialogueReal);
+    dword_AEDDB0 = (int*)sigScan("game", "dword_AEDDB0");
 
-      scanCreateEnableHook("game", "drawBacklogContent",
-                           (uintptr_t*)&gameExeDrawBacklogContent,
-                           (LPVOID)DrawBacklogContentHookRND,
-                           (LPVOID*)&gameExeDrawBacklogContentReal);
-      TextRendering::Get().dialogueSettings =
-          (uint16_t*)sigScan("game", "dialoguePageSettings");
-      scanCreateEnableHook("game", "setDialoguePageValues",
-                           (uintptr_t*)&gameExeSetDialoguePageValues,
-                           (LPVOID)SetDialoguePageValuesHook,
-                           (LPVOID*)&gameExeSetDialoguePageValuesReal);
+    scanCreateEnableHook("game", "drawBacklogContent",
+                         (uintptr_t*)&gameExeDrawBacklogContent,
+                         (LPVOID)DrawBacklogContentHookRND,
+                         (LPVOID*)&gameExeDrawBacklogContentReal);
+    TextRendering::Get().dialogueSettings =
+        (uint16_t*)sigScan("game", "dialoguePageSettings");
+    scanCreateEnableHook("game", "setDialoguePageValues",
+                         (uintptr_t*)&gameExeSetDialoguePageValues,
+                         (LPVOID)SetDialoguePageValuesHook,
+                         (LPVOID*)&gameExeSetDialoguePageValuesReal);
 
-      auto call = (void*)sigScan("game", "backlogHighlight");
-      memset_perms(call, INST_NOP, 3);
-    }
+    auto call = (void*)sigScan("game", "backlogHighlight");
+    memset_perms(call, INST_NOP, 3);
   } else {
     gameExeDialoguePages_DialoguePage_t =
         (DialoguePage_t*)sigScan("game", "useOfDialoguePages");

@@ -347,16 +347,11 @@ void gameInit() {
   surfaceArray = *(void**)sigScan("game", "surfaceArray");
 
   gameExeEarlyInit = (EarlyInitProc)sigScan("game", "earlyInit");
-  // gameExePCurrentBgm = sigScan("game", "useOfPCurrentBgm");
-  // gameExePLoopBgm = sigScan("game", "useOfPLoopBgm");
-  // gameExePShouldPlayBgm = sigScan("game", "useOfPShouldPlayBgm");
+  gameExePCurrentBgm = sigScan("game", "useOfPCurrentBgm");
+  gameExePLoopBgm = sigScan("game", "useOfPLoopBgm");
+  gameExePShouldPlayBgm = sigScan("game", "useOfPShouldPlayBgm");
 
-  if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "mpk") {
-    gameExeMpkMount = sigScan("game", "mpkMount");
-    gameExeMpkConstructor =
-        (MpkConstructorProc)sigScan("game", "mpkConstructor");
-  } else if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() ==
-             "cri") {
+  if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "cri") {
     if (config["gamedef"]["signatures"]["game"].count("mountArchiveRNE") == 1) {
       if (!scanCreateEnableHook("game", "mountArchiveRNE",
                                 (uintptr_t*)&gameExeMountArchiveRNE,
@@ -371,6 +366,10 @@ void gameInit() {
                                 (LPVOID*)&gameExeMountArchiveRNDReal))
         return;
     }
+  } else {
+    gameExeMpkMount = sigScan("game", "mpkMount");
+    gameExeMpkConstructor =
+        (MpkConstructorProc)sigScan("game", "mpkConstructor");
   }
 
   gameExeGetFlag = (GetFlagProc)sigScan("game", "getFlag");
@@ -381,8 +380,8 @@ void gameInit() {
                        (uintptr_t*)&gameExeGslDDSload,
                        (LPVOID)ReCreateLoadTextureDDS, NULL);
 
-  // scanCreateEnableHook("game", "openMyGames",
-  // (uintptr_t*)&gameExeOpenMyGames, 	(LPVOID)openMyGamesHook, NULL);
+  scanCreateEnableHook("game", "openMyGames", (uintptr_t*)&gameExeOpenMyGames,
+                       (LPVOID)openMyGamesHook, NULL);
 
   // TODO: fault tolerance - we don't need to call it quits entirely just
   // because one *feature* can't work
@@ -413,14 +412,14 @@ void gameInit() {
   }
 
   if (config["patch"]["textureFiltering"].get<bool>() == true) {
-    /*LanguageBarrierLog("Forcing bilinear filtering");
-    uint8_t *branch = (uint8_t *)sigScan("game", "textureFilteringBranch");
+    LanguageBarrierLog("Forcing bilinear filtering");
+    uint8_t* branch = (uint8_t*)sigScan("game", "textureFilteringBranch");
     if (branch != NULL) {
-    // original code: if (stuff) { setTextureFiltering(Point) } else {
-    // setTextureFiltering(Linear) }
-    // patch 'je' to 'jmp' -> always go to else block
-    memset_perms(branch, INST_JMP_SHORT, 1);
-    }*/
+      // original code: if (stuff) { setTextureFiltering(Point) } else {
+      // setTextureFiltering(Linear) }
+      // patch 'je' to 'jmp' -> always go to else block
+      memset_perms(branch, INST_JMP_SHORT, 1);
+    }
     scanCreateEnableHook("game", "setSamplerStateWrapper",
                          (uintptr_t*)&gameExeSetSamplerStateWrapper,
                          (LPVOID)setSamplerStateWrapperHook,
@@ -455,7 +454,8 @@ void gameInit() {
   }
 
   gameExeScriptIdsToFileIds = (int*)sigScan("game", "useOfScriptIdsToFileIds");
-  // gameExeAudioPlayers = *(CPlayer **)sigScan("game", "useOfAudioPlayers");
+  if (config["gamedef"]["signatures"]["game"].count("useOfAudioPlayers") == 1)
+    gameExeAudioPlayers = *(CPlayer**)sigScan("game", "useOfAudioPlayers");
   if (config["gamedef"]["signatures"]["game"].count("useOfMpkObjects") == 1)
     gameExeMpkObjects = (mpkObject*)sigScan("game", "useOfMpkObjects");
   if (config["gamedef"]["signatures"]["game"].count("useOfFileObjects") == 1)
@@ -470,11 +470,10 @@ void gameInit() {
     }
   }
 
-  if (config["gamedef"]["gameVideoMiddleware"].get<std::string>() == "bink") {
-    binkModInit();
-  } else if (config["gamedef"]["gameVideoMiddleware"].get<std::string>() ==
-             "cri") {
+  if (config["gamedef"]["gameVideoMiddleware"].get<std::string>() == "cri") {
     criManaModInit();
+  } else {
+    binkModInit();
   }
 
   if (config["patch"].count("overrideAreaParams")) {
@@ -521,16 +520,7 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
         WideTo8BitPath(GetGameDirectoryPath() + L"\\languagebarrier");
 
     if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() ==
-        "mpk") {
-      c0dataMpk = gameMountMpk("C0DATA", lbDir.c_str(), "c0data.mpk");
-      LanguageBarrierLog("c0data.mpk mounted");
-
-      if (!scanCreateEnableHook(
-              "game", "mpkFopenById", (uintptr_t*)&gameExeMpkFopenById,
-              (LPVOID)&mpkFopenByIdHook, (LPVOID*)&gameExeMpkFopenByIdReal))
-        return retval;
-    } else if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() ==
-               "cri") {
+        "cri") {
       // 15 is just a random ID, let's hope it won't ever get used
       if (config["gamedef"]["signatures"]["game"].count("mountArchiveRNE") ==
           1) {
@@ -548,6 +538,14 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
       if (!scanCreateEnableHook(
               "game", "mgsFileOpen", (uintptr_t*)&gameExeMgsFileOpen,
               (LPVOID)&mgsFileOpenHook, (LPVOID*)&gameExeMgsFileOpenReal))
+        return retval;
+    } else {
+      c0dataMpk = gameMountMpk("C0DATA", lbDir.c_str(), "c0data.mpk");
+      LanguageBarrierLog("c0data.mpk mounted");
+
+      if (!scanCreateEnableHook(
+              "game", "mpkFopenById", (uintptr_t*)&gameExeMpkFopenById,
+              (LPVOID)&mpkFopenByIdHook, (LPVOID*)&gameExeMpkFopenByIdReal))
         return retval;
     }
 

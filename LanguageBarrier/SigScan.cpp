@@ -171,6 +171,8 @@ uintptr_t sigScanRaw(const char* category, const char* sigName,
 
 uintptr_t sigScan(const char* category, const char* sigName,
                   bool isData = false) {
+  if (config["gamedef"]["signatures"][category].count(sigName) == 0)
+    return NULL;
   uintptr_t raw = sigScanRaw(category, sigName, isData);
   json sig = config["gamedef"]["signatures"][category][sigName];
   if (sig.count("expr") == 0) return raw;
