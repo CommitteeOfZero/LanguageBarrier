@@ -2477,7 +2477,7 @@ int __cdecl getSc3StringDisplayWidthHook(char* sc3string,
   int i = 0;
   signed char c;
   FontData* fontData;
-  if (UseNewTextSystem) TextRendering::Get().getFont(baseGlyphSize, true);
+  if (UseNewTextSystem) fontData = TextRendering::Get().getFont(baseGlyphSize, true);
   while (i <= maxCharacters && (c = *sc3string) != -1) {
     if (c == 4) {
       sc3.pc = sc3string + 1;
