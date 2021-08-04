@@ -600,54 +600,68 @@ int __cdecl gslFillHook(int id, int a1, int a2, int a3, int a4, int r, int g,
 enum GameID { CC, SG, SG0, RNE, RND };
 
 GameID currentGame;
+bool UseNewTextSystem = false;
 
 void gameTextInit() {
-  fixLeadingZeroes();
-
-  gameExeRenderMode = *(uintptr_t*)sigScan("game", "renderMode");
-  gameExeBlendMode = *(uintptr_t*)sigScan("game", "blendMode");
-  gameExeShaderPtr = *(uintptr_t*)sigScan("game", "shaderPtr");
-
-  gameExeLanguage = *(int**)sigScan("game", "CurrentLanguage");
-
   if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
     currentGame = RNE;
+  } else if (config["gamedef"]["dialoguePageVersion"].get<std::string>() ==
+             "rnd") {
+    currentGame = RND;
+  }
+  if (config["patch"].count("useNewTextSystem") == 1)
+    UseNewTextSystem = config["patch"]["useNewTextSystem"].get<bool>();
+
+  if (currentGame == RNE || currentGame == RND) {
+    fixLeadingZeroes();
+
+    gameExeRenderMode = *(uintptr_t*)sigScan("game", "renderMode");
+    gameExeBlendMode = *(uintptr_t*)sigScan("game", "blendMode");
+    gameExeShaderPtr = *(uintptr_t*)sigScan("game", "shaderPtr");
+
+    gameExeLanguage = *(int**)sigScan("game", "CurrentLanguage");
+  }
+
+  if (currentGame == RNE) {
     fixSkipRN();
   }
 
-  /*	if (IMPROVE_DIALOGUE_OUTLINES) {
-          {
-            std::stringstream ss;
-            ss << "languagebarrier\\"
-                  << config["patch"]["fontOutlineAFileName"].get<std::string>();
-            slurpFile(ss.str(), fontBuffers);
-            gameLoadTexture(OUTLINE_TEXTURE_ID,
-    (void*)(fontBuffers[0]->c_str()), fontBuffers[0]->size());
-          }
-          if (HAS_SPLIT_FONT) {
-            std::stringstream ss;
-            ss << "languagebarrier\\"
-                  << config["patch"]["fontOutlineBFileName"].get<std::string>();
-            slurpFile(ss.str(), fontBuffers + 1);
-            gameLoadTexture(OUTLINE_TEXTURE_ID + 1,
-    (void*)(fontBuffers[1]->c_str()), fontBuffers[1]->size());
+  if (currentGame != RNE && currentGame != RND) {
+    if (IMPROVE_DIALOGUE_OUTLINES) {
+      {
+        std::stringstream ss;
+        ss << "languagebarrier\\"
+           << config["patch"]["fontOutlineAFileName"].get<std::string>();
+        slurpFile(ss.str(), fontBuffers);
+        gameLoadTexture(OUTLINE_TEXTURE_ID, (void*)(fontBuffers[0]->c_str()),
+                        fontBuffers[0]->size());
+      }
+      if (HAS_SPLIT_FONT) {
+        std::stringstream ss;
+        ss << "languagebarrier\\"
+           << config["patch"]["fontOutlineBFileName"].get<std::string>();
+        slurpFile(ss.str(), fontBuffers + 1);
+        gameLoadTexture(OUTLINE_TEXTURE_ID + 1,
+                        (void*)(fontBuffers[1]->c_str()),
+                        fontBuffers[1]->size());
 
-            float outlineRowHeightScaled = OUTLINE_CELL_HEIGHT *
-    COORDS_MULTIPLIER; SPLIT_FONT_OUTLINE_A_HEIGHT = floorf(4096 /
-    outlineRowHeightScaled) * outlineRowHeightScaled;
-          }
+        float outlineRowHeightScaled = OUTLINE_CELL_HEIGHT * COORDS_MULTIPLIER;
+        SPLIT_FONT_OUTLINE_A_HEIGHT =
+            floorf(4096 / outlineRowHeightScaled) * outlineRowHeightScaled;
+      }
     }
     if (HAS_SPLIT_FONT && config["patch"].count("fontBFileName") == 1) {
-          std::stringstream ss;
-          ss << "languagebarrier\\"
-            << config["patch"]["fontBFileName"].get<std::string>();
-          slurpFile(ss.str(), fontBuffers + 2);
-          gameLoadTexture(FIRST_FONT_ID + 1, (void*)(fontBuffers[2]->c_str()),
-            fontBuffers[2]->size());
-          // FONT2_B
-          gameLoadTexture(FIRST_FONT_ID + 3, (void*)(fontBuffers[2]->c_str()),
-            fontBuffers[2]->size());
-    }*/
+      std::stringstream ss;
+      ss << "languagebarrier\\"
+         << config["patch"]["fontBFileName"].get<std::string>();
+      slurpFile(ss.str(), fontBuffers + 2);
+      gameLoadTexture(FIRST_FONT_ID + 1, (void*)(fontBuffers[2]->c_str()),
+                      fontBuffers[2]->size());
+      // FONT2_B
+      gameLoadTexture(FIRST_FONT_ID + 3, (void*)(fontBuffers[2]->c_str()),
+                      fontBuffers[2]->size());
+    }
+  }
   // the game loads these asynchronously - I'm not sure how to be notified it's
   // done and I can free the buffers
   // so I'll just do it in a hook
@@ -794,7 +808,6 @@ void gameTextInit() {
   } else if (config["gamedef"].count("dialoguePageVersion") == 1 &&
              config["gamedef"]["dialoguePageVersion"].get<std::string>() ==
                  "rnd") {
-    currentGame = RND;
     SurfaceWrapper::game = 1;
     gameExeDialoguePages_RNDDialoguePage_t =
         (RNDDialoguePage_t*)sigScan("game", "useOfDialoguePages");
@@ -831,10 +844,12 @@ void gameTextInit() {
           (LPVOID)drawDialogue2Hook, (LPVOID*)&gameExeDrawDialogue2Real);
     }
   }
-  /*  scanCreateEnableHook("game", "dialogueLayoutRelated",
-                           (uintptr_t *)&gameExeDialogueLayoutRelated,
-                           (LPVOID)dialogueLayoutRelatedHook,
-                           (LPVOID *)&gameExeDialogueLayoutRelatedReal);*/
+  if (currentGame != RNE && currentGame != RND) {
+    scanCreateEnableHook("game", "dialogueLayoutRelated",
+                         (uintptr_t*)&gameExeDialogueLayoutRelated,
+                         (LPVOID)dialogueLayoutRelatedHook,
+                         (LPVOID*)&gameExeDialogueLayoutRelatedReal);
+  }
   if (HAS_DRAW_PHONE_TEXT) {
     scanCreateEnableHook(
         "game", "drawPhoneText", (uintptr_t*)&gameExeDrawPhoneText,
@@ -863,39 +878,39 @@ void gameTextInit() {
     if (!arr.is_array()) arr = json::array();
     arr.insert(arr.end(), clearlistConfig.begin(), clearlistConfig.end());
   }
-  /*	const auto& singleTextLineFixes =
-     config["patch"].find("singleTextLineFixes"); if (singleTextLineFixes !=
-     config["patch"].end() && singleTextLineFixes->is_array()) {
-                  scanCreateEnableHook("game", "drawSingleTextLine",
-                          (uintptr_t*)&gameExeDrawSingleTextLine,
-                          (LPVOID)drawSingleTextLineHook,
-                          (LPVOID*)&gameExeDrawSingleTextLineReal);
-                  for (const json& item : *singleTextLineFixes) {
-                          if (!item.is_object())
-                                  continue;
-                          auto sigNameIter = item.find("sigName");
-                          if (sigNameIter == item.end())
-                                  continue;
-                          if (!sigNameIter->is_string())
-                                  continue;
-                          const std::string& sigName =
-     sigNameIter->get<std::string>(); uintptr_t targetPtr = sigScan("game",
-     sigName.c_str()); if (!targetPtr) continue; SingleLineOffset_t& fix =
-     retAddrToSingleLineFixes[targetPtr]; auto iter = item.find("dx"); if (iter
-     != item.end() && iter->is_number_integer()) fix.dx = iter->get<int>(); else
-                                  fix.dx = 0;
-                          iter = item.find("dy");
-                          if (iter != item.end() && iter->is_number_integer())
-                                  fix.dy = iter->get<int>();
-                          else
-                                  fix.dy = 0;
-                          iter = item.find("fontSize");
-                          if (iter != item.end() && iter->is_number_integer())
-                                  fix.fontSize = iter->get<int>();
-                          else
-                                  fix.fontSize = 0;
-                  }
-          }*/
+  const auto& singleTextLineFixes = config["patch"].find("singleTextLineFixes");
+  if (singleTextLineFixes != config["patch"].end() &&
+      singleTextLineFixes->is_array()) {
+    scanCreateEnableHook("game", "drawSingleTextLine",
+                         (uintptr_t*)&gameExeDrawSingleTextLine,
+                         (LPVOID)drawSingleTextLineHook,
+                         (LPVOID*)&gameExeDrawSingleTextLineReal);
+    for (const json& item : *singleTextLineFixes) {
+      if (!item.is_object()) continue;
+      auto sigNameIter = item.find("sigName");
+      if (sigNameIter == item.end()) continue;
+      if (!sigNameIter->is_string()) continue;
+      const std::string& sigName = sigNameIter->get<std::string>();
+      uintptr_t targetPtr = sigScan("game", sigName.c_str());
+      if (!targetPtr) continue;
+      SingleLineOffset_t& fix = retAddrToSingleLineFixes[targetPtr];
+      auto iter = item.find("dx");
+      if (iter != item.end() && iter->is_number_integer())
+        fix.dx = iter->get<int>();
+      else
+        fix.dx = 0;
+      iter = item.find("dy");
+      if (iter != item.end() && iter->is_number_integer())
+        fix.dy = iter->get<int>();
+      else
+        fix.dy = 0;
+      iter = item.find("fontSize");
+      if (iter != item.end() && iter->is_number_integer())
+        fix.fontSize = iter->get<int>();
+      else
+        fix.fontSize = 0;
+    }
+  }
   const auto& spriteFixes = config["patch"].find("spriteFixes");
   if (spriteFixes != config["patch"].end() && spriteFixes->is_array()) {
     for (const json& item : *spriteFixes) {
@@ -1031,11 +1046,13 @@ void gameTextInit() {
                        dialogueLayoutWidthLookup2Hook, NULL);
   gameExeDialogueLayoutWidthLookup2Return = (uintptr_t)(
       (uint8_t*)gameExeDialogueLayoutWidthLookup2 + lookup2retoffset);
-  // scanCreateEnableHook("game", "dialogueLayoutWidthLookup3",
-  //  &gameExeDialogueLayoutWidthLookup3,
-  //  dialogueLayoutWidthLookup3Hook, NULL);
-  // gameExeDialogueLayoutWidthLookup3Return = (uintptr_t)(
-  //  (uint8_t*)gameExeDialogueLayoutWidthLookup3 + lookup3retoffset);
+  if (currentGame != RNE && currentGame != RND) {
+    scanCreateEnableHook("game", "dialogueLayoutWidthLookup3",
+                         &gameExeDialogueLayoutWidthLookup3,
+                         dialogueLayoutWidthLookup3Hook, NULL);
+    gameExeDialogueLayoutWidthLookup3Return = (uintptr_t)(
+        (uint8_t*)gameExeDialogueLayoutWidthLookup3 + lookup3retoffset);
+  }
   if (signatures.count("tipsListWidthLookup") == 1) {
     configretoffset = signatures["tipsListWidthLookup"].value<int>("return", 0);
     if (configretoffset) tipsListWidthRetoffset = configretoffset;
@@ -1066,13 +1083,16 @@ void gameTextInit() {
     }
   }
 
-  /*FILE* widthsfile = fopen("languagebarrier\\widths.bin", "rb");
-  fread(widths, 1, TOTAL_NUM_FONT_CELLS, widthsfile);
-  fclose(widthsfile);
-  memcpy(gameExeGlyphWidthsFont1, widths, GLYPH_RANGE_FULLWIDTH_START);
-  memcpy(gameExeGlyphWidthsFont2, widths, GLYPH_RANGE_FULLWIDTH_START);*/
-  TextRendering::Get().Init(gameExeGlyphWidthsFont1, gameExeGlyphWidthsFont2,
-                            (FontDataLanguage)*gameExeLanguage);
+  if (currentGame == RNE || currentGame == RND) {
+    TextRendering::Get().Init(gameExeGlyphWidthsFont1, gameExeGlyphWidthsFont2,
+                              (FontDataLanguage)*gameExeLanguage);
+  } else {
+    FILE* widthsfile = fopen("languagebarrier\\widths.bin", "rb");
+    fread(widths, 1, TOTAL_NUM_FONT_CELLS, widthsfile);
+    fclose(widthsfile);
+    memcpy(gameExeGlyphWidthsFont1, widths, GLYPH_RANGE_FULLWIDTH_START);
+    memcpy(gameExeGlyphWidthsFont2, widths, GLYPH_RANGE_FULLWIDTH_START);
+  }
 }
 
 void fixSkipRN() {
@@ -2456,7 +2476,8 @@ int __cdecl getSc3StringDisplayWidthHook(char* sc3string,
   int result = 0;
   int i = 0;
   signed char c;
-  FontData* fontData = TextRendering::Get().getFont(baseGlyphSize, true);
+  FontData* fontData;
+  if (UseNewTextSystem) TextRendering::Get().getFont(baseGlyphSize, true);
   while (i <= maxCharacters && (c = *sc3string) != -1) {
     if (c == 4) {
       sc3.pc = sc3string + 1;
@@ -2464,11 +2485,15 @@ int __cdecl getSc3StringDisplayWidthHook(char* sc3string,
       sc3string = (char*)sc3.pc;
     } else if (c < 0) {
       int glyphId = (uint8_t)sc3string[1] + ((c & 0x7f) << 8);
-      if (TextRendering::Get().enabled) {
-        int adv = fontData->getGlyphInfo(glyphId, Regular)->advance;
-        result += adv;
+      if (UseNewTextSystem) {
+        if (TextRendering::Get().enabled) {
+          int adv = fontData->getGlyphInfo(glyphId, Regular)->advance;
+          result += adv;
+        } else {
+          result += TextRendering::Get().originalWidth[glyphId];
+        }
       } else {
-        result += TextRendering::Get().originalWidth[glyphId];
+        result += (baseGlyphSize * widths[glyphId]) / FONT_CELL_WIDTH;
       }
       i++;
       sc3string += 2;
@@ -2671,13 +2696,6 @@ int __cdecl rnDrawTextHook(signed int textureId, int a2, signed int startY,
   int sc3Index = 0;
   std::vector<uint16_t> v;
   std::vector<wchar_t> v2;
-  // if (GetAsyncKeyState(VK_RBUTTON)) {
-  //	TextRendering::Get().enableReplacement();
-  //}
-  // if (GetAsyncKeyState(VK_LBUTTON)) {
-  //	TextRendering::Get().disableReplacement();
-
-  //}
 
   if (TextRendering::Get().enabled) {
     if (a4 == 0x104 && height == 0x18) {

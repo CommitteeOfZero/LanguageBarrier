@@ -344,14 +344,16 @@ void gameInit() {
 
   gameExeGslCreateTexture = sigScan("game", "createTexture");
   gameExeGslCreateTextureCLUT = sigScan("game", "createTextureCLUT");
-  surfaceArray = *(void**)sigScan("game", "surfaceArray");
+  if (config["gamedef"]["signatures"]["game"].count("surfaceArray") == 1)
+    surfaceArray = *(void**)sigScan("game", "surfaceArray");
 
   gameExeEarlyInit = (EarlyInitProc)sigScan("game", "earlyInit");
   gameExePCurrentBgm = sigScan("game", "useOfPCurrentBgm");
   gameExePLoopBgm = sigScan("game", "useOfPLoopBgm");
   gameExePShouldPlayBgm = sigScan("game", "useOfPShouldPlayBgm");
 
-  if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "cri") {
+  if (config["gamedef"].count("gameArchiveMiddleware") == 1 &&
+      config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "cri") {
     if (config["gamedef"]["signatures"]["game"].count("mountArchiveRNE") == 1) {
       if (!scanCreateEnableHook("game", "mountArchiveRNE",
                                 (uintptr_t*)&gameExeMountArchiveRNE,
@@ -412,18 +414,25 @@ void gameInit() {
   }
 
   if (config["patch"]["textureFiltering"].get<bool>() == true) {
-    LanguageBarrierLog("Forcing bilinear filtering");
+    /*LanguageBarrierLog("Forcing bilinear filtering");
     uint8_t* branch = (uint8_t*)sigScan("game", "textureFilteringBranch");
     if (branch != NULL) {
       // original code: if (stuff) { setTextureFiltering(Point) } else {
       // setTextureFiltering(Linear) }
       // patch 'je' to 'jmp' -> always go to else block
       memset_perms(branch, INST_JMP_SHORT, 1);
-    }
+    }*/
     scanCreateEnableHook("game", "setSamplerStateWrapper",
                          (uintptr_t*)&gameExeSetSamplerStateWrapper,
                          (LPVOID)setSamplerStateWrapperHook,
                          (LPVOID*)&gameExeSetSamplerStateWrapperReal);
+  }
+
+  if (config["patch"]["exitBlackScreenFix"].get<bool>() == true) {
+    if (!scanCreateEnableHook(
+            "game", "closeAllSystems", (uintptr_t*)&gameExeCloseAllSystems,
+            (LPVOID)closeAllSystemsHook, (LPVOID*)&gameExeCloseAllSystemsReal))
+      return;
   }
 
   if (config["gamedef"]["hasAutoSkipHide"].get<bool>() == true &&
@@ -470,7 +479,8 @@ void gameInit() {
     }
   }
 
-  if (config["gamedef"]["gameVideoMiddleware"].get<std::string>() == "cri") {
+  if (config["gamedef"].count("gameVideoMiddleware") &&
+      config["gamedef"]["gameVideoMiddleware"].get<std::string>() == "cri") {
     criManaModInit();
   } else {
     binkModInit();
@@ -500,27 +510,23 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
           (**(MgsD3D11State***)sigScan("game", "useOfMgsD3D11State"));
     }
 
-    if (config["patch"]["useNewTextSystem"]) {
+    if (config["patch"].count("useNewTextSystem") == 1 &&
+        config["patch"]["useNewTextSystem"].get<bool>() == true) {
       TextRendering::Get().loadCache();
       TextRendering::Get().enableReplacement();
-    } else {
-      // TextRendering::Get().disableReplacement();
     }
 
     gameExeScrWork = (int*)sigScan("game", "useOfScrWork");
-    if (!scanCreateEnableHook(
-            "game", "exitApplication", (uintptr_t*)&gameExeCloseAllSystems,
-            (LPVOID)closeAllSystemsHook, (LPVOID*)&gameExeCloseAllSystemsReal))
-      return retval;
-    if (config["patch"]["redoDialogueWordwrap"].get<bool>() == true) {
-      dialogueWordwrapInit();
-    }
+    scanCreateEnableHook(
+        "game", "exitApplication", (uintptr_t*)&gameExeCloseAllSystems,
+        (LPVOID)closeAllSystemsHook, (LPVOID*)&gameExeCloseAllSystemsReal);
 
     std::string lbDir =
         WideTo8BitPath(GetGameDirectoryPath() + L"\\languagebarrier");
 
-    if (config["gamedef"]["gameArchiveMiddleware"].get<std::string>() ==
-        "cri") {
+    if (config["gamedef"].count("gameArchiveMiddleware") == 1 &&
+        config["gamedef"]["gameArchiveMiddleware"].get<std::string>() ==
+            "cri") {
       // 15 is just a random ID, let's hope it won't ever get used
       if (config["gamedef"]["signatures"]["game"].count("mountArchiveRNE") ==
           1) {
@@ -749,7 +755,10 @@ int __fastcall closeAllSystemsHook(void* pThis, void* EDX) {
   // I'm not so sure it actually takes a parameter, but better safe than sorry,
   // right?
 
-  TextRendering::Get().saveCache();
+  if (config["patch"].count("useNewTextSystem") == 1 &&
+      config["patch"]["useNewTextSystem"].get<bool>() == true) {
+    TextRendering::Get().saveCache();
+  }
 
   int retval = gameExeCloseAllSystemsReal(pThis);
 

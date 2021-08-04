@@ -66,26 +66,29 @@ void dialogueWordwrapInit() {
                        (LPVOID)dlgWordwrapGenerateMaskHook,
                        (LPVOID*)gameExeDlgWordwrapGenerateMaskReal);
 
-  type1_punctuation.clear();
-  auto input = config["patch"]["type1Punctuation"].get<std::string>();
-  auto input2 = config["patch"]["type2Punctuation"].get<std::string>();
+  if (config["patch"].count("useNewTextSystem") == 1 &&
+      config["patch"]["useNewTextSystem"].get<bool>() == true) {
+    type1_punctuation.clear();
+    auto input = config["patch"]["type1Punctuation"].get<std::string>();
+    auto input2 = config["patch"]["type2Punctuation"].get<std::string>();
 
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  std::wstring type1_punct = converter.from_bytes(input);
-  std::wstring type2_punct = converter.from_bytes(input2);
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    std::wstring type1_punct = converter.from_bytes(input);
+    std::wstring type2_punct = converter.from_bytes(input2);
 
-  for (auto character : type1_punct) {
-    for (int i = 0; i < TextRendering::Get().fullCharMap.length(); i++) {
-      if (TextRendering::Get().fullCharMap[i] == character)
-        type1_punctuation.insert(i);
+    for (auto character : type1_punct) {
+      for (int i = 0; i < TextRendering::Get().fullCharMap.length(); i++) {
+        if (TextRendering::Get().fullCharMap[i] == character)
+          type1_punctuation.insert(i);
+      }
     }
-  }
-  type1_punctuation.insert(0x3F);
-  type2_punctuation.clear();
-  for (auto character : type2_punct) {
-    for (int i = 0; i < TextRendering::Get().fullCharMap.length(); i++) {
-      if (TextRendering::Get().fullCharMap[i] == character)
-        type2_punctuation.insert(i);
+    type1_punctuation.insert(0x3F);
+    type2_punctuation.clear();
+    for (auto character : type2_punct) {
+      for (int i = 0; i < TextRendering::Get().fullCharMap.length(); i++) {
+        if (TextRendering::Get().fullCharMap[i] == character)
+          type2_punctuation.insert(i);
+      }
     }
   }
 }

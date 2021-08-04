@@ -528,8 +528,13 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
         stb_vorbis_info vi = stb_vorbis_get_info(pVorbis);
         our_sample_rate = vi.sample_rate;
 
-        // seems to be the magic number of audio delay
-        delay_samples = -0.433f * (float)bink_sample_rate;
+        // TODO: Check if this is even needed anymore
+        // if (our_sample_rate > bink_sample_rate) {
+        //  // seems to be the magic number of audio delay
+        //  delay_samples = -0.433f * (float)bink_sample_rate;
+        //} else {
+        //  delay_samples = 0.0f;
+        //}
 
         rb_init();
       }
