@@ -1294,49 +1294,7 @@ int __cdecl dialogueLayoutRelatedHook(int unk0, int* unk1, int* unk2, int unk3,
   }
 
 DEF_DRAW_DIALOGUE_HOOK(drawDialogueHook, DialoguePage_t);
-// DEF_DRAW_DIALOGUE_HOOK(ccDrawDialogueHook, CCDialoguePage_t);
-
-void __cdecl ccDrawDialogueHook(int fontNumber, int pageNumber,
-                                uint32_t opacity, int xOffset, int yOffset) {
-  CCDialoguePage_t* page = &gameExeDialoguePages_CCDialoguePage_t[pageNumber];
-
-  for (int i = 0; i < page->pageLength; i++) {
-    if (fontNumber == page->fontNumber[i]) {
-      int displayStartX = (page->charDisplayX[i] + xOffset) * COORDS_MULTIPLIER;
-      int displayStartY = (page->charDisplayY[i] + yOffset) * COORDS_MULTIPLIER;
-
-      uint32_t _opacity = (page->charDisplayOpacity[i] * opacity) >> 8;
-
-      if (page->charOutlineColor[i] != -1) {
-        gameExeDrawGlyph(
-            OUTLINE_TEXTURE_ID,
-            OUTLINE_CELL_WIDTH * page->glyphCol[i] * COORDS_MULTIPLIER,
-            OUTLINE_CELL_HEIGHT * page->glyphRow[i] * COORDS_MULTIPLIER,
-            page->glyphOrigWidth[i] * COORDS_MULTIPLIER + (2 * OUTLINE_PADDING),
-            page->glyphOrigHeight[i] * COORDS_MULTIPLIER +
-                (2 * OUTLINE_PADDING),
-            displayStartX - OUTLINE_PADDING, displayStartY - OUTLINE_PADDING,
-            displayStartX + (COORDS_MULTIPLIER * page->glyphDisplayWidth[i]) +
-                OUTLINE_PADDING,
-            displayStartY + (COORDS_MULTIPLIER * page->glyphDisplayHeight[i]) +
-                OUTLINE_PADDING,
-            page->charOutlineColor[i], _opacity);
-      }
-
-      gameExeDrawGlyph(
-          FIRST_FONT_ID,
-          FONT_CELL_WIDTH * page->glyphCol[i] * COORDS_MULTIPLIER,
-          FONT_CELL_HEIGHT * page->glyphRow[i] * COORDS_MULTIPLIER,
-          page->glyphOrigWidth[i] * COORDS_MULTIPLIER,
-          page->glyphOrigHeight[i] * COORDS_MULTIPLIER, displayStartX,
-          displayStartY,
-          displayStartX + (COORDS_MULTIPLIER * page->glyphDisplayWidth[i]),
-          displayStartY + (COORDS_MULTIPLIER * page->glyphDisplayHeight[i]),
-          page->charColor[i], _opacity);
-    }
-  }
-}
-
+DEF_DRAW_DIALOGUE_HOOK(ccDrawDialogueHook, CCDialoguePage_t);
 DEF_RNDRAW_DIALOGUE_HOOK(rnDrawDialogueHook, RNEDialoguePage_t);
 DEF_RNDRAW_DIALOGUE_HOOK(rnDDrawDialogueHook, RNDDialoguePage_t);
 
