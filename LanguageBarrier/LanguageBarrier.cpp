@@ -159,14 +159,16 @@ void loadJsonConstants() {
     BACKLOG_HIGHLIGHT_HEIGHT_SHIFT =
         config["patch"]["backlogHighlightHeightShift"].get<int8_t>();
   }
-  /*IMPROVE_DIALOGUE_OUTLINES =
-      config["patch"]["improveDialogueOutlines"].get<bool>();
-  if (IMPROVE_DIALOGUE_OUTLINES) {
-    OUTLINE_PADDING = config["patch"]["outlinePadding"].get<float>();
-    OUTLINE_CELL_WIDTH = config["patch"]["outlineCellWidth"].get<uint8_t>();
-    OUTLINE_CELL_HEIGHT = config["patch"]["outlineCellHeight"].get<uint8_t>();
-    OUTLINE_TEXTURE_ID = config["patch"]["outlineTextureId"].get<uint16_t>();
-  }*/
+  if (config["patch"].count("improveDialogueOutlines") == 1) {
+    IMPROVE_DIALOGUE_OUTLINES =
+        config["patch"]["improveDialogueOutlines"].get<bool>();
+    if (IMPROVE_DIALOGUE_OUTLINES) {
+      OUTLINE_PADDING = config["patch"]["outlinePadding"].get<float>();
+      OUTLINE_CELL_WIDTH = config["patch"]["outlineCellWidth"].get<uint8_t>();
+      OUTLINE_CELL_HEIGHT = config["patch"]["outlineCellHeight"].get<uint8_t>();
+      OUTLINE_TEXTURE_ID = config["patch"]["outlineTextureId"].get<uint16_t>();
+    }
+  }
   GLYPH_ID_FULLWIDTH_SPACE =
       config["gamedef"]["glyphIdFullwidthSpace"].get<uint16_t>();
   GLYPH_ID_HALFWIDTH_SPACE =
@@ -236,7 +238,7 @@ void LanguageBarrierInit() {
       // we're past DRM unpacking
       std::remove("languagebarrier\\log.txt");
       // TODO: proper versioning
-      LanguageBarrierLog("LanguageBarrier v1.20");
+      LanguageBarrierLog("LanguageBarrier v2.00");
       {
         std::stringstream logstr;
         logstr << "Game: " << configGetGameName();
