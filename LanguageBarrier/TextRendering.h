@@ -145,6 +145,8 @@ struct TextRendering {
   uint16_t* dialogueSettings;
   uint8_t originalWidth[32000];
   uint8_t originalWidth2[32000];
+  uint8_t newWidth[32000];
+  uint8_t newWidth2[32000];
   uint8_t* widthData;
   uint8_t* widthData2;
   void Init(void* widthData, void* widthData2, FontDataLanguage language);

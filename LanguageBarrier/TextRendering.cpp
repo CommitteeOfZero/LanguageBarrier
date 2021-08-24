@@ -36,10 +36,8 @@ void TextRendering::disableReplacement() {
 void TextRendering::enableReplacement() {
   this->enabled = true;
   for (int i = 0; i < 351; i++) {
-    this->widthData[i] =
-        this->getFont(32, true)->getGlyphInfo(i, FontType::Regular)->advance;
-    this->widthData2[i] =
-        this->getFont(32, true)->getGlyphInfo(i, FontType::Regular)->advance;
+    this->widthData[i] = newWidth[i];
+    this->widthData2[i] = newWidth2[i];
   }
   this->widthData[0] = lb::config["patch"]["spaceWidthPixels"].get<uint16_t>();
   this->widthData[lb::config["gamedef"]["glyphIdFullwidthSpace"]
@@ -85,10 +83,11 @@ void TextRendering::Init(void* widthData, void* widthData2,
   this->widthData2 = (uint8_t*)widthData2;
   this->getFont(32, true);
   for (int i = 0; i < 351; i++) {
-    this->widthData[i] =
+    newWidth[i] =
         this->getFont(32, true)->getGlyphInfo(i, FontType::Regular)->advance;
-    this->widthData2[i] =
-        this->getFont(32, true)->getGlyphInfo(i, FontType::Regular)->advance;
+    newWidth2[i] = newWidth[i];
+    this->widthData[i] = newWidth[i];
+    this->widthData2[i] = newWidth[i];
   }
   this->fontData.erase(32);
   this->widthData[0] = lb::config["patch"]["spaceWidthPixels"].get<uint16_t>();
