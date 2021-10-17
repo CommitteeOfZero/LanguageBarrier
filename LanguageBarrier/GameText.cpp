@@ -1041,19 +1041,22 @@ void gameTextInit() {
                        &gameExeDialogueLayoutWidthLookup1,
                        dialogueLayoutWidthLookup1Hook, NULL);
   // we should have used the expression parser for these but oh well
-  gameExeDialogueLayoutWidthLookup1Return = (uintptr_t)(
-      (uint8_t*)gameExeDialogueLayoutWidthLookup1 + lookup1retoffset);
+  gameExeDialogueLayoutWidthLookup1Return =
+      (uintptr_t)((uint8_t*)gameExeDialogueLayoutWidthLookup1 +
+                  lookup1retoffset);
   scanCreateEnableHook("game", "dialogueLayoutWidthLookup2",
                        &gameExeDialogueLayoutWidthLookup2,
                        dialogueLayoutWidthLookup2Hook, NULL);
-  gameExeDialogueLayoutWidthLookup2Return = (uintptr_t)(
-      (uint8_t*)gameExeDialogueLayoutWidthLookup2 + lookup2retoffset);
+  gameExeDialogueLayoutWidthLookup2Return =
+      (uintptr_t)((uint8_t*)gameExeDialogueLayoutWidthLookup2 +
+                  lookup2retoffset);
   if (currentGame != RNE && currentGame != RND) {
     scanCreateEnableHook("game", "dialogueLayoutWidthLookup3",
                          &gameExeDialogueLayoutWidthLookup3,
                          dialogueLayoutWidthLookup3Hook, NULL);
-    gameExeDialogueLayoutWidthLookup3Return = (uintptr_t)(
-        (uint8_t*)gameExeDialogueLayoutWidthLookup3 + lookup3retoffset);
+    gameExeDialogueLayoutWidthLookup3Return =
+        (uintptr_t)((uint8_t*)gameExeDialogueLayoutWidthLookup3 +
+                    lookup3retoffset);
   }
   if (signatures.count("tipsListWidthLookup") == 1) {
     configretoffset = signatures["tipsListWidthLookup"].value<int>("return", 0);
@@ -1061,8 +1064,9 @@ void gameTextInit() {
     scanCreateEnableHook("game", "tipsListWidthLookup",
                          &gameExeTipsListWidthLookup, tipsListWidthLookupHook,
                          NULL);
-    gameExeTipsListWidthLookupReturn = (uintptr_t)(
-        (uint8_t*)gameExeTipsListWidthLookup + tipsListWidthRetoffset);
+    gameExeTipsListWidthLookupReturn =
+        (uintptr_t)((uint8_t*)gameExeTipsListWidthLookup +
+                    tipsListWidthRetoffset);
   }
   if (signatures.count("getRineInputRectangle") == 1) {
     scanCreateEnableHook("game", "getRineInputRectangle",
@@ -2091,6 +2095,10 @@ int __cdecl drawTwipoContentHook(int textureId, int startX, int startY,
     }
     if (glyphSize == 63 && maxLineLength == 0x1CD) {
       maxLineLength = 600;
+      int length = getSc3StringDisplayWidthHook(sc3, 0xFF, glyphSize);
+      while (getSc3StringDisplayWidthHook(sc3, 0xFF, glyphSize) >=
+             maxLineLength)
+        glyphSize--;
     }
 
     if (glyphSize == 0x27 && maxLineLength == 0xD5) {
