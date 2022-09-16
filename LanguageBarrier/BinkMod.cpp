@@ -529,12 +529,15 @@ BINK* __stdcall BinkOpenHook(const char* name, uint32_t flags) {
         our_sample_rate = vi.sample_rate;
 
         // TODO: Check if this is even needed anymore
-        // if (our_sample_rate > bink_sample_rate) {
-        //  // seems to be the magic number of audio delay
-        //  delay_samples = -0.433f * (float)bink_sample_rate;
-        //} else {
-        //  delay_samples = 0.0f;
-        //}
+        if (config["gamedef"].count("enableBinkAudioOffset") == 1 &&
+            config["gamedef"]["enableBinkAudioOffset"].get<bool>()) {
+          if (our_sample_rate > bink_sample_rate) {
+            // seems to be the magic number of audio delay
+            delay_samples = -0.433f * (float)bink_sample_rate;
+          } else {
+            delay_samples = 0.0f;
+          }
+        }
 
         rb_init();
       }

@@ -1041,22 +1041,19 @@ void gameTextInit() {
                        &gameExeDialogueLayoutWidthLookup1,
                        dialogueLayoutWidthLookup1Hook, NULL);
   // we should have used the expression parser for these but oh well
-  gameExeDialogueLayoutWidthLookup1Return =
-      (uintptr_t)((uint8_t*)gameExeDialogueLayoutWidthLookup1 +
-                  lookup1retoffset);
+  gameExeDialogueLayoutWidthLookup1Return = (uintptr_t)(
+      (uint8_t*)gameExeDialogueLayoutWidthLookup1 + lookup1retoffset);
   scanCreateEnableHook("game", "dialogueLayoutWidthLookup2",
                        &gameExeDialogueLayoutWidthLookup2,
                        dialogueLayoutWidthLookup2Hook, NULL);
-  gameExeDialogueLayoutWidthLookup2Return =
-      (uintptr_t)((uint8_t*)gameExeDialogueLayoutWidthLookup2 +
-                  lookup2retoffset);
+  gameExeDialogueLayoutWidthLookup2Return = (uintptr_t)(
+      (uint8_t*)gameExeDialogueLayoutWidthLookup2 + lookup2retoffset);
   if (currentGame != RNE && currentGame != RND) {
     scanCreateEnableHook("game", "dialogueLayoutWidthLookup3",
                          &gameExeDialogueLayoutWidthLookup3,
                          dialogueLayoutWidthLookup3Hook, NULL);
-    gameExeDialogueLayoutWidthLookup3Return =
-        (uintptr_t)((uint8_t*)gameExeDialogueLayoutWidthLookup3 +
-                    lookup3retoffset);
+    gameExeDialogueLayoutWidthLookup3Return = (uintptr_t)(
+        (uint8_t*)gameExeDialogueLayoutWidthLookup3 + lookup3retoffset);
   }
   if (signatures.count("tipsListWidthLookup") == 1) {
     configretoffset = signatures["tipsListWidthLookup"].value<int>("return", 0);
@@ -1064,9 +1061,8 @@ void gameTextInit() {
     scanCreateEnableHook("game", "tipsListWidthLookup",
                          &gameExeTipsListWidthLookup, tipsListWidthLookupHook,
                          NULL);
-    gameExeTipsListWidthLookupReturn =
-        (uintptr_t)((uint8_t*)gameExeTipsListWidthLookup +
-                    tipsListWidthRetoffset);
+    gameExeTipsListWidthLookupReturn = (uintptr_t)(
+        (uint8_t*)gameExeTipsListWidthLookup + tipsListWidthRetoffset);
   }
   if (signatures.count("getRineInputRectangle") == 1) {
     scanCreateEnableHook("game", "getRineInputRectangle",
@@ -1329,7 +1325,9 @@ void semiTokeniseSc3String(char* sc3string, std::list<StringWord_t>& words,
   ScriptThreadState sc3;
   int sc3evalResult;
   StringWord_t word = {sc3string, NULL, 0, false, false};
-  const auto& fontData = TextRendering::Get().getFont(baseGlyphSize, true);
+  const auto& fontData = TextRendering::Get().enabled
+                             ? TextRendering::Get().getFont(baseGlyphSize, true)
+                             : nullptr;
 
   char c;
   while (sc3string != NULL) {
@@ -2313,26 +2311,34 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
   int curProcessedStringLength = 0;
   int curLineLength = 0;
   int prevLineLength = 0;
+  int spaceCost = 0;
+  int ellipsisCost = 0;
 
-  int spaceCost = TextRendering::Get()
-                      .getFont(baseGlyphSize * 1.5f, true)
-                      ->getGlyphInfo(GLYPH_ID_FULLWIDTH_SPACE, Regular)
-                      ->advance;
-  int ellipsisCost = TextRendering::Get()
-                             .getFont(baseGlyphSize * 1.5f, true)
-                             ->getGlyphInfoByChar('.', Regular)
-                             ->advance *
-                         3 +
-                     4;
+  if (TextRendering::Get().enabled) {
+    spaceCost = TextRendering::Get()
+                    .getFont(baseGlyphSize * 1.5f, true)
+                    ->getGlyphInfo(GLYPH_ID_FULLWIDTH_SPACE, Regular)
+                    ->advance;
+    ellipsisCost = TextRendering::Get()
+                           .getFont(baseGlyphSize * 1.5f, true)
+                           ->getGlyphInfoByChar('.', Regular)
+                           ->advance *
+                       3 +
+                   4;
 
-  MultiplierData multiplierData;
-  if (mData != NULL) {
-    multiplierData = *mData;
+    MultiplierData multiplierData;
+    if (mData != NULL) {
+      multiplierData = *mData;
+    }
+  } else {
+    spaceCost =
+        (widths[GLYPH_ID_FULLWIDTH_SPACE] * baseGlyphSize) / FONT_CELL_WIDTH;
   }
 
   for (auto it = words.begin(); it != words.end(); it++) {
     if (result->lines >= lineCount) {
-      words.erase(it, words.end());
+      TextRendering::Get().enabled ? words.erase(it, words.end())
+                                   : words.erase(words.begin(), it);
       break;
     }
     int wordCost =
@@ -2346,17 +2352,21 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
       curLineLength = 0;
     }
     if (result->lines >= lineCount) {
-      result->lines--;
-      curLineLength = prevLineLength;
-      curLinkNumber = NOT_A_LINK;
+      if (TextRendering::Get().enabled) {
+        result->lines--;
+        curLineLength = prevLineLength;
+        curLinkNumber = NOT_A_LINK;
 
-      for (int i = 0; i < 3; i++) {
-        addCharacter(result, baseGlyphSize,
-                     TextRendering::Get().fullCharMap.find('.'), lineCount - 1,
-                     curLinkNumber, false, 1.0, xOffset, curLineLength, yOffset,
-                     currentColor, lineHeight, mData);
+        for (int i = 0; i < 3; i++) {
+          addCharacter(result, baseGlyphSize,
+                       TextRendering::Get().fullCharMap.find('.'),
+                       lineCount - 1, curLinkNumber, false, 1.0, xOffset,
+                       curLineLength, yOffset, currentColor, lineHeight, mData);
+        }
+        words.erase(++it, words.end());
+      } else {
+        words.erase(words.begin(), it);
       }
-      words.erase(++it, words.end());
       break;
     };
 
@@ -2395,13 +2405,47 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
           break;
         default:
           int glyphId = (uint8_t)sc3string[1] + ((c & 0x7f) << 8);
-          if (result->lines < lineCount - 1 ||
-              (result->lines == lineCount - 1 &&
-               curLineLength + ellipsisCost < lineLength)) {
-            auto glyphWidth = addCharacter(
-                result, baseGlyphSize, glyphId, lineCount, curLinkNumber,
-                measureOnly, multiplier, xOffset, curLineLength, yOffset,
-                currentColor, lineHeight, mData);
+          if (TextRendering::Get().enabled) {
+            if (result->lines < lineCount - 1 ||
+                (result->lines == lineCount - 1 &&
+                 curLineLength + ellipsisCost < lineLength)) {
+              auto glyphWidth = addCharacter(
+                  result, baseGlyphSize, glyphId, lineCount, curLinkNumber,
+                  measureOnly, multiplier, xOffset, curLineLength, yOffset,
+                  currentColor, lineHeight, mData);
+            }
+          } else {
+            int i = result->length;
+
+            if (result->lines >= lineCount) break;
+            if (curLinkNumber != NOT_A_LINK) {
+              result->linkCharCount++;
+            }
+            uint16_t glyphWidth =
+                (baseGlyphSize * widths[glyphId]) / FONT_CELL_WIDTH;
+            curLineLength += glyphWidth;
+            if (!measureOnly) {
+              // anything that's part of an array needs to go here, otherwise we
+              // get buffer overflows with long mails
+              result->linkNumber[i] = curLinkNumber;
+              result->glyph[i] = glyphId;
+              result->textureStartX[i] =
+                  FONT_CELL_WIDTH * multiplier * (glyphId % FONT_ROW_LENGTH);
+              result->textureStartY[i] =
+                  FONT_CELL_HEIGHT * multiplier * (glyphId / FONT_ROW_LENGTH);
+              result->textureWidth[i] = widths[glyphId] * multiplier;
+              result->textureHeight[i] = FONT_CELL_HEIGHT * multiplier;
+              result->displayStartX[i] =
+                  (xOffset + (curLineLength - glyphWidth)) * multiplier;
+              result->displayStartY[i] =
+                  (yOffset + (result->lines * baseGlyphSize)) * multiplier;
+              result->displayEndX[i] = (xOffset + curLineLength) * multiplier;
+              result->displayEndY[i] =
+                  (yOffset + ((result->lines + 1) * baseGlyphSize)) *
+                  multiplier;
+              result->color[i] = currentColor;
+            }
+            result->length++;
           }
 
           sc3string += 2;
@@ -2418,7 +2462,10 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
 
   if (curLineLength == 0) result->lines--;
   // TODO: check if this is now fixed in SGHD
-  // result->lines++;
+  // Revo: it wasn't... well, at least maybe this will help with the empty line
+  // in the subject
+  // INSERT CONFIG CONDITION HERE
+  if (result->lines > 0) result->lines++;
 
   result->linkCount = lastLinkNumber + 1;
   result->curColor = currentColor;

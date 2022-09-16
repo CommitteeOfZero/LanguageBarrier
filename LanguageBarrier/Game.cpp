@@ -348,9 +348,12 @@ void gameInit() {
     surfaceArray = *(void**)sigScan("game", "surfaceArray");
 
   gameExeEarlyInit = (EarlyInitProc)sigScan("game", "earlyInit");
-  gameExePCurrentBgm = sigScan("game", "useOfPCurrentBgm");
-  gameExePLoopBgm = sigScan("game", "useOfPLoopBgm");
-  gameExePShouldPlayBgm = sigScan("game", "useOfPShouldPlayBgm");
+  if (config["gamedef"]["signatures"]["game"].count("useOfPCurrentBgm") == 1)
+    gameExePCurrentBgm = sigScan("game", "useOfPCurrentBgm");
+  if (config["gamedef"]["signatures"]["game"].count("useOfPLoopBgm") == 1)
+    gameExePLoopBgm = sigScan("game", "useOfPLoopBgm");
+  if (config["gamedef"]["signatures"]["game"].count("useOfPShouldPlayBgm") == 1)
+    gameExePShouldPlayBgm = sigScan("game", "useOfPShouldPlayBgm");
 
   if (config["gamedef"].count("gameArchiveMiddleware") == 1 &&
       config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "cri") {
