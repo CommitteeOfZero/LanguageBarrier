@@ -8,7 +8,7 @@
 #include "MinHook.h"
 #include "Script.h"
 #include "SigScan.h"
-
+#include <iomanip>
 namespace lb {
 
 bool IsConfigured = false;
@@ -21,7 +21,7 @@ void *memset_perms(void *dst, int val, size_t size) {
   VirtualProtect(dst, size, oldProtect, &oldProtect);
   return retval;
 }
-void *memcpy_perms(void* dst, const void* src, size_t size) {
+void *memcpy_perms(void *dst, const void *src, size_t size) {
   DWORD oldProtect;
   VirtualProtect(dst, size, PAGE_READWRITE, &oldProtect);
   void *retval = memcpy(dst, src, size);
@@ -108,6 +108,7 @@ void loadJsonConstants() {
   MPK_ID_SCRIPT_MPK = config["gamedef"]["mpkIdScriptMpk"].get<uint8_t>();
   MPK_ID_BGM_MPK = config["gamedef"]["mpkIdBgmMpk"].get<uint8_t>();
   AUDIO_PLAYER_ID_BGM1 = config["gamedef"]["audioPlayerIdBgm1"].get<uint8_t>();
+  C0DATA_MOUNT_ID = 15;
 
   // GameText.h
   FIRST_FONT_ID = config["gamedef"]["firstFontId"].get<uint8_t>();
@@ -158,13 +159,15 @@ void loadJsonConstants() {
     BACKLOG_HIGHLIGHT_HEIGHT_SHIFT =
         config["patch"]["backlogHighlightHeightShift"].get<int8_t>();
   }
-  IMPROVE_DIALOGUE_OUTLINES =
-      config["patch"]["improveDialogueOutlines"].get<bool>();
-  if (IMPROVE_DIALOGUE_OUTLINES) {
-    OUTLINE_PADDING = config["patch"]["outlinePadding"].get<float>();
-    OUTLINE_CELL_WIDTH = config["patch"]["outlineCellWidth"].get<uint8_t>();
-    OUTLINE_CELL_HEIGHT = config["patch"]["outlineCellHeight"].get<uint8_t>();
-    OUTLINE_TEXTURE_ID = config["patch"]["outlineTextureId"].get<uint16_t>();
+  if (config["patch"].count("improveDialogueOutlines") == 1) {
+    IMPROVE_DIALOGUE_OUTLINES =
+        config["patch"]["improveDialogueOutlines"].get<bool>();
+    if (IMPROVE_DIALOGUE_OUTLINES) {
+      OUTLINE_PADDING = config["patch"]["outlinePadding"].get<float>();
+      OUTLINE_CELL_WIDTH = config["patch"]["outlineCellWidth"].get<uint8_t>();
+      OUTLINE_CELL_HEIGHT = config["patch"]["outlineCellHeight"].get<uint8_t>();
+      OUTLINE_TEXTURE_ID = config["patch"]["outlineTextureId"].get<uint16_t>();
+    }
   }
   GLYPH_ID_FULLWIDTH_SPACE =
       config["gamedef"]["glyphIdFullwidthSpace"].get<uint16_t>();
@@ -235,7 +238,7 @@ void LanguageBarrierInit() {
       // we're past DRM unpacking
       std::remove("languagebarrier\\log.txt");
       // TODO: proper versioning
-      LanguageBarrierLog("LanguageBarrier v1.20");
+      LanguageBarrierLog("LanguageBarrier v2.00");
       {
         std::stringstream logstr;
         logstr << "Game: " << configGetGameName();

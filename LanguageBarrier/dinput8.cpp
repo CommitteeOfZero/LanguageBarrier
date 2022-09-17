@@ -37,10 +37,11 @@ extern "C" HRESULT __stdcall DirectInput8CreateHook(HINSTANCE hinst,
   if (!hRealDinput8) {
     TCHAR expandedPath[MAX_PATH];
     UINT dirLen = GetWindowsDirectory(expandedPath, MAX_PATH);
-    if (!dirLen || dirLen >= MAX_PATH - sizeof("\\System32\\dinput8.dll")) return DIERR_OUTOFMEMORY;
-    if (expandedPath[dirLen - 1] != L'\\')
-        expandedPath[dirLen++] = L'\\';
-    memcpy(expandedPath + dirLen, __TEXT("System32\\dinput8.dll"), sizeof(__TEXT("System32\\dinput8.dll")));
+    if (!dirLen || dirLen >= MAX_PATH - sizeof("\\System32\\dinput8.dll"))
+      return DIERR_OUTOFMEMORY;
+    if (expandedPath[dirLen - 1] != L'\\') expandedPath[dirLen++] = L'\\';
+    memcpy(expandedPath + dirLen, __TEXT("System32\\dinput8.dll"),
+           sizeof(__TEXT("System32\\dinput8.dll")));
     hRealDinput8 = LoadLibrary(expandedPath);
     if (!hRealDinput8) return DIERR_OUTOFMEMORY;
     realDirectInput8Create = (DirectInput8CreateProc)GetProcAddress(

@@ -10,11 +10,10 @@ static ScriptInstProc *InstTableSystem = NULL;
 static ScriptInstProc *InstTableGraph = NULL;
 static ScriptInstProc *InstTableUser1 = NULL;
 
-static int* gameExeSCRflag = NULL;
+static int *gameExeSCRflag = NULL;
 
 static ScriptInstProc gameExeSCRcomKeyWaitTimer = NULL;
 static ScriptInstProc gameExeSCRcomKeyWaitTimerReal = NULL;
-
 
 // Custom instruction stuff
 
@@ -43,7 +42,7 @@ void scriptInit() {
   InstTableSystem = (ScriptInstProc *)sigScan("game", "instTableSystem");
   InstTableGraph = (ScriptInstProc *)sigScan("game", "instTableGraph");
   InstTableUser1 = (ScriptInstProc *)sigScan("game", "instTableUser1");
-  gameExeSCRflag = (int*)sigScan("game", "useOfSCRflag");
+  gameExeSCRflag = (int *)sigScan("game", "useOfSCRflag");
 
   if (CUSTOM_INST_GETDIC_ENABLED) {
     overrideScriptInst(CUSTOM_INST_GETDIC_GROUP, CUSTOM_INST_GETDIC_OP,
@@ -52,9 +51,9 @@ void scriptInit() {
 
   if (config["patch"].count("blockingKeyWaitTimer") == 1 &&
       config["patch"]["blockingKeyWaitTimer"].get<bool>() == true) {
-      scanCreateEnableHook(
-          "game", "SCRcomKeyWaitTimer", (uintptr_t *)&gameExeSCRcomKeyWaitTimer,
-          (LPVOID)KeyWaitTimerHook, (LPVOID *)&gameExeSCRcomKeyWaitTimerReal);
+    scanCreateEnableHook(
+        "game", "SCRcomKeyWaitTimer", (uintptr_t *)&gameExeSCRcomKeyWaitTimer,
+        (LPVOID)KeyWaitTimerHook, (LPVOID *)&gameExeSCRcomKeyWaitTimerReal);
   }
 }
 
@@ -90,8 +89,8 @@ void __cdecl customScriptInstGetDic(ScriptThreadState *state) {
 }
 
 void __cdecl KeyWaitTimerHook(ScriptThreadState *state) {
-    gameExeSCRcomKeyWaitTimerReal(state);
-    *gameExeSCRflag = 1;
+  gameExeSCRcomKeyWaitTimerReal(state);
+  *gameExeSCRflag = 1;
 }
 
 }  // namespace lb

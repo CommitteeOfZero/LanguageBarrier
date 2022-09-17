@@ -14,19 +14,19 @@
     <ProjectGuid>{EB407818-EE6D-4CE0-8F39-E81B95D63034}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>LanguageBarrier</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='dinput8-Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='dinput8-Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -45,16 +45,27 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='dinput8-Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <TargetName>dinput8</TargetName>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)contrib\include;$(DXSDK_DIR)Include</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)contrib\include;$(DXSDK_DIR)Include;$(ProjectDir)contrib\freetype\include</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86;$(ProjectDir)contrib\lib\Debug;$(ProjectDir)contrib\lib\xy-vsfilter</LibraryPath>
     <ExecutablePath>$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);$(ProjectDir)contrib\bin</ExecutablePath>
+    <Linkage-freetype>static</Linkage-freetype>
+    <OutDir>H:\Games\ROBOTICS%3bNOTES ELITE\NOTES ELITE</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='dinput8-Release|Win32'">
-    <LinkIncremental>false</LinkIncremental>
+    <LinkIncremental>true</LinkIncremental>
     <TargetName>dinput8</TargetName>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)contrib\include;$(DXSDK_DIR)Include</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)contrib\include;$(DXSDK_DIR)Include;$(ProjectDir)contrib\freetype\include</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86;$(ProjectDir)contrib\lib\Release;$(ProjectDir)contrib\lib\xy-vsfilter</LibraryPath>
     <ExecutablePath>$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);$(ProjectDir)contrib\bin</ExecutablePath>
+    <OutDir>D:\Steam\steamapps\common\ROBOTICS%3bNOTES ELITE\NOTES ELITE</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='dinput8-Release|Win32'">
+    <VcpkgConfiguration>Release</VcpkgConfiguration>
+    <VcpkgTriplet>$(VcpkgUserTriplet)</VcpkgTriplet>
+    <VcpkgUseStatic>true</VcpkgUseStatic>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='dinput8-Debug|Win32'">
+    <VcpkgConfiguration>Debug</VcpkgConfiguration>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='dinput8-Debug|Win32'">
     <ClCompile>
@@ -62,6 +73,8 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;LANGUAGEBARRIER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -87,18 +100,21 @@ endlocal</Command>
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;LANGUAGEBARRIER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <Optimization>MaxSpeed</Optimization>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;dbghelp.lib;shlwapi.lib;VSFilter.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d9.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;dbghelp.lib;shlwapi.lib;VSFilter.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <CustomBuildStep>
       <Command>
@@ -119,7 +135,11 @@ endlocal</Command>
     <ClInclude Include="BinkMod.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="contrib\include\stb_vorbis.h" />
+    <ClInclude Include="CriManaMod.h" />
+    <ClInclude Include="CustomInputRND.h" />
+    <ClInclude Include="CustomInputRNE.h" />
     <ClInclude Include="DialogueWordwrap.h" />
+    <ClInclude Include="TextRendering.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameText.h" />
     <ClInclude Include="LanguageBarrier.h" />
@@ -137,15 +157,12 @@ endlocal</Command>
     <ClCompile Include="Config.cpp" />
     <ClCompile Include="contrib\speexdsp\resample.c" />
     <ClCompile Include="contrib\stb_vorbis.c" />
+    <ClCompile Include="CriManaMod.cpp" />
+    <ClCompile Include="CustomInputRND.cpp" />
+    <ClCompile Include="CustomInputRNE.cpp" />
     <ClCompile Include="DialogueWordwrap.cpp" />
-    <ClCompile Include="dinput8.cpp">
-      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='dinput8-Debug|Win32'">false</CompileAsManaged>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='dinput8-Debug|Win32'">
-      </PrecompiledHeader>
-      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='dinput8-Release|Win32'">false</CompileAsManaged>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='dinput8-Release|Win32'">
-      </PrecompiledHeader>
-    </ClCompile>
+    <ClCompile Include="dinput8.cpp" />
+    <ClCompile Include="TextRendering.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GameText.cpp" />
     <ClCompile Include="LanguageBarrier.cpp" />
@@ -156,17 +173,6 @@ endlocal</Command>
     <ClCompile Include="SigScan.cpp" />
     <ClCompile Include="TextReplace.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\minhook.1.3.3\build\native\minhook.targets" Condition="Exists('..\packages\minhook.1.3.3\build\native\minhook.targets')" />
-  </ImportGroup>
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\minhook.1.3.3\build\native\minhook.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\minhook.1.3.3\build\native\minhook.targets'))" />
-  </Target>
+  <ImportGroup Label="ExtensionTargets" />
 </Project>

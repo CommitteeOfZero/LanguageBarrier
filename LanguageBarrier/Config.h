@@ -15,6 +15,6 @@ CONFIG_GLOBAL json config;
 void configInit();
 const std::string configGetGameName();
 const std::string configGetPatchName();
-}
+}  // namespace lb
 
 #endif  // !__CONFIG_H__
