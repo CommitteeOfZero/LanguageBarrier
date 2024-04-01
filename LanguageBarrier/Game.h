@@ -4,6 +4,7 @@
 #include <cstdint>
 #include "LanguageBarrier.h"
 #include <d3d11.h>
+#include <d3d9.h>
 
 #ifndef GAME_H_IMPORT
 #define GAME_H_IMPORT extern
@@ -34,6 +35,13 @@ struct mgsFileLoader {
   mgsVFSObject* vfsObject;
 };
 
+struct __declspec(align(4)) MgsD3D9State {
+  IDirect3DSurface9* backbuffer;
+  int field_4;
+  int field_8;
+  IDirect3DDevice9Ex* device;
+};
+
 struct MgsD3D11State {
   uint8_t gap0[12];
   ID3D11Device* pid3d11deviceC;
@@ -44,6 +52,7 @@ struct MgsD3D11State {
   ID3D11DeviceContext* pid3d11deferredcontext2;
 };
 extern MgsD3D11State* gameExePMgsD3D11State;
+extern MgsD3D9State* gameExePMgsD3D9State;
 
 struct __declspec(align(4)) SurfaceStructRN {
   uint8_t gap_0[4];
@@ -164,8 +173,12 @@ bool gameGetBgmShouldPlay();
 void gameSetBgmPaused(bool paused);
 bool gameGetBgmIsPlaying();
 
+enum GameID { CC, SG, SG0, RNE, RND, SGE };
+
+
+
 struct SurfaceWrapper {
-  static int game;
+  static lb::GameID game;
 
   static void* ptr(void* surfaceArray, int id) {
     if (!game) {
