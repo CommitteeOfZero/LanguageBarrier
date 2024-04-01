@@ -53,6 +53,7 @@ struct MgsD3D11State {
   ID3D11DeviceContext* pid3d11deferredcontext2;
 };
 extern MgsD3D11State* gameExePMgsD3D11State;
+extern MgsD3D9State* gameExePMgsD3D9State;
 
 struct __declspec(align(4)) SurfaceStructRN {
   uint8_t gap_0[4];
@@ -173,8 +174,12 @@ bool gameGetBgmShouldPlay();
 void gameSetBgmPaused(bool paused);
 bool gameGetBgmIsPlaying();
 
+enum GameID { CC, SG, SG0, RNE, RND, SGE };
+
+
+
 struct SurfaceWrapper {
-  static int game;
+  static lb::GameID game;
 
   static void* ptr(void* surfaceArray, int id) {
     if (!game) {

@@ -597,7 +597,6 @@ int __cdecl gslFillHook(int id, int a1, int a2, int a3, int a4, int r, int g,
 // (which some functions do, and others don't, except for symbols (also used in
 // Western translations) it considers full-width)
 
-enum GameID { CC, SG, SG0, RNE, RND };
 
 GameID currentGame;
 bool UseNewTextSystem = false;
@@ -795,7 +794,7 @@ void gameTextInit() {
                  "rn") {
     gameExeDialoguePages_RNEDialoguePage_t =
         (RNEDialoguePage_t*)sigScan("game", "useOfDialoguePages");
-    SurfaceWrapper::game = 0;
+    SurfaceWrapper::game = RNE;
 
     scanCreateEnableHook(
         "game", "drawDialogue", (uintptr_t*)&gameExeDrawDialogue,
@@ -810,7 +809,7 @@ void gameTextInit() {
   } else if (config["gamedef"].count("dialoguePageVersion") == 1 &&
              config["gamedef"]["dialoguePageVersion"].get<std::string>() ==
                  "rnd") {
-    SurfaceWrapper::game = 1;
+    SurfaceWrapper::game = RND;
     gameExeDialoguePages_RNDDialoguePage_t =
         (RNDDialoguePage_t*)sigScan("game", "useOfDialoguePages");
     scanCreateEnableHook(
