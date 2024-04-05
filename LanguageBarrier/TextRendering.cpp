@@ -560,6 +560,7 @@ void TextRendering::RenderOutline(FontData* fontData, uint16_t n,
   FT_Done_Glyph(glyph);
 }
 FontData* TextRendering::getFont(int height, bool measure) {
+  if (!enabled) return nullptr;
   this->FONT_CELL_SIZE = height * 1.33;
   if (fontData.find(height) == fontData.end()) {
     fontData[height] = FontData();

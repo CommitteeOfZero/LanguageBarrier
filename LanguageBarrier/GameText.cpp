@@ -114,6 +114,9 @@ typedef int(__cdecl* rnDrawTextHookProc)(signed int textureId, int a2,
 static rnDrawTextHookProc rnDrawText = NULL;
 static rnDrawTextHookProc rnDrawTextReal = NULL;
 
+static rnDrawTextHookProc sgpDrawText = NULL;
+static rnDrawTextHookProc sgpDrawTextReal = NULL;
+
 struct MultiplierData {
   float xOffset = 1.0f;
   float yOffset = 1.0f;
@@ -186,11 +189,14 @@ static DrawGlyphProc gameExeDrawGlyph = NULL;  // = (DrawGlyphProc)0x42F950;
 static DrawGlyphProc gameExeDrawGlyphReal = NULL;
 
 typedef unsigned int(__cdecl* Sg0DrawGlyph3Proc)(
-    int textureId, int maskTextureId, int textureStartX, int textureStartY,
-    int textureSizeX, int textureSizeY, int startPosX, int startPosY,
-    int EndPosX, int EndPosY, int color, int opacity);
+    int textureId, int maskTextureId, float textureStartX, float textureStartY,
+    float textureSizeX, float textureSizeY, float startPosX, float startPosY,
+    float EndPosX, float EndPosY, int color, int opacity);
 static Sg0DrawGlyph3Proc gameExeSg0DrawGlyph3 = NULL;
 static Sg0DrawGlyph3Proc gameExeSg0DrawGlyph3Real = NULL;
+
+
+
 
 typedef unsigned int(__cdecl* DrawSpriteMaskInternalProc)(float* a1, int a2,
                                                           float* a3, float* a4,
@@ -537,6 +543,10 @@ void drawReportContentHook(int textureId, int maskId, int a3, int a4,
 int __cdecl rnDrawTextHook(signed int textureId, int a2, signed int startY,
                            unsigned int a4, uint8_t* a5, signed int startX,
                            int color, int height, int opacity);
+
+int __cdecl sgpDrawTextHook(signed int textureId, int a2, signed int startY,
+                           unsigned int a4, uint8_t* a5, signed int startX,
+                           int color, int height, int opacity);
 void __cdecl DrawBacklogContentHookRND(int textureId, int maskTextureId,
                                        int startX, int startY,
                                        unsigned int maskY, int maskHeight,
@@ -695,6 +705,25 @@ void gameTextInit() {
   } else {
     // TODO (?): Split font support for non-sg0 drawGlyph
     gameExeDrawGlyph = (DrawGlyphProc)sigScan("game", "drawGlyph");
+
+    scanCreateEnableHook("game", "drawGlyph", (uintptr_t*)&gameExeDrawGlyph,
+                         (LPVOID)sg0DrawGlyphHook,
+                         (LPVOID*)&gameExeDrawGlyphReal);
+    scanCreateEnableHook(
+        "game", "sg0DrawGlyph3", (uintptr_t*)&gameExeSg0DrawGlyph3,
+        (LPVOID)sg0DrawGlyph3Hook, (LPVOID*)&gameExeSg0DrawGlyph3Real);
+
+        uintptr_t gameExeSgpDrawMailTextHook;
+    scanCreateEnableHook("game", "sgpDrawMailText", (uintptr_t*)&gameExeSgpDrawMailTextHook,
+                         (LPVOID)sgpDrawMailTextHook,
+                         nullptr);
+
+                uintptr_t gameExeSgpDrawMailTextContentHook;
+    scanCreateEnableHook("game", "sgpDrawMailTextContent",
+                    (uintptr_t*)&gameExeSgpDrawMailTextContentHook,
+                         (LPVOID)sgpDrawMailTextContentHook, nullptr);
+    
+
   }
   gameExeDrawRectangle = (DrawRectangleProc)sigScan("game", "drawRectangle");
 
@@ -1439,7 +1468,7 @@ unsigned int __cdecl sub_4BB760(int textureId, int maskTextureId,
   int shaderPtr = *(int*)gameExeShaderPtr;
   int blendMode = *(int*)gameExeBlendMode;
   int renderMode = *(int*)gameExeRenderMode;
-
+   
   return GameExeDrawSpriteMaskInternal(
       (float*)&a1, 2, a3, a4, &colorStruct, (float)opacity / 255.0, renderMode,
       shaderPtr, (unsigned __int16)blendMode, 0);
@@ -2701,6 +2730,7 @@ int sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
                      float glyphInTextureHeight, float displayStartX,
                      float displayStartY, float displayEndX, float displayEndY,
                      int color, uint32_t opacity) {
+
   if (!HAS_SPLIT_FONT) {
     if (glyphInTextureStartY > 4080.0) {
       glyphInTextureStartY += 4080.0;
@@ -2853,6 +2883,9 @@ int __cdecl rnDrawTextHook(signed int textureId, int a2, signed int startY,
   }
   return 1;
 }
+
+ 
+
 
 unsigned int sg0DrawGlyph2Hook(int textureId, int a2,
                                float glyphInTextureStartX,
@@ -3186,4 +3219,103 @@ int drawSpriteHook(int textureId, float spriteX, float spriteY,
                                spriteHeight, displayX, displayY, color, opacity,
                                shaderId);
 }
+
+void __cdecl sgpDrawMailTextHook(int startX, int startY, char* sc3String, unsigned int lineLength,
+                        int opacity) {
+  char* currentSc3;  // edi
+  unsigned int v6;   // ebx
+  char i;            // al
+  unsigned int v8;   // edx
+  int v9;            // eax
+  int v10;           // esi
+  int v11;           // [esp+44h] [ebp+10h]
+
+    ProcessedSc3String_t strsc3;
+
+  if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
+    uint8_t glyphSize = 0x18;
+  std::list<StringWord_t> words;
+  semiTokeniseSc3String(sc3String, words, 0x18, lineLength);
+  processSc3TokenList(startX, startY, lineLength, words, 1 , 0xFFFFFF, 0x18, &strsc3, false, COORDS_MULTIPLIER, 0, 0, 0xFFFFFF, 0x12,
+                      nullptr);
+  for (int i = 0; i < strsc3.length; i++) {
+    sg0DrawGlyph3Hook(0x4F, 168, strsc3.textureStartX[i], strsc3.textureStartY[i],
+                     strsc3.textureWidth[i], strsc3.textureHeight[i],
+                     strsc3.displayStartX[i], strsc3.displayStartY[i],
+                     strsc3.displayEndX[i], strsc3.displayEndY[i],
+                     strsc3.color[i],
+                     opacity);
+  }
+
+    return;
+
+
+
+
+  currentSc3 = sc3String;
+  v6 = 0;
+  for (i = *sc3String; *currentSc3 != -1; i = *currentSc3) {
+    if (i >= 0) {
+      if (!i) return;
+      if (i == 9 || i == 11) ++currentSc3;
+    } else {
+      v8 = (unsigned __int8)currentSc3[1] + ((i & 0x7F) << 8);
+      currentSc3 += 2;
+      if (v8 < 0x80 && v8) {
+        v9 = 12;
+        v11 = 18;
+      } else {
+        v9 = 24;
+        v11 = 32;
+      }
+      v6 += v9;
+      if (v6 > lineLength) return;
+      v10 = v9 + startX;
+      gameExeSg0DrawGlyph3(
+          0x4F, 168, (float)(int)(32 * (v8 - (v8 >> 6 << 6)) + 1) * 1.5,
+                 (float)(int)(32 * (v8 >> 6) + 1) * 1.5, (float)(v11 - 2) * 1.5,
+                 45.0, (float)(startX + 1) * 1.5, (float)(startY + 1) * 1.5,
+                 (float)(v9 + startX + 1) * 1.5, (float)(startY + 25) * 1.5,
+                 (int)0xFFFFFFFF, opacity);
+      startX = v10;
+    }
+  }
+}
+
+
+void __cdecl sgpDrawMailTextContentHook(int startX, int startY, char* sc3String,
+                                 unsigned int lineLength, int opacity, int a6 ,int a7) {
+  char* currentSc3;  // edi
+  unsigned int v6;   // ebx
+  char i;            // al
+  unsigned int v8;   // edx
+  int v9;            // eax
+  int v10;           // esi
+  int v11;           // [esp+44h] [ebp+10h]
+
+  ProcessedSc3String_t strsc3;
+
+  if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
+  uint8_t glyphSize = 0x18;
+  std::list<StringWord_t> words;
+  semiTokeniseSc3String(sc3String, words, 0x18, lineLength);
+  processSc3TokenList(startX, startY, lineLength, words, 40, 0xFFFFFF, 0x18,
+                      &strsc3, false, COORDS_MULTIPLIER, 0, 0, 0xFFFFFF, 0x18,
+                      nullptr);
+  for (int i = 0; i < strsc3.length; i++) {
+    gameExeDrawGlyph(0x4F, strsc3.textureStartX[i], strsc3.textureStartY[i],
+                     strsc3.textureWidth[i], strsc3.textureHeight[i],
+                     strsc3.displayStartX[i], strsc3.displayStartY[i],
+                     strsc3.displayEndX[i], strsc3.displayEndY[i],
+                     strsc3.color[i], opacity);
+  }
+
+  return;
+
+}
+
+
+
+
+
 }  // namespace lb

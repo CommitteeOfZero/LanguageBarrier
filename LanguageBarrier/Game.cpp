@@ -312,7 +312,7 @@ int* gameExeScrWork = (int*)NULL;
 
 namespace lb {
 
-GameID SurfaceWrapper::game = GameID::SGE;
+GameID SurfaceWrapper::game = GameID::SG;
 
 int __cdecl earlyInitHook(int unk0, int unk1);
 int __fastcall mpkFopenByIdHook(void* pThis, void* EDX, mpkObject* mpk,
@@ -371,28 +371,31 @@ void gameInit() {
   if (config["gamedef"]["signatures"]["game"].count("useOfPShouldPlayBgm") == 1)
     gameExePShouldPlayBgm = sigScan("game", "useOfPShouldPlayBgm");
 
-  //if (config["gamedef"].count("gameArchiveMiddleware") == 1 &&
-  //    config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "cri") {
-  //  if (config["gamedef"]["signatures"]["game"].count("mountArchiveRNE") == 1) {
-  //    if (!scanCreateEnableHook("game", "mountArchiveRNE",
-  //                              (uintptr_t*)&gameExeMountArchiveRNE,
-  //                              (LPVOID)mountArchiveHookRNE,
-  //                              (LPVOID*)&gameExeMountArchiveRNEReal))
-  //      return;
-  //  } else if (config["gamedef"]["signatures"]["game"].count(
-  //                 "mountArchiveRND") == 1) {
-  //    if (!scanCreateEnableHook("game", "mountArchiveRND",
-  //                              (uintptr_t*)&gameExeMountArchiveRND,
-  //                              (LPVOID)mountArchiveHookRND,
-  //                              (LPVOID*)&gameExeMountArchiveRNDReal))
-  //      return;
-  //  }
-  //} else {
-  //  gameExeMpkMount = sigScan("game", "mpkMount");
-  //  gameExeMpkConstructor =
-  //      (MpkConstructorProc)sigScan("game", "mpkConstructor");
-  //}
-
+      if (lb::SurfaceWrapper::game != SGE) {
+    if (config["gamedef"].count("gameArchiveMiddleware") == 1 &&
+        config["gamedef"]["gameArchiveMiddleware"].get<std::string>() ==
+            "cri") {
+      if (config["gamedef"]["signatures"]["game"].count("mountArchiveRNE") ==
+          1) {
+        if (!scanCreateEnableHook("game", "mountArchiveRNE",
+                                  (uintptr_t*)&gameExeMountArchiveRNE,
+                                  (LPVOID)mountArchiveHookRNE,
+                                  (LPVOID*)&gameExeMountArchiveRNEReal))
+          return;
+      } else if (config["gamedef"]["signatures"]["game"].count(
+                     "mountArchiveRND") == 1) {
+        if (!scanCreateEnableHook("game", "mountArchiveRND",
+                                  (uintptr_t*)&gameExeMountArchiveRND,
+                                  (LPVOID)mountArchiveHookRND,
+                                  (LPVOID*)&gameExeMountArchiveRNDReal))
+          return;
+      }
+    } else {
+      gameExeMpkMount = sigScan("game", "mpkMount");
+      gameExeMpkConstructor =
+          (MpkConstructorProc)sigScan("game", "mpkConstructor");
+    }
+  }
   gameExeGetFlag = (GetFlagProc)sigScan("game", "getFlag");
   gameExeSetFlag = (SetFlagProc)sigScan("game", "setFlag");
   gameExeChkViewDic = (ChkViewDicProc)sigScan("game", "chkViewDic");
@@ -400,6 +403,22 @@ void gameInit() {
   scanCreateEnableHook("game", "recreateDDSSurface",
                        (uintptr_t*)&gameExeGslDDSload,
                        (LPVOID)ReCreateLoadTextureDDS, NULL);
+
+
+                       
+  // TODO: fault tolerance - we don't need to call it quits entirely just
+  // because one *feature* can't work
+  if (!scanCreateEnableHook("game", "earlyInit", (uintptr_t*)&gameExeEarlyInit,
+                            (LPVOID)&earlyInitHook,
+                            (LPVOID*)&gameExeEarlyInitReal) ||
+      !scanCreateEnableHook("game", "getStringFromScript",
+                            (uintptr_t*)&gameExeGetStringFromScript,
+                            (LPVOID)getStringFromScriptHook,
+                            (LPVOID*)&gameExeGetStringFromScriptReal) ||
+      !scanCreateEnableHook("game", "clibFopen", (uintptr_t*)&gameExeClibFopen,
+                            (LPVOID)clibFopenHook,
+                            (LPVOID*)&gameExeClibFopenReal))
+
 
   scanCreateEnableHook("game", "openMyGames", (uintptr_t*)&gameExeOpenMyGames,
                        (LPVOID)openMyGamesHook, NULL);
@@ -410,15 +429,17 @@ void gameInit() {
                        (LPVOID)openFileHook, (LPVOID*)&gameExeOpenFileReal);
 
   memoryManagementInit();
- // scriptInit();
 
-  if (lb::SurfaceWrapper::game != SGE)
-  if (config["gamedef"]["gameDxVersion"].get<std::string>() == "dx9") {
-    gameExePMgsD3D9State =
-        *((MgsD3D9State**)sigScan("game", "useOfMgsD3D9State"));
-    gameExePpD3D9Ex = *((IDirect3D9Ex***)sigScan("game", "useOfD3D9Ex"));
-    gameExePPresentParameters =
-        *((D3DPRESENT_PARAMETERS**)sigScan("game", "useOfPresentParameters"));
+
+  if (lb::SurfaceWrapper::game != SGE) {
+    scriptInit();
+    if (config["gamedef"]["gameDxVersion"].get<std::string>() == "dx9") {
+      gameExePMgsD3D9State =
+          *((MgsD3D9State**)sigScan("game", "useOfMgsD3D9State"));
+      gameExePpD3D9Ex = *((IDirect3D9Ex***)sigScan("game", "useOfD3D9Ex"));
+      gameExePPresentParameters =
+          *((D3DPRESENT_PARAMETERS**)sigScan("game", "useOfPresentParameters"));
+    }
   }
 
   if (config["patch"]["textureFiltering"].get<bool>() == true) {
