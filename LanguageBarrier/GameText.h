@@ -40,6 +40,8 @@ static const uint8_t NOT_A_LINK = 0xFF;
 LB_GLOBAL int SGHD_PHONE_X_PADDING;
 LB_GLOBAL uint16_t GLYPH_ID_FULLWIDTH_SPACE;
 LB_GLOBAL uint16_t GLYPH_ID_HALFWIDTH_SPACE;
+LB_GLOBAL uint16_t GLYPH_ID_DOT;
+
 LB_GLOBAL bool HAS_DOUBLE_GET_SC3_STRING_DISPLAY_WIDTH;
 LB_GLOBAL bool HAS_DRAW_PHONE_TEXT;
 LB_GLOBAL bool HAS_SGHD_PHONE;
@@ -92,6 +94,12 @@ int __cdecl drawSpriteHook(int textureId, float spriteX, float spriteY,
                            float spriteWidth, float spriteHeight,
                            float displayX, float displayY, int color,
                            int opacity, int shaderId);
+
+void __cdecl sgpDrawMailTextHook(int a1, int a2, char* sc3String, unsigned int a4,
+                             int a12);
+void __cdecl sgpDrawMailTextContentHook(int startX, int startY, char* sc3String,
+                                        unsigned int lineLength, int opacity,
+                                        int a6, int a7);
 }  // namespace lb
 
 #endif  // !__GAMETEXT_H__
