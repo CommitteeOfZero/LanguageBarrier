@@ -527,8 +527,9 @@ unsigned int __cdecl sg0DrawGlyph2Hook(int textureId, int a2,
                                        float a8, float a9, float a10, float a11,
                                        float a12, signed int inColor,
                                        signed int opacity, int* a15, int* a16);
-unsigned int sg0DrawGlyph3Hook(int textureId, int a2, int a3, int a4, int a5,
-                               int a6, int a7, int a8, int a9, int a10, int a11,
+unsigned int sg0DrawGlyph3Hook(int textureId, int a2, float a3, float a4,
+                               float a5, float a6, float a7, float a8, float a9,
+                               float a10, int a11,
                                int a12);
 int __cdecl setTipContentHook(char* sc3string);
 void __cdecl drawTipContentHook(int textureId, int maskId, int startX,
@@ -2249,7 +2250,10 @@ float addCharacter(ProcessedSc3String_t* result, int baseGlyphSize, int glyphId,
                    const MultiplierData* mData) {
   int i = result->length;
   const auto& fontData = TextRendering::Get().getFont(baseGlyphSize, false);
-  char character = TextRendering::Get().fullCharMap[glyphId];
+  char character = TextRendering::Get().fullCharMap.size() == 0
+      ?'.':
+                       TextRendering::Get()
+                       .fullCharMap[glyphId];
   result->text[i] = character;
   if (curLinkNumber != NOT_A_LINK) {
     result->linkCharCount++;
@@ -2361,6 +2365,8 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
   } else {
     spaceCost =
         (widths[GLYPH_ID_FULLWIDTH_SPACE] * baseGlyphSize) / FONT_CELL_WIDTH;
+    ellipsisCost = 3 *
+        (widths[GLYPH_ID_DOT] * baseGlyphSize) / FONT_CELL_WIDTH;
   }
 
   for (auto it = words.begin(); it != words.end(); it++) {
@@ -2380,21 +2386,44 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
       curLineLength = 0;
     }
     if (result->lines >= lineCount) {
-      if (TextRendering::Get().enabled) {
-        result->lines--;
-        curLineLength = prevLineLength;
-        curLinkNumber = NOT_A_LINK;
 
-        for (int i = 0; i < 3; i++) {
-          addCharacter(result, baseGlyphSize,
-                       TextRendering::Get().fullCharMap.find('.'),
-                       lineCount - 1, curLinkNumber, false, 1.0, xOffset,
-                       curLineLength, yOffset, currentColor, lineHeight, mData);
+      int dotglyphIndex = GLYPH_ID_DOT;
+      if (TextRendering::Get().enabled)
+        dotglyphIndex = TextRendering::Get().fullCharMap.find('.');
+      result->lines--;
+
+      int chartoRemove = 0;
+
+      curLineLength = prevLineLength;
+      curLinkNumber = NOT_A_LINK;
+      const auto& fontData = TextRendering::Get().getFont(baseGlyphSize, false);
+      bool modified = false;
+      while (curLineLength + ellipsisCost > lineLength) {
+
+        uint16_t glyphWidth = 0;
+        uint16_t glyphId = result->glyph[result->length - 1];
+        if (!TextRendering::Get().enabled) {
+          glyphWidth = (baseGlyphSize * widths[glyphId]) / FONT_CELL_WIDTH;
+        } else {
+          glyphWidth =
+              fontData->getGlyphInfo(glyphId, FontType::Regular)->advance;
         }
-        words.erase(++it, words.end());
-      } else {
-        words.erase(words.begin(), it);
+
+
+
+      curLineLength -= glyphWidth;
+      result->length--;
+
       }
+      curLineLength += ellipsisCost/3;
+
+
+      for (int i = 0; i < 3; i++) {
+        addCharacter(result, baseGlyphSize, dotglyphIndex, lineCount - 1,
+                     curLinkNumber, false, multiplier, xOffset , curLineLength, yOffset,
+                     currentColor, lineHeight, mData);
+      }
+      words.erase(++it, words.end());
       break;
     };
 
@@ -2937,10 +2966,10 @@ unsigned int sg0DrawGlyph2Hook(int textureId, int a2,
 }
 
 unsigned int sg0DrawGlyph3Hook(int textureId, int maskTextureId,
-                               int textureStartX, int textureStartY,
-                               int textureSizeX, int textureSizeY,
-                               int startPosX, int startPosY, int EndPosX,
-                               int EndPosY, int color, int opacity) {
+                               float textureStartX, float textureStartY,
+                               float textureSizeX, float textureSizeY,
+                               float startPosX, float startPosY, float EndPosX,
+                               float EndPosY, int color, int opacity) {
   return gameExeSg0DrawGlyph3Real(
       textureId, maskTextureId, textureStartX, textureStartY, textureSizeX,
       textureSizeY, startPosX, startPosY, EndPosX, EndPosY, color, opacity);
