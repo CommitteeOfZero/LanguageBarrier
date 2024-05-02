@@ -189,6 +189,22 @@ typedef int(__cdecl* DrawGlyphProc)(int textureId, float glyphInTextureStartX,
 static DrawGlyphProc gameExeDrawGlyph = NULL;  // = (DrawGlyphProc)0x42F950;
 static DrawGlyphProc gameExeDrawGlyphReal = NULL;
 
+
+
+typedef int(__cdecl* DrawLbpGlyphMaskProc)(
+    int textureId, int a2, float glyphInTextureStartX,
+    float glyphInTextureStartY, float glyphInTextureWidth,
+    float glyphInTextureHeight, float a7, float a8, float a9, float a10,
+    float a11, float a12, signed int inColor, signed int opacity);
+
+static DrawLbpGlyphMaskProc gameExeDrawLbpGlyphMask =
+    NULL;  // = (DrawGlyphProc)0x42F950;
+static DrawLbpGlyphMaskProc gameExeDrawLbpGlyphMaskReal = NULL;
+
+
+
+
+
 typedef unsigned int(__cdecl* Sg0DrawGlyph3Proc)(
     int textureId, int maskTextureId, float textureStartX, float textureStartY,
     float textureSizeX, float textureSizeY, float startPosX, float startPosY,
@@ -778,6 +794,14 @@ void gameTextInit() {
     scanCreateEnableHook("game", "drawGlyph", (uintptr_t*)&gameExeDrawGlyph,
                          (LPVOID)sg0DrawGlyphHook,
                          (LPVOID*)&gameExeDrawGlyphReal);
+
+
+    if (config["gamedef"]["drawGlyphVersion"].get<std::string>() == "sglbp") {
+      currentGame = SGLBP;
+      gameExeDrawLbpGlyphMask =
+          (DrawLbpGlyphMaskProc)sigScan("game", "lbpDrawGlyph2");
+    }
+
     scanCreateEnableHook(
         "game", "sg0DrawGlyph3", (uintptr_t*)&gameExeSg0DrawGlyph3,
         (LPVOID)sg0DrawGlyph3Hook, (LPVOID*)&gameExeSg0DrawGlyph3Real);
@@ -2847,6 +2871,7 @@ int sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
       ++textureId;
     }
   }
+
   return gameExeDrawGlyphReal(
       textureId, glyphInTextureStartX, glyphInTextureStartY,
       glyphInTextureWidth, glyphInTextureHeight, displayStartX, displayStartY,
@@ -3042,7 +3067,11 @@ unsigned int sg0DrawGlyph3Hook(int textureId, int maskTextureId,
 }
 
 int setTipContentHook(char* sc3string) {
-  if (!TextRendering::Get().enabled) return gameExeSetTipContentReal(sc3string);
+
+
+
+   if (TextRendering::Get().enabled && currentGame!=SGLBP)
+        return gameExeSetTipContentReal(sc3string);
   tipContent = sc3string;
   ProcessedSc3String_t str;
 
@@ -3062,7 +3091,12 @@ int setTipContentHook(char* sc3string) {
                       TIP_REIMPL_GLYPH_SIZE, &str, false, COORDS_MULTIPLIER, -1,
                       NOT_A_LINK, 0, TIP_REIMPL_GLYPH_SIZE * 1.5f, &mData);
 
-  return str.displayEndY[str.length - 1];  // scroll height
+
+    auto scrollHeight = str.displayEndY[str.length - 1];                      
+
+    if (currentGame == SGLBP)
+        return scrollHeight / 1.5f;
+    return scrollHeight;
 }
 
 void drawReportContentHook(int textureId, int maskId, int a3, int a4,
@@ -3222,7 +3256,7 @@ void drawTipContentHook(int textureId, int maskId, int startX, int startY,
           }
           */
 
-  if (!TextRendering::Get().enabled) {
+  if (!TextRendering::Get().enabled && currentGame !=SGLBP) {
     gameExeDrawTipContentReal(textureId, maskId, startX, startY, maskStartY,
                               maskHeight, a7, color, shadowColor, opacity);
     return;
@@ -3242,6 +3276,10 @@ void drawTipContentHook(int textureId, int maskId, int startX, int startY,
   processSc3TokenList(startX, startY, TIP_REIMPL_LINE_LENGTH, words, 255, color,
                       TIP_REIMPL_GLYPH_SIZE, &str, false, COORDS_MULTIPLIER, -1,
                       NOT_A_LINK, color, TIP_REIMPL_GLYPH_SIZE * 1.5f, &mData);
+
+if (TextRendering::Get().enabled) {
+  
+
   TextRendering::Get().replaceFontSurface(TIP_REIMPL_GLYPH_SIZE);
   auto fontData = TextRendering::Get().getFont(TIP_REIMPL_GLYPH_SIZE, false);
   maskHeight *= 1.5f;
@@ -3279,6 +3317,24 @@ void drawTipContentHook(int textureId, int maskId, int startX, int startY,
           str.color[i], opacity, &dummy1, &dummy2);
     }
   }
+  }
+
+  else {
+  maskHeight *= 1.5f;
+    for (int i = 0; i < str.length; i++) {
+      if (str.displayStartY[i] / COORDS_MULTIPLIER > maskStartY &&
+          str.displayEndY[i] / COORDS_MULTIPLIER <
+              (maskStartY + maskHeight) * 1.0f) {
+        sg0DrawGlyph3Hook(0x4F, maskId, str.textureStartX[i], str.textureStartY[i],
+                          str.textureWidth[i], str.textureHeight[i],
+                          str.displayStartX[i], str.displayStartY[i],
+                          str.displayEndX[i], str.displayEndY[i], 0xFFFFFFFF,
+                          opacity);
+      }
+    }
+  
+}
+
 }
 int drawSpriteHook(int textureId, float spriteX, float spriteY,
                    float spriteWidth, float spriteHeight, float displayX,
@@ -3395,13 +3451,12 @@ void __cdecl sgpDrawMailTextContentHook(int startX, int startY, char* sc3String,
                       &strsc3, false, COORDS_MULTIPLIER, 0, 0, 0xFFFFFF, 0x18,
                       nullptr);
   for (int i = 0; i < strsc3.length; i++) {
-    gameExeDrawGlyph(0x4F, strsc3.textureStartX[i], strsc3.textureStartY[i],
-                     strsc3.textureWidth[i], strsc3.textureHeight[i],
-                     strsc3.displayStartX[i], strsc3.displayStartY[i],
-                     strsc3.displayEndX[i], strsc3.displayEndY[i],
-                     strsc3.color[i], opacity);
+    sg0DrawGlyph3Hook(0x4F, 168, strsc3.textureStartX[i],
+                      strsc3.textureStartY[i], strsc3.textureWidth[i],
+                      strsc3.textureHeight[i], strsc3.displayStartX[i],
+                      strsc3.displayStartY[i], strsc3.displayEndX[i],
+                      strsc3.displayEndY[i], strsc3.color[i], opacity);
   }
-
   return;
 }
 
