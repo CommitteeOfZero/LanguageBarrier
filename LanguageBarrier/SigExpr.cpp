@@ -85,7 +85,7 @@ uintptr_t SigExpr::summand(bool onlyDereferable) {
     case LParen: {
       uintptr_t result = expression();
       SigExprToken_t expectedRparen = lexer.getToken();
-	  lexer.consumeToken();
+      lexer.consumeToken();
       if (expectedRparen.type != RParen) {
         std::stringstream ss;
         ss << "Parse error in '" << input << ": Expected RParen, got "
@@ -111,4 +111,4 @@ uintptr_t SigExpr::summand(bool onlyDereferable) {
      << SigExprTokenTypeString.at(token.type);
   throw std::runtime_error(ss.str());
 }
-}
+}  // namespace lb

@@ -2,10 +2,16 @@
 #include "SigScan.h"
 #include <set>
 #include <cstdint>
+#include "TextRendering.h"
+#include "Config.h"
+#include <iostream>
+#include <string>
+#include <locale>
+#include <codecvt>
 
 // Linebreaks are allowed *after* type1 punctuation
-// space (63) space (0) 、 。 ． ， ？ ！ 〜 ” ー ） 〕 ］ ｝ 〉 》 」 』 】 ☆ ★ ♪ 々 ぁ ぃ ぅ ぇ ぉ っ
-// ゃ ゅ ょ ァ ィ ゥ ェ ォ ッ ャ ュ ョ –
+// space (63) space (0) 、 。 ． ， ？ ！ 〜 ” ー ） 〕 ］ ｝ 〉 》 」 』 】 ☆ ★
+// ♪ 々 ぁ ぃ ぅ ぇ ぉ っ ゃ ゅ ょ ァ ィ ゥ ェ ォ ッ ャ ュ ョ –
 static std::set<uint16_t> type1_punctuation = {
     0x003F, 0x0000, 0x00BE, 0x00BF, 0x00C1, 0x00C0, 0x00C4, 0x00C5, 0x00E4,
     0x00CB, 0x00E5, 0x00CD, 0x00CF, 0x00D1, 0x00D3, 0x00D5, 0x00D7, 0x00D9,
@@ -34,17 +40,17 @@ enum mask_bytes {
 constexpr uint16_t name_start = 0x8001;
 constexpr uint16_t name_end = 0x8002;
 
-typedef void(__cdecl *DlgWordwrapGenerateMaskProc)(int unk0);
+typedef void(__cdecl* DlgWordwrapGenerateMaskProc)(int unk0);
 static DlgWordwrapGenerateMaskProc gameExeDlgWordwrapGenerateMask =
     NULL;  // = (DlgWordwrapGenerateMaskProc)0x004459F0;
 static DlgWordwrapGenerateMaskProc gameExeDlgWordwrapGenerateMaskReal = NULL;
 
-static uint16_t *gameExeDlgWordwrapString = NULL;  // = (uint16_t*)0x16C4E40;
-static int *gameExeDlgWordwrapLength = NULL;       // = (int*)0x16C4E38;
-static uint8_t *gameExeDlgWordwrapMask = NULL;     // = (uint8_t*)0x16D4840;
+static uint16_t* gameExeDlgWordwrapString = NULL;  // = (uint16_t*)0x16C4E40;
+static int* gameExeDlgWordwrapLength = NULL;       // = (int*)0x16C4E38;
+static uint8_t* gameExeDlgWordwrapMask = NULL;     // = (uint8_t*)0x16D4840;
 
 namespace lb {
-void next_word(int &pos);
+void next_word(int& pos);
 bool is_type1_punct(uint16_t c);
 bool is_type2_punct(uint16_t c);
 bool is_letter(uint16_t c);
@@ -52,17 +58,44 @@ void dlgWordwrapGenerateMaskHook(int unk0);
 
 void dialogueWordwrapInit() {
   gameExeDlgWordwrapString =
-      (uint16_t *)sigScan("game", "useOfDlgWordwrapString");
-  gameExeDlgWordwrapLength = (int *)sigScan("game", "useOfDlgWordwrapLength");
-  gameExeDlgWordwrapMask = (uint8_t *)sigScan("game", "useOfDlgWordwrapMask");
+      (uint16_t*)sigScan("game", "useOfDlgWordwrapString");
+  gameExeDlgWordwrapLength = (int*)sigScan("game", "useOfDlgWordwrapLength");
+  gameExeDlgWordwrapMask = (uint8_t*)sigScan("game", "useOfDlgWordwrapMask");
   scanCreateEnableHook("game", "dlgWordwrapGenerateMask",
-                       (uintptr_t *)&gameExeDlgWordwrapGenerateMask,
+                       (uintptr_t*)&gameExeDlgWordwrapGenerateMask,
                        (LPVOID)dlgWordwrapGenerateMaskHook,
-                       (LPVOID *)gameExeDlgWordwrapGenerateMaskReal);
+                       (LPVOID*)gameExeDlgWordwrapGenerateMaskReal);
+
+  if (config["patch"].count("useNewTextSystem") == 1 &&
+      config["patch"]["useNewTextSystem"].get<bool>() == true) {
+    type1_punctuation.clear();
+    auto input = config["patch"]["type1Punctuation"].get<std::string>();
+    auto input2 = config["patch"]["type2Punctuation"].get<std::string>();
+
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    std::wstring type1_punct = converter.from_bytes(input);
+    std::wstring type2_punct = converter.from_bytes(input2);
+
+    for (auto character : type1_punct) {
+      for (int i = 0; i < TextRendering::Get().fullCharMap.length(); i++) {
+        if (TextRendering::Get().fullCharMap[i] == character)
+          type1_punctuation.insert(i);
+      }
+    }
+    type1_punctuation.insert(0x3F);
+    type2_punctuation.clear();
+    for (auto character : type2_punct) {
+      for (int i = 0; i < TextRendering::Get().fullCharMap.length(); i++) {
+        if (TextRendering::Get().fullCharMap[i] == character)
+          type2_punctuation.insert(i);
+      }
+    }
+  }
 }
 
 void dlgWordwrapGenerateMaskHook(int unk0) {
   int pos = 0;
+
   bool insideRubyBase = false, insideRubyText = false;
 
   // If it's a piece of dialogue, we should deal with the name first.
@@ -132,9 +165,25 @@ void dlgWordwrapGenerateMaskHook(int unk0) {
       next_word(pos);
     }
   }
+
+  int lastletter = 0;
+  ;
+
+  for (int i = 0; i < *gameExeDlgWordwrapLength; i++) {
+    if (gameExeDlgWordwrapMask[i] == mask_bytes::letter ||
+        gameExeDlgWordwrapMask[i] == mask_bytes::word_last_char) {
+      lastletter = i;
+    }
+  }
+  for (int i = lastletter; i < *gameExeDlgWordwrapLength; i++) {
+    if (gameExeDlgWordwrapMask[i] != mask_bytes::linebreak)
+      gameExeDlgWordwrapMask[i] = mask_bytes::letter;
+  }
+
+  return;
 }
 
-void next_word(int &pos) {
+void next_word(int& pos) {
   int word_len = 0;
   while (pos < *gameExeDlgWordwrapLength &&
          is_letter(gameExeDlgWordwrapString[pos])) {
@@ -166,4 +215,4 @@ bool is_type2_punct(uint16_t c) {
 bool is_letter(uint16_t c) {
   return c < 0x8000 && !is_type1_punct(c) && !is_type2_punct(c);
 }
-}
+}  // namespace lb
