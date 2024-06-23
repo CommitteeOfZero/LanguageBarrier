@@ -173,6 +173,9 @@ void loadJsonConstants() {
       config["gamedef"]["glyphIdFullwidthSpace"].get<uint16_t>();
   GLYPH_ID_HALFWIDTH_SPACE =
       config["gamedef"]["glyphIdHalfwidthSpace"].get<uint16_t>();
+
+  GLYPH_ID_DOT =
+      config["gamedef"]["glyphIdDot"].get<uint16_t>();
   NEEDS_CLEARLIST_TEXT_POSITION_ADJUST =
       config["gamedef"]["needsClearlistTextPositionAdjust"].get<bool>();
   if (config["gamedef"].count("needsCcBacklogNamePosAdjust") == 1) {
