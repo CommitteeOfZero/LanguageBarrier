@@ -2720,6 +2720,7 @@ int __cdecl sghdGetLinksFromSc3StringHook(int xOffset, int yOffset,
   ProcessedSc3String_t str;
 
   if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
+  if (lineLength == 0x116 && currentGame == SGLBP) lineLength = 0x114;
 
   std::list<StringWord_t> words;
   semiTokeniseSc3String(sc3string, words, baseGlyphSize, lineLength);
@@ -2731,6 +2732,7 @@ int __cdecl sghdGetLinksFromSc3StringHook(int xOffset, int yOffset,
                       str.curLinkNumber, str.curColor, baseGlyphSize, NULL);
 
   int j = 0;
+;
   for (int i = 0; i < str.length; i++) {
     if (str.linkNumber[i] != NOT_A_LINK) {
       result[j].linkNumber = str.linkNumber[i];
@@ -2754,6 +2756,7 @@ int __cdecl sghdDrawInteractiveMailHook(
     int selectedLinkColor, int selectedLink) {
   ProcessedSc3String_t str;
 
+ 
   if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
 
   std::list<StringWord_t> words;
@@ -2796,7 +2799,6 @@ int __cdecl sghdDrawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
                                       unsigned int baseGlyphSize, int opacity,
                                       int selectedLink) {
   ProcessedSc3String_t str;
-
   if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
 
   std::list<StringWord_t> words;
