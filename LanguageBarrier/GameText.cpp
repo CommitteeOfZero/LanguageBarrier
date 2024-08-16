@@ -2650,7 +2650,7 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
                      opacity);
   }
 
-  return str.lines;
+  return min(lineDisplayCount, str.lines);
 }
 
 signed int drawSingleTextLineHook(int textureId, int startX, signed int startY,
@@ -2834,6 +2834,9 @@ int __cdecl getSc3StringLineCountHook(int lineLength, char* sc3string,
   processSc3TokenList(0, 0, lineLength, words, LINECOUNT_DISABLE_OR_ERROR, 0,
                       baseGlyphSize, &str, true, 1.0f, -1, NOT_A_LINK, 0,
                       baseGlyphSize, NULL);
+  if (currentGame == SGLBP && lineLength == 254) return str.lines;
+
+
   return str.lines + 1;
 }
 int __cdecl getRineInputRectangleHook(int* lineLength, char* text,
