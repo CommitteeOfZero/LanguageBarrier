@@ -194,8 +194,7 @@ bool criManaModInit() {
                               (LPVOID*)&gameExeMgsMovieCPlayerPlayByIdReal) ||
         !scanCreateEnableHook("game", "drawMovieFrame",
                               (uintptr_t*)&gameExeDrawMovieFrameRND,
-                              (LPVOID)&drawMovieFrameHookRND,
-                              (LPVOID*)&gameExeDrawMovieFrameRNDReal))
+                              (LPVOID)&drawMovieFrameHook, (LPVOID*)&gameExeDrawMovieFrameReal))
       return false;
   } else {
     if (!scanCreateEnableHook("game", "mgsMovieCPlayerPlay",
@@ -349,7 +348,7 @@ void __cdecl CreateD3D9Texture(CriManaModState_t* state) {
   _D3DSURFACE_DESC desc;         // [esp+E4h] [ebp-34h] BYREF
   IDirect3DDevice9* pD3DDevice;  // [esp+10Ch] [ebp-Ch]
 
-  lb::SurfaceWrapper::game = SG0;
+  lb::SurfaceWrapper::game = SGE;
   if (!gameExePMgsD3D9State)
     gameExePMgsD3D9State =
         **(MgsD3D9State***)lb::sigScan("game", "useOfMgsD3D9State", 0);
@@ -358,9 +357,9 @@ void __cdecl CreateD3D9Texture(CriManaModState_t* state) {
   TexPtr = (IDirect3DTexture9*)lb::SurfaceWrapper::getTexPtr(
       surfaceArray, RENDER_TARGET_SURF_ID, 0);
   TexPtr->GetLevelDesc(0, &desc);
-  gameExePMgsD3D9State->device->CreateTexture(
-       desc.Width, desc.Height, 1u, 0, desc.Format,
-      D3DPOOL_SYSTEMMEM, &state->stagingTexture9, 0);
+  gameExePMgsD3D9State->device->CreateTexture(desc.Width, desc.Height, 1u, 0,
+                                              desc.Format, D3DPOOL_SYSTEMMEM,
+                                              &state->stagingTexture9, 0);
 }
 
 
