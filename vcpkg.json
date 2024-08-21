@@ -1,0 +1,9 @@
+{
+  "dependencies": [
+    "minhook",
+    "directxtex",
+    "freetype",
+    "nlohmann-json",
+    "cereal"
+  ]
+}
