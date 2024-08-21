@@ -218,3 +218,4 @@ dinput8-Release/
 LanguageBarrier/data/*.h
 *.opendb
 *.VC.db
+/vcpkg_installed
