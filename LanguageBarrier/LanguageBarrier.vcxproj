@@ -61,6 +61,7 @@
     <VcpkgConfiguration>Release</VcpkgConfiguration>
     <VcpkgTriplet>$(VcpkgUserTriplet)</VcpkgTriplet>
     <VcpkgUseStatic>true</VcpkgUseStatic>
+    <VcpkgUseMD>true</VcpkgUseMD>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='dinput8-Debug|Win32'">
     <VcpkgConfiguration>Debug</VcpkgConfiguration>
