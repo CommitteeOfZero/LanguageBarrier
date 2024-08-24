@@ -46,6 +46,10 @@ typedef int(__cdecl* MountArchiveRNDProc)(int id, const char* mountPoint,
 static MountArchiveRNDProc gameExeMountArchiveRND = NULL;
 static MountArchiveRNDProc gameExeMountArchiveRNDReal = NULL;
 
+typedef int(__fastcall * MountArchiveSGEProc)(int id, const char* archiveName);
+static MountArchiveSGEProc gameExeMountArchiveSGE = NULL;
+static MountArchiveSGEProc gameExeMountArchiveSGEReal = NULL;
+
 typedef int(__thiscall* CloseAllSystemsProc)(void* pThis);
 static CloseAllSystemsProc gameExeCloseAllSystems = NULL;
 static CloseAllSystemsProc gameExeCloseAllSystemsReal = NULL;
@@ -336,7 +340,7 @@ int __cdecl mountArchiveHookRNE(int id, const char* mountPoint,
 int __cdecl mountArchiveHookRND(int id, const char* mountPoint, int unk01,
                                 int unk02, int unk03);
 unsigned int __cdecl DrawTriangleList(int a1, RNEVertex* a2, int a3, int a4);
-
+int __fastcall mountArchiveHookSGE(int id, const char* archiveName);
 void gameInit() {
   SetProcessDPIAware();
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
@@ -371,7 +375,7 @@ void gameInit() {
   if (config["gamedef"]["signatures"]["game"].count("useOfPShouldPlayBgm") == 1)
     gameExePShouldPlayBgm = sigScan("game", "useOfPShouldPlayBgm");
 
-      if (lb::SurfaceWrapper::game != SGE) {
+  if (true) {
     if (config["gamedef"].count("gameArchiveMiddleware") == 1 &&
         config["gamedef"]["gameArchiveMiddleware"].get<std::string>() ==
             "cri") {
@@ -389,6 +393,15 @@ void gameInit() {
                                   (LPVOID)mountArchiveHookRND,
                                   (LPVOID*)&gameExeMountArchiveRNDReal))
           return;
+      } else if (config["gamedef"]["signatures"]["game"].count(
+                     "mountArchiveSGE") == 1) {
+        lb::SurfaceWrapper::game = SGE;
+
+        if (!scanCreateEnableHook("game", "mountArchiveSGE",
+                                  (uintptr_t*)&gameExeMountArchiveSGE,
+                                  (LPVOID)mountArchiveHookSGE,
+                                  (LPVOID*)&gameExeMountArchiveSGEReal))
+          return;
       }
     } else {
       gameExeMpkMount = sigScan("game", "mpkMount");
@@ -404,8 +417,6 @@ void gameInit() {
                        (uintptr_t*)&gameExeGslDDSload,
                        (LPVOID)ReCreateLoadTextureDDS, NULL);
 
-
-                       
   // TODO: fault tolerance - we don't need to call it quits entirely just
   // because one *feature* can't work
   if (!scanCreateEnableHook("game", "earlyInit", (uintptr_t*)&gameExeEarlyInit,
@@ -419,17 +430,13 @@ void gameInit() {
                             (LPVOID)clibFopenHook,
                             (LPVOID*)&gameExeClibFopenReal))
 
-
-  scanCreateEnableHook("game", "openMyGames", (uintptr_t*)&gameExeOpenMyGames,
-                       (LPVOID)openMyGamesHook, NULL);
-
-
+    scanCreateEnableHook("game", "openMyGames", (uintptr_t*)&gameExeOpenMyGames,
+                         (LPVOID)openMyGamesHook, NULL);
 
   scanCreateEnableHook("game", "openFile", (uintptr_t*)&gameExeOpenFile,
                        (LPVOID)openFileHook, (LPVOID*)&gameExeOpenFileReal);
 
   memoryManagementInit();
-
 
   if (lb::SurfaceWrapper::game != SGE) {
     scriptInit();
@@ -490,7 +497,6 @@ void gameInit() {
             (LPVOID)SNDgetPlayLevelHook, (LPVOID*)&gameExeSNDgetPlayLevelReal))
       return;
   }
-  if (lb::SurfaceWrapper::game != SGE) {
     gameExeScriptIdsToFileIds =
         (int*)sigScan("game", "useOfScriptIdsToFileIds");
     if (config["gamedef"]["signatures"]["game"].count("useOfAudioPlayers") == 1)
@@ -570,6 +576,10 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
                      "mountArchiveRND") == 1) {
         gameExeMountArchiveRNDReal(C0DATA_MOUNT_ID, "languagebarrier\\c0data",
                                    0, 1, 0);
+      } else if (config["gamedef"]["signatures"]["game"].count(
+                     "mountArchiveSGE") == 1) {
+        C0DATA_MOUNT_ID++;
+        gameExeMountArchiveSGEReal(C0DATA_MOUNT_ID, "..\\languagebarrier\\c0data");
       }
       LanguageBarrierLog("c0data mounted");
 
@@ -723,6 +733,10 @@ std::string mountArchiveHookPart(const char* mountPoint) {
   }
 
   return mountPoint;
+}
+
+int __fastcall mountArchiveHookSGE(int id, const char* archiveFile) {
+  return gameExeMountArchiveSGEReal(id, archiveFile);
 }
 
 int __cdecl mountArchiveHookRNE(int id, const char* mountPoint,
