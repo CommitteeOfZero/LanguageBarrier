@@ -580,6 +580,10 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
                      "mountArchiveSGE") == 1) {
         C0DATA_MOUNT_ID++;
         gameExeMountArchiveSGEReal(C0DATA_MOUNT_ID, "..\\languagebarrier\\c0data");
+        const int SGE_SCRIPT_ID = 3;
+        gameExeMountArchiveSGEReal(SGE_SCRIPT_ID,
+                                   "..\\languagebarrier\\enscript");
+
       }
       LanguageBarrierLog("c0data mounted");
 
