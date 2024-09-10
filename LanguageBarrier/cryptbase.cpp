@@ -32,12 +32,9 @@ WRAPPER_GENFUNC(SystemFunction036);
 WRAPPER_GENFUNC(SystemFunction040);
 WRAPPER_GENFUNC(SystemFunction041);
 
-
 BOOL WINAPI DllMain(HINSTANCE hInst, DWORD reason, LPVOID reserved) {
   if (reason == DLL_PROCESS_ATTACH) {
     try {
-      MessageBoxA(NULL, "LanguageBarrier", "begin",
-                  MB_ICONINFORMATION);
       lb::LanguageBarrierInit();
     } catch (std::exception& e) {
       // if we're here, next attempts to initialize will probably
