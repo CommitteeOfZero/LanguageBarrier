@@ -1,5 +1,6 @@
 #include "LanguageBarrier.h"
 #include "game.h"
+#include <atomic>
 
 static HMODULE hRealCryptbase = nullptr;
 void LoadDll() {
@@ -19,7 +20,6 @@ void LoadDll() {
     WRAPPER_LOAD_PTR(name);          \
     __asm jmp[o##name]               \
   }
-// namespace lb
 WRAPPER_GENFUNC(SystemFunction001);
 WRAPPER_GENFUNC(SystemFunction002);
 WRAPPER_GENFUNC(SystemFunction003);
@@ -34,22 +34,17 @@ WRAPPER_GENFUNC(SystemFunction041);
 
 
 BOOL WINAPI DllMain(HINSTANCE hInst, DWORD reason, LPVOID reserved) {
-  switch (reason) {
-    case DLL_PROCESS_ATTACH:
-      if (!lb::IsInitialised) {
-        try {
-          lb::LanguageBarrierInit();
-        } catch (std::exception& e) {
-          // if we're here, next attempts to initialize will probably
-          // throw the same exception, no sense to retry initialization
-          lb::IsInitialised = true;
-          MessageBoxA(NULL, e.what(), "LanguageBarrier exception", MB_ICONSTOP);
-        }
-      }
-      break;
-    case DLL_PROCESS_DETACH:
-      if (hRealCryptbase) FreeLibrary(hRealCryptbase);
-      break;
+  if (reason == DLL_PROCESS_ATTACH) {
+    try {
+      MessageBoxA(NULL, "LanguageBarrier", "begin",
+                  MB_ICONINFORMATION);
+      lb::LanguageBarrierInit();
+    } catch (std::exception& e) {
+      // if we're here, next attempts to initialize will probably
+      // throw the same exception, no sense to retry initialization
+      lb::IsInitialised = true;
+      MessageBoxA(NULL, e.what(), "LanguageBarrier exception", MB_ICONSTOP);
+    }
   }
   return TRUE;
 }
