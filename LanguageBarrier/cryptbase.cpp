@@ -1,51 +1,55 @@
 #include "LanguageBarrier.h"
 #include "game.h"
 
-#pragma comment( \
-    linker,      \
-    "/export:SystemFunction001=c:/windows/system32/cryptbase.dll.SystemFunction001")
-#pragma comment( \
-    linker,      \
-    "/export:SystemFunction002=c:/windows/system32/cryptbase.dll.SystemFunction002")
-#pragma comment( \
-    linker,      \
-    "/export:SystemFunction003=c:/windows/system32/cryptbase.dll.SystemFunction003")
-#pragma comment( \
-    linker,      \
-    "/export:SystemFunction004=c:/windows/system32/cryptbase.dll.SystemFunction004")
-#pragma comment( \
-    linker,      \
-    "/export:SystemFunction005=c:/windows/system32/cryptbase.dll.SystemFunction005")
-#pragma comment( \
-    linker,      \
-    "/export:SystemFunction028=c:/windows/system32/cryptbase.dll.SystemFunction028")
-#pragma comment( \
-    linker,      \
-    "/export:SystemFunction029=c:/windows/system32/cryptbase.dll.SystemFunction029")
-#pragma comment( \
-    linker,      \
-    "/export:SystemFunction034=c:/windows/system32/cryptbase.dll.SystemFunction034")
-#pragma comment( \
-    linker,      \
-    "/export:SystemFunction036=c:/windows/system32/cryptbase.dll.SystemFunction036")
-#pragma comment( \
-    linker,      \
-    "/export:SystemFunction040=c:/windows/system32/cryptbase.dll.SystemFunction040")
-#pragma comment( \
-    linker,      \
-    "/export:SystemFunction041=c:/windows/system32/cryptbase.dll.SystemFunction041")
+static HMODULE hRealCryptbase = nullptr;
+void LoadDll() {
+  char systemPath[MAX_PATH];
+  GetSystemDirectoryA(systemPath, MAX_PATH);
+  strcat_s(systemPath, "\\cryptbase.dll");
+  hRealCryptbase = LoadLibraryA(systemPath);
+}
+
+#define WRAPPER_LOAD_PTR(name)              \
+  if (hRealCryptbase == nullptr) LoadDll(); \
+  if (o##name == nullptr) o##name = GetProcAddress(hRealCryptbase, ## #name)
+
+#define WRAPPER_GENFUNC(name)        \
+  FARPROC o##name = nullptr;         \
+  __declspec(naked) void _##name() { \
+    WRAPPER_LOAD_PTR(name);          \
+    __asm jmp[o##name]               \
+  }
+// namespace lb
+WRAPPER_GENFUNC(SystemFunction001);
+WRAPPER_GENFUNC(SystemFunction002);
+WRAPPER_GENFUNC(SystemFunction003);
+WRAPPER_GENFUNC(SystemFunction004);
+WRAPPER_GENFUNC(SystemFunction005);
+WRAPPER_GENFUNC(SystemFunction028);
+WRAPPER_GENFUNC(SystemFunction029);
+WRAPPER_GENFUNC(SystemFunction034);
+WRAPPER_GENFUNC(SystemFunction036);
+WRAPPER_GENFUNC(SystemFunction040);
+WRAPPER_GENFUNC(SystemFunction041);
+
 
 BOOL WINAPI DllMain(HINSTANCE hInst, DWORD reason, LPVOID reserved) {
-  if (!lb::IsInitialised) {
-    try {
-      lb::LanguageBarrierInit();
-    } catch (std::exception& e) {
-      // if we're here, next attempts to initialize will probably
-      // throw the same exception, no sense to retry initialization
-      lb::IsInitialised = true;
-      MessageBoxA(NULL, e.what(), "LanguageBarrier exception", MB_ICONSTOP);
-    }
+  switch (reason) {
+    case DLL_PROCESS_ATTACH:
+      if (!lb::IsInitialised) {
+        try {
+          lb::LanguageBarrierInit();
+        } catch (std::exception& e) {
+          // if we're here, next attempts to initialize will probably
+          // throw the same exception, no sense to retry initialization
+          lb::IsInitialised = true;
+          MessageBoxA(NULL, e.what(), "LanguageBarrier exception", MB_ICONSTOP);
+        }
+      }
+      break;
+    case DLL_PROCESS_DETACH:
+      if (hRealCryptbase) FreeLibrary(hRealCryptbase);
+      break;
   }
-
   return TRUE;
 }
