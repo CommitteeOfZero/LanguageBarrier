@@ -11,10 +11,10 @@ Global
 		cryptbase-Release|x86 = cryptbase-Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{EB407818-EE6D-4CE0-8F39-E81B95D63034}.cryptbase-Debug|x86.ActiveCfg = dinput8-Debug|Win32
-		{EB407818-EE6D-4CE0-8F39-E81B95D63034}.cryptbase-Debug|x86.Build.0 = dinput8-Debug|Win32
-		{EB407818-EE6D-4CE0-8F39-E81B95D63034}.cryptbase-Release|x86.ActiveCfg = dinput8-Release|Win32
-		{EB407818-EE6D-4CE0-8F39-E81B95D63034}.cryptbase-Release|x86.Build.0 = dinput8-Release|Win32
+		{EB407818-EE6D-4CE0-8F39-E81B95D63034}.cryptbase-Debug|x86.ActiveCfg = cryptbase-Debug|Win32
+		{EB407818-EE6D-4CE0-8F39-E81B95D63034}.cryptbase-Debug|x86.Build.0 = cryptbase-Debug|Win32
+		{EB407818-EE6D-4CE0-8F39-E81B95D63034}.cryptbase-Release|x86.ActiveCfg = cryptbase-Release|Win32
+		{EB407818-EE6D-4CE0-8F39-E81B95D63034}.cryptbase-Release|x86.Build.0 = cryptbase-Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
