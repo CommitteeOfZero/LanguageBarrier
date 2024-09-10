@@ -44,7 +44,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='dinput8-Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <TargetName>dinput8</TargetName>
+    <TargetName>cryptbase</TargetName>
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)contrib\include;$(DXSDK_DIR)Include;$(ProjectDir)contrib\freetype\include</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86;$(ProjectDir)contrib\lib\Debug;$(ProjectDir)contrib\lib\xy-vsfilter</LibraryPath>
     <ExecutablePath>$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);$(ProjectDir)contrib\bin</ExecutablePath>
@@ -52,7 +52,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='dinput8-Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <TargetName>dinput8</TargetName>
+    <TargetName>cryptbase</TargetName>
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)contrib\include;$(DXSDK_DIR)Include;$(ProjectDir)contrib\freetype\include</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86;$(ProjectDir)contrib\lib\Release;$(ProjectDir)contrib\lib\xy-vsfilter</LibraryPath>
     <ExecutablePath>$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);$(ProjectDir)contrib\bin</ExecutablePath>
@@ -164,7 +164,7 @@ endlocal</Command>
     <ClCompile Include="CustomInputRND.cpp" />
     <ClCompile Include="CustomInputRNE.cpp" />
     <ClCompile Include="DialogueWordwrap.cpp" />
-    <ClCompile Include="dinput8.cpp" />
+    <ClCompile Include="cryptbase.cpp" />
     <ClCompile Include="ScriptDebugger.cpp" />
     <ClInclude Include="ScriptDebuggerHooks.h" />
     <ClCompile Include="TextRendering.cpp" />
