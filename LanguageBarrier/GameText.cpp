@@ -2834,7 +2834,7 @@ int __cdecl getSc3StringLineCountHook(int lineLength, char* sc3string,
   processSc3TokenList(0, 0, lineLength, words, LINECOUNT_DISABLE_OR_ERROR, 0,
                       baseGlyphSize, &str, true, 1.0f, -1, NOT_A_LINK, 0,
                       baseGlyphSize, NULL);
-  if (currentGame == SGLBP && lineLength == 254) return str.lines;
+  if (currentGame == SGLBP && lineLength == 254 && str.lines > 0) return str.lines;
 
 
   return str.lines + 1;
