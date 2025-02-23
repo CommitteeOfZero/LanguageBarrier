@@ -1344,7 +1344,7 @@ void semiTokeniseSc3String(char* sc3string, std::list<StringWord_t>& words,
         word = {++sc3string, NULL, 0, false, false};
         break;
       case 4:
-        sc3.pc = sc3string + 1;
+        sc3.pc = reinterpret_cast<uint8_t*>(sc3string) + 1;
         gameExeSc3Eval(&sc3, &sc3evalResult);
         sc3string = (char*)sc3.pc;
         break;
@@ -2384,7 +2384,7 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
           goto afterWord;
           break;
         case 4:
-          sc3.pc = sc3string + 1;
+          sc3.pc = reinterpret_cast<uint8_t*>(sc3string) + 1;
           gameExeSc3Eval(&sc3, &sc3evalResult);
           sc3string = (char*)sc3.pc;
           if (color)
@@ -2538,7 +2538,7 @@ int __cdecl getSc3StringDisplayWidthHook(char* sc3string,
     fontData = TextRendering::Get().getFont(baseGlyphSize, true);
   while (i <= maxCharacters && (c = *sc3string) != -1) {
     if (c == 4) {
-      sc3.pc = sc3string + 1;
+      sc3.pc = reinterpret_cast<uint8_t*>(sc3string) + 1;
       gameExeSc3Eval(&sc3, &sc3evalResult);
       sc3string = (char*)sc3.pc;
     } else if (c < 0) {
