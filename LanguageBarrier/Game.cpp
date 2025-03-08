@@ -24,8 +24,8 @@
 typedef int(__cdecl* EarlyInitProc)(int unk0, int unk1);
 static EarlyInitProc gameExeEarlyInit = NULL;
 static EarlyInitProc gameExeEarlyInitReal = NULL;
-
-typedef const char*(__cdecl* GetStringFromScriptProc)(int scriptId,
+struct RNEVertex;
+  typedef const char*(__cdecl* GetStringFromScriptProc)(int scriptId,
                                                       int stringId);
 static GetStringFromScriptProc gameExeGetStringFromScript = NULL;
 static GetStringFromScriptProc gameExeGetStringFromScriptReal = NULL;
@@ -176,6 +176,18 @@ static void** gameExeVoiceTable = (void**)NULL;
 
 static uintptr_t gameExeControllerGuid = NULL;
 
+
+struct RNEVertex {
+  float x, y, z;
+  float r, g, b, a;
+  float u, v;
+};
+
+typedef int(__cdecl* DrawTriangleListProc)(int a1, RNEVertex* a2, int a3,
+                                              int a4);
+static DrawTriangleListProc gameExeDrawTriangleList = NULL;
+static DrawTriangleListProc gameExeDrawTriangleListReal = NULL;
+
 #pragma pack(push, 1)
 struct mgsFileHandle {
   char gap0[8];
@@ -283,6 +295,8 @@ MgsD3D11State* gameExePMgsD3D11State = NULL;
 static IDirect3D9Ex** gameExePpD3D9Ex = NULL;
 static D3DPRESENT_PARAMETERS* gameExePPresentParameters = NULL;
 
+static uint16_t* gameExeScreenWidth = NULL;
+static uint16_t* gameExeScreenHeight = NULL;
 static uintptr_t gameExeTextureLoadInit1 = NULL;
 static uintptr_t gameExeTextureLoadInit2 = NULL;
 static uintptr_t gameExeMpkMount = NULL;
@@ -325,6 +339,36 @@ int __cdecl mountArchiveHookRNE(int id, const char* mountPoint,
                                 const char* archiveName, int unk01);
 int __cdecl mountArchiveHookRND(int id, const char* mountPoint, int unk01,
                                 int unk02, int unk03);
+unsigned int __cdecl DrawTriangleList(int a1, RNEVertex* a2, int a3, int a4);
+
+
+void ApplyOrthographicProjection(RNEVertex* vertices, int count, float width,
+                                 float height) {
+  float scaleX = 2.0f / width;
+  float scaleY = 2.0f / height;
+   
+  for (int i = 0; i < count; i++) {
+    vertices[i].x = vertices[i].x * (scaleX)  - 1.0f;
+    vertices[i].y = vertices[i].y * -(scaleY) + 1.0f;
+    vertices[i].u /= 1024.0f;
+    vertices[i].v /= 1024.0f;
+  }
+}
+
+
+unsigned int __cdecl DrawTriangleList(int a1, RNEVertex* a2, int a3, int a4) {
+
+    
+
+  if (a1 == 82 && a4 == 1)
+   // Use projection matrix to convert a2 position to clip space
+    ApplyOrthographicProjection(a2, a3 * 3, *gameExeScreenWidth,
+                                *gameExeScreenHeight);
+
+  return gameExeDrawTriangleListReal(a1, a2, a3, a4);
+}
+
+
 
 void gameInit() {
   SetProcessDPIAware();
@@ -610,6 +654,18 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
       ids[1] = 1;
       ids[2] = 22;
     }
+
+      gameExeScreenHeight =
+        reinterpret_cast<uint16_t*>(sigScan("game", "ScreenHeight"));
+     gameExeScreenWidth =
+        reinterpret_cast<uint16_t*>(sigScan("game", "ScreenWidth"));
+      if (!scanCreateEnableHook(
+            "game", "DrawTriangleListHook", (uintptr_t*)&gameExeDrawTriangleList,
+                              (LPVOID)&DrawTriangleList,
+                              (LPVOID*)&gameExeDrawTriangleListReal))
+      return retval;
+  
+
 
   } catch (std::exception& e) {
     MessageBoxA(NULL, e.what(), "LanguageBarrier exception", MB_ICONSTOP);
