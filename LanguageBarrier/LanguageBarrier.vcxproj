@@ -141,6 +141,7 @@ endlocal</Command>
     <ClInclude Include="CustomInputRND.h" />
     <ClInclude Include="CustomInputRNE.h" />
     <ClInclude Include="DialogueWordwrap.h" />
+    <ClInclude Include="ScriptDebugger.h" />
     <ClInclude Include="TextRendering.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameText.h" />
@@ -164,6 +165,8 @@ endlocal</Command>
     <ClCompile Include="CustomInputRNE.cpp" />
     <ClCompile Include="DialogueWordwrap.cpp" />
     <ClCompile Include="dinput8.cpp" />
+    <ClCompile Include="ScriptDebugger.cpp" />
+    <ClInclude Include="ScriptDebuggerHooks.h" />
     <ClCompile Include="TextRendering.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GameText.cpp" />

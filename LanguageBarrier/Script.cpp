@@ -6,11 +6,11 @@
 
 typedef void(__cdecl *ScriptInstProc)(ScriptThreadState *state);
 
-static ScriptInstProc *InstTableSystem = NULL;
-static ScriptInstProc *InstTableGraph = NULL;
-static ScriptInstProc *InstTableUser1 = NULL;
+ScriptInstProc *InstTableSystem = NULL;
+ScriptInstProc *InstTableGraph = NULL;
+ScriptInstProc *InstTableUser1 = NULL;
 
-static int *gameExeSCRflag = NULL;
+int *gameExeSCRflag = NULL;
 
 static ScriptInstProc gameExeSCRcomKeyWaitTimer = NULL;
 static ScriptInstProc gameExeSCRcomKeyWaitTimerReal = NULL;
@@ -18,11 +18,11 @@ static ScriptInstProc gameExeSCRcomKeyWaitTimerReal = NULL;
 // Custom instruction stuff
 
 static inline void ConsumeOpcode(ScriptThreadState *state) {
-  state->pc = (char *)state->pc + 2;
+  state->pc = state->pc + 2;
 }
 static inline uint8_t ReadScriptArgUint8(ScriptThreadState *state) {
   uint8_t result = *(uint8_t *)state->pc;
-  state->pc = (char *)state->pc + 1;
+  state->pc = state->pc + 1;
   return result;
 }
 static inline int ReadScriptArgExpr(ScriptThreadState *state) {

@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <filesystem>
 #include "BinkMod.h"
 #include "CriManaMod.h"
 #include "Config.h"
@@ -20,6 +21,7 @@
 #include "TextRendering.h"
 #include "CustomInputRNE.h"
 #include "CustomInputRND.h"
+#include "ScriptDebuggerHooks.h"
 
 typedef int(__cdecl* EarlyInitProc)(int unk0, int unk1);
 static EarlyInitProc gameExeEarlyInit = NULL;
@@ -271,13 +273,7 @@ typedef int(__thiscall* ReadOggMetadataProc)(CPlayer* pThis);
 static ReadOggMetadataProc gameExeReadOggMetadata = NULL;
 static ReadOggMetadataProc gameExeReadOggMetadataReal = NULL;
 
-struct __declspec(align(4)) MgsD3D9State {
-  IDirect3DSurface9* backbuffer;
-  int field_4;
-  int field_8;
-  IDirect3DDevice9Ex* device;
-};
-static MgsD3D9State* gameExePMgsD3D9State = NULL;
+MgsD3D9State* gameExePMgsD3D9State = NULL;
 MgsD3D11State* gameExePMgsD3D11State = NULL;
 
 static IDirect3D9Ex** gameExePpD3D9Ex = NULL;
@@ -494,6 +490,10 @@ void gameInit() {
         "game", "setAreaParams", (uintptr_t*)&gameExeSetAreaParams,
         (LPVOID)setAreaParamsHook, (LPVOID*)&gameExeSetAreaParamsReal);
   }
+
+  if (config["patch"].value<bool>("enableDebugger", false)) {
+    initScriptDebuggerHooks();
+}
 }
 
 // earlyInit is called after all the subsystems have been initialised but before
@@ -611,6 +611,9 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
       ids[2] = 22;
     }
 
+    if (config["patch"].value<bool>("enableDebugger", false)) {
+      earlyInitScriptDebuggerHooks();
+    }
   } catch (std::exception& e) {
     MessageBoxA(NULL, e.what(), "LanguageBarrier exception", MB_ICONSTOP);
   }
@@ -666,6 +669,11 @@ std::string mountArchiveHookPart(const char* mountPoint) {
         << config["patch"]["archiveRedirection"][mountPoint].get<std::string>();
 
     std::stringstream logstr;
+    if (!std::filesystem::exists(newPath.str())) {
+      logstr << newPath.str() << " does not exist!";
+      LanguageBarrierLog(logstr.str());
+      return mountPoint;
+    }
     logstr << "redirecting physical fopen " << mountPoint << " to "
            << newPath.str();
     LanguageBarrierLog(logstr.str());
@@ -795,6 +803,11 @@ FILE* clibFopenHook(const char* filename, const char* mode) {
         << config["patch"]["physicalFileRedirection"][tmp].get<std::string>();
 
     std::stringstream logstr;
+    if (!std::filesystem::exists(newPath.str())) {
+      logstr << newPath.str() << " does not exist!";
+      LanguageBarrierLog(logstr.str());
+      return gameExeClibFopenReal(filename, mode);
+    }
     logstr << "redirecting physical fopen " << tmp << " to " << newPath.str();
     LanguageBarrierLog(logstr.str());
 

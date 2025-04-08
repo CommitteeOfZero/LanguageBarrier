@@ -4,6 +4,7 @@
 #include <cstdint>
 #include "LanguageBarrier.h"
 #include <d3d11.h>
+#include <d3d9.h>
 
 #ifndef GAME_H_IMPORT
 #define GAME_H_IMPORT extern
@@ -33,6 +34,14 @@ struct mgsFileLoader {
   char gap0[228];
   mgsVFSObject* vfsObject;
 };
+
+struct __declspec(align(4)) MgsD3D9State {
+  IDirect3DSurface9* backbuffer;
+  int field_4;
+  int field_8;
+  IDirect3DDevice9Ex* device;
+};
+extern MgsD3D9State* gameExePMgsD3D9State;
 
 struct MgsD3D11State {
   uint8_t gap0[12];
