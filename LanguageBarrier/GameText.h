@@ -100,6 +100,16 @@ void __cdecl sgpDrawMailTextHook(int a1, int a2, char* sc3String, unsigned int a
 void __cdecl sgpDrawMailTextContentHook(int startX, int startY, char* sc3String,
                                         unsigned int lineLength, int opacity,
                                         int a6, int a7);
+
+
+int __cdecl sgmdeDrawTextAsciiHook(int textureId,               // a1
+                                          int xOffset,                 // a2
+                                          int yOffset,                 // a3
+                                          char* sc3string,             // a4
+                                          int color,                   // a5
+                                          unsigned int baseGlyphSize,  // a6
+                                          unsigned int charSpacing,    // a7
+                                          unsigned int maxChars);
 }  // namespace lb
 
 #endif  // !__GAMETEXT_H__

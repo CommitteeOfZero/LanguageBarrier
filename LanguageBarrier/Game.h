@@ -215,7 +215,7 @@ bool gameGetBgmShouldPlay();
 void gameSetBgmPaused(bool paused);
 bool gameGetBgmIsPlaying();
 
-enum GameID { CC, SG, SG0, RNE, RND, SGE,SGLBP };
+enum GameID { CC, SG, SG0, RNE, RND, SGE,SGLBP,SGMDE };
 
 
 
