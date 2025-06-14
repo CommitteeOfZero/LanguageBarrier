@@ -83,7 +83,7 @@
     <ClCompile Include="LanguageBarrier.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="dinput8.cpp">
+    <ClCompile Condition="'$(Configuration)'=='dinput8-Debug' Or '$(Configuration)'=='dinput8-Release'" Include="dinput8.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Game.cpp">
@@ -140,10 +140,16 @@
     <ClCompile Include="ScriptDebugger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Condition="'$(Configuration)'=='cryptbase-Debug' Or '$(Configuration)'=='cryptbase-Release'" Include="cryptbase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\vcpkg.json" />
     <None Include="..\vcpkg-configuration.json" />
     <None Include="..\.gitignore" />
+    <None Condition="'$(Configuration)'=='cryptbase-Debug' Or '$(Configuration)'=='cryptbase-Release'" Include="cryptbase.def">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

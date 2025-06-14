@@ -1,0 +1,14 @@
+LIBRARY "CRYPTBASE"
+EXPORTS
+
+SystemFunction001 = _SystemFunction001
+SystemFunction002 = _SystemFunction002
+SystemFunction003 = _SystemFunction003
+SystemFunction004 = _SystemFunction004
+SystemFunction005 = _SystemFunction005
+SystemFunction028 = _SystemFunction028
+SystemFunction029 = _SystemFunction029
+SystemFunction034 = _SystemFunction034
+SystemFunction036 = _SystemFunction036
+SystemFunction040 = _SystemFunction040
+SystemFunction041 = _SystemFunction041
