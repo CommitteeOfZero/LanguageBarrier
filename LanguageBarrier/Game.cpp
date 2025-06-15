@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <filesystem>
 #include "BinkMod.h"
 #include "CriManaMod.h"
 #include "Config.h"
@@ -20,10 +21,12 @@
 #include "TextRendering.h"
 #include "CustomInputRNE.h"
 #include "CustomInputRND.h"
+#include "ScriptDebuggerHooks.h"
 
 typedef int(__cdecl* EarlyInitProc)(int unk0, int unk1);
 static EarlyInitProc gameExeEarlyInit = NULL;
 static EarlyInitProc gameExeEarlyInitReal = NULL;
+struct RNEVertex;
 
 typedef const char*(__cdecl* GetStringFromScriptProc)(int scriptId,
                                                       int stringId);
@@ -180,6 +183,17 @@ static void** gameExeVoiceTable = (void**)NULL;
 
 static uintptr_t gameExeControllerGuid = NULL;
 
+struct RNEVertex {
+  float x, y, z;
+  float r, g, b, a;
+  float u, v;
+};
+
+typedef int(__cdecl* DrawTriangleListProc)(int a1, RNEVertex* a2, int a3,
+                                           int a4);
+static DrawTriangleListProc gameExeDrawTriangleList = NULL;
+static DrawTriangleListProc gameExeDrawTriangleListReal = NULL;
+
 #pragma pack(push, 1)
 struct mgsFileHandle {
   char gap0[8];
@@ -281,6 +295,8 @@ MgsD3D11State* gameExePMgsD3D11State = NULL;
 static IDirect3D9Ex** gameExePpD3D9Ex = NULL;
 static D3DPRESENT_PARAMETERS* gameExePPresentParameters = NULL;
 
+static uint16_t* gameExeScreenWidth = NULL;
+static uint16_t* gameExeScreenHeight = NULL;
 static uintptr_t gameExeTextureLoadInit1 = NULL;
 static uintptr_t gameExeTextureLoadInit2 = NULL;
 static uintptr_t gameExeMpkMount = NULL;
@@ -323,6 +339,7 @@ int __cdecl mountArchiveHookRNE(int id, const char* mountPoint,
                                 const char* archiveName, int unk01);
 int __cdecl mountArchiveHookRND(int id, const char* mountPoint, int unk01,
                                 int unk02, int unk03);
+unsigned int __cdecl DrawTriangleList(int a1, RNEVertex* a2, int a3, int a4);
 int __fastcall mountArchiveHookSGE(int id, const char* archiveName);
 void gameInit() {
   SetProcessDPIAware();
@@ -496,13 +513,23 @@ void gameInit() {
             "game", "PadUpdateDevice", (uintptr_t*)&gameExePadUpdateDevice,
             (LPVOID)PadUpdateDeviceHook, (LPVOID*)&gameExePadUpdateDeviceReal);
       }
-
-
-    if (config["patch"].count("overrideAreaParams")) {
-      scanCreateEnableHook(
-          "game", "setAreaParams", (uintptr_t*)&gameExeSetAreaParams,
-          (LPVOID)setAreaParamsHook, (LPVOID*)&gameExeSetAreaParamsReal);
     }
+
+  if (config["gamedef"].count("gameVideoMiddleware") &&
+      config["gamedef"]["gameVideoMiddleware"].get<std::string>() == "cri") {
+    criManaModInit();
+  } else {
+    binkModInit();
+  }
+
+  if (config["patch"].count("overrideAreaParams")) {
+    scanCreateEnableHook(
+        "game", "setAreaParams", (uintptr_t*)&gameExeSetAreaParams,
+        (LPVOID)setAreaParamsHook, (LPVOID*)&gameExeSetAreaParamsReal);
+  }
+
+  if (config["patch"].value<bool>("enableDebugger", false)) {
+    initScriptDebuggerHooks();
   }
 }
 
@@ -629,6 +656,19 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
       ids[2] = 22;
     }
 
+    if (config["patch"].value<bool>("enableDebugger", false)) {
+      earlyInitScriptDebuggerHooks();
+    }
+
+    gameExeScreenHeight =
+        reinterpret_cast<uint16_t*>(sigScan("game", "ScreenHeight"));
+    gameExeScreenWidth =
+        reinterpret_cast<uint16_t*>(sigScan("game", "ScreenWidth"));
+    if (!scanCreateEnableHook("game", "DrawTriangleListHook",
+                              (uintptr_t*)&gameExeDrawTriangleList,
+                              (LPVOID)&DrawTriangleList,
+                              (LPVOID*)&gameExeDrawTriangleListReal))
+      return retval;
   } catch (std::exception& e) {
     MessageBoxA(NULL, e.what(), "LanguageBarrier exception", MB_ICONSTOP);
   }
@@ -684,6 +724,11 @@ std::string mountArchiveHookPart(const char* mountPoint) {
         << config["patch"]["archiveRedirection"][mountPoint].get<std::string>();
 
     std::stringstream logstr;
+    if (!std::filesystem::exists(newPath.str())) {
+      logstr << newPath.str() << " does not exist!";
+      LanguageBarrierLog(logstr.str());
+      return mountPoint;
+    }
     logstr << "redirecting physical fopen " << mountPoint << " to "
            << newPath.str();
     LanguageBarrierLog(logstr.str());
@@ -692,6 +737,10 @@ std::string mountArchiveHookPart(const char* mountPoint) {
   }
 
   return mountPoint;
+}
+
+int __fastcall mountArchiveHookSGE(int id, const char* archiveFile) {
+  return gameExeMountArchiveSGEReal(id, archiveFile);
 }
 
 int __fastcall mountArchiveHookSGE(int id, const char* archiveFile) {
@@ -817,6 +866,11 @@ FILE* clibFopenHook(const char* filename, const char* mode) {
         << config["patch"]["physicalFileRedirection"][tmp].get<std::string>();
 
     std::stringstream logstr;
+    if (!std::filesystem::exists(newPath.str())) {
+      logstr << newPath.str() << " does not exist!";
+      LanguageBarrierLog(logstr.str());
+      return gameExeClibFopenReal(filename, mode);
+    }
     logstr << "redirecting physical fopen " << tmp << " to " << newPath.str();
     LanguageBarrierLog(logstr.str());
 
@@ -1023,5 +1077,26 @@ void gameSetBgmPaused(bool paused) {
 }
 bool gameGetBgmIsPlaying() {
   return gameExeAudioPlayers[AUDIO_PLAYER_ID_BGM1].playbackState == 2;
+}
+void ApplyOrthographicProjection(RNEVertex* vertices, int count, float width,
+                                 float height) {
+  float scaleX = 2.0f / width;
+  float scaleY = 2.0f / height;
+
+  for (int i = 0; i < count; i++) {
+    vertices[i].x = vertices[i].x * (scaleX)-1.0f;
+    vertices[i].y = vertices[i].y * -(scaleY) + 1.0f;
+    vertices[i].u /= 1024.0f;
+    vertices[i].v /= 1024.0f;
+  }
+}
+
+unsigned int __cdecl DrawTriangleList(int a1, RNEVertex* a2, int a3, int a4) {
+  if (a1 == 82 && a4 == 1)
+    // Use projection matrix to convert a2 position to clip space
+    ApplyOrthographicProjection(a2, a3 * 3, *gameExeScreenWidth,
+                                *gameExeScreenHeight);
+
+  return gameExeDrawTriangleListReal(a1, a2, a3, a4);
 }
 }  // namespace lb

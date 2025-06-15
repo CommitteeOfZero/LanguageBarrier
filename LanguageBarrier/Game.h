@@ -41,6 +41,7 @@ struct __declspec(align(4)) MgsD3D9State {
   int field_8;
   IDirect3DDevice9Ex* device;
 };
+extern MgsD3D9State* gameExePMgsD3D9State;
 
 struct MgsD3D11State {
   uint8_t gap0[12];
