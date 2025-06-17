@@ -743,9 +743,6 @@ int __fastcall mountArchiveHookSGE(int id, const char* archiveFile) {
   return gameExeMountArchiveSGEReal(id, archiveFile);
 }
 
-int __fastcall mountArchiveHookSGE(int id, const char* archiveFile) {
-  return gameExeMountArchiveSGEReal(id, archiveFile);
-}
 
 int __cdecl mountArchiveHookRNE(int id, const char* mountPoint,
                                 const char* archiveName, int unk01) {

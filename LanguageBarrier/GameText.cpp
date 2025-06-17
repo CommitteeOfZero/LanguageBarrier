@@ -91,11 +91,11 @@ typedef struct __declspec(align(4)) {
     opacityType charDisplayOpacity[size];          \
   } name;                                          \
   static name* gameExeDialoguePages_##name = NULL;
-DEF_DIALOGUE_PAGE(DialoguePage_t, 2000, char);
+DEF_DIALOGUE_PAGE(DialoguePage_t, 2000, uint8_t);
 DEF_DIALOGUE_PAGE(CCDialoguePage_t, 600, char);
 DEF_DIALOGUE_PAGE(RNEDialoguePage_t, 2200, int16_t);
 DEF_DIALOGUE_PAGE(RNDDialoguePage_t, 600, int16_t);
-DEF_DIALOGUE_PAGE(SGMDEDialoguePage_t, 7000, char);
+DEF_DIALOGUE_PAGE(SGMDEDialoguePage_t, 7000, uint8_t);
 
 typedef void(__cdecl* DrawDialogueProc)(int fontNumber, int pageNumber,
                                         int opacity, int xOffset, int yOffset);
@@ -2703,6 +2703,8 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
                       str.linkCount - 1, str.curLinkNumber, str.curColor,
                       baseGlyphSize, nullptr);
 
+  if (xOffset == 913 && currentGame == SGMDE) xOffset -= 6;
+
   for (int i = 0; i < str.length; i++) {
     gameExeDrawGlyph(textureId, str.textureStartX[i], str.textureStartY[i],
                      str.textureWidth[i], str.textureHeight[i],
@@ -2924,6 +2926,9 @@ int __cdecl sghdDrawInteractiveMailHook(
     int selectedLinkColor, int selectedLink) {
   ProcessedSc3String_t str;
 
+
+  if (currentGame == SGMDE && xOffset == 913) xOffset = 907;
+
   if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
 
   std::list<StringWord_t> words;
@@ -3028,6 +3033,7 @@ int sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
                      float glyphInTextureHeight, float displayStartX,
                      float displayStartY, float displayEndX, float displayEndY,
                      int color, uint32_t opacity) {
+
   if (!HAS_SPLIT_FONT) {
     if (glyphInTextureStartY > 4080.0) {
       glyphInTextureStartY += 4080.0;

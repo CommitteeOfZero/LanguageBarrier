@@ -248,6 +248,7 @@ endlocal</Command>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;LANGUAGEBARRIER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -369,6 +370,7 @@ endlocal</Command>
     <ClCompile Include="contrib\speexdsp\resample.c" />
     <ClCompile Include="contrib\stb_vorbis.c" />
     <ClCompile Include="CriManaMod.cpp" />
+    <ClCompile Include="cryptbase.cpp" />
     <ClCompile Include="CustomInputRND.cpp" />
     <ClCompile Include="CustomInputRNE.cpp" />
     <ClCompile Condition="'$(Configuration)'=='cryptbase-Debug' Or '$(Configuration)'=='cryptbase-Release'" Include="cryptbase.cpp" />
