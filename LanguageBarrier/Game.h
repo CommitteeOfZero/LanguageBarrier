@@ -53,6 +53,7 @@ struct MgsD3D11State {
   ID3D11DeviceContext* pid3d11deferredcontext2;
 };
 extern MgsD3D11State* gameExePMgsD3D11State;
+extern MgsD3D9State* gameExePMgsD3D9State;
 
 struct __declspec(align(4)) SurfaceStructRN {
   uint8_t gap_0[4];
@@ -138,6 +139,47 @@ struct __declspec(align(4)) SurfaceStructRND {
   uint32_t field_13C;
 };
 
+
+
+struct __declspec(align(4)) SurfaceStructSGE {
+  uint8_t gap_0[4];
+  char field_4;
+  uint8_t gap_5;
+  uint16_t field_6;
+  uint8_t gap_8[2];
+  char field_A;
+  uint8_t gap_B;
+  uint32_t field_C;
+  char field_10;
+  uint8_t gap_11[3];
+  uint32_t field_14;
+  signed int field_18;
+  uint32_t field_1C;
+  char field_20;
+  uint8_t gap_21[3];
+  signed int field_24;
+  signed __int16 field_28;
+  uint8_t gap_2A[2];
+  signed int field_2C;
+  signed int width;
+  signed int height;
+  UINT field_40;
+  UINT field_44;
+  char gap40[108];
+  ID3D11Texture2D* texPtr[4];
+  ID3D11ShaderResourceView* shaderRscView2;
+  ID3D11ShaderResourceView* shaderRscView;
+
+  ID3D11Texture2D* gap_C4[3];
+  uint32_t field_E8;
+  signed int field_EC;
+  signed int field_F0;
+  uint8_t gap_F4[0x100-0xF4+24];
+
+};
+
+
+
 #pragma pack(pop)
 
 typedef BOOL(__cdecl* GetFlagProc)(int flagId);
@@ -173,8 +215,12 @@ bool gameGetBgmShouldPlay();
 void gameSetBgmPaused(bool paused);
 bool gameGetBgmIsPlaying();
 
+enum GameID { CC, SG, SG0, RNE, RND, SGE,SGLBP,SGMDE };
+
+
+
 struct SurfaceWrapper {
-  static int game;
+  static lb::GameID game;
 
   static void* ptr(void* surfaceArray, int id) {
     if (!game) {
@@ -190,9 +236,12 @@ struct SurfaceWrapper {
     if (!game) {
       SurfaceStructRN* surfaceArrayRN = (SurfaceStructRN*)surfaceArray;
       return surfaceArrayRN[id].texPtr[subindex];
-    } else {
+    } else if (game == RND){
       SurfaceStructRND* surfaceArrayRND = (SurfaceStructRND*)surfaceArray;
       return surfaceArrayRND[id].texPtr[subindex];
+    } else {
+      SurfaceStructSGE* surfaceArraySGE = (SurfaceStructSGE*)surfaceArray;
+      return surfaceArraySGE[id].texPtr[subindex];
     }
   }
 
