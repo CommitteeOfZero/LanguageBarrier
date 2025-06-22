@@ -2690,7 +2690,8 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
 
   if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
 
-    if (currentGame == SGMDE && lineLength == 252) lineDisplayCount = 2;
+    if (currentGame == SGMDE && lineLength == 252 && yOffset !=198) lineDisplayCount = 2;
+  if (xOffset == 913 && currentGame == SGMDE) xOffset -= 6;
 
 
   std::list<StringWord_t> words;
@@ -2703,7 +2704,6 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
                       str.linkCount - 1, str.curLinkNumber, str.curColor,
                       baseGlyphSize, nullptr);
 
-  if (xOffset == 913 && currentGame == SGMDE) xOffset -= 6;
 
   for (int i = 0; i < str.length; i++) {
     gameExeDrawGlyph(textureId, str.textureStartX[i], str.textureStartY[i],
@@ -2736,6 +2736,10 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
     int characterIndex = 0;
     int glyphYOffset = 0;
     char glyphChar = *currentChar;
+
+    if (xOffset == 931 && currentGame == SGMDE) xOffset += 8;
+
+
     auto * gameExeLookUpTable1 = gameExeLookUpTable+1;
     std::vector<char> sc3String;
     for (characterIndex = 0; *currentChar;) {
@@ -3033,6 +3037,11 @@ int sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
                      float glyphInTextureHeight, float displayStartX,
                      float displayStartY, float displayEndX, float displayEndY,
                      int color, uint32_t opacity) {
+
+
+    if (textureId < 80) return 1;
+
+    if (textureId == 350) return 1;
 
   if (!HAS_SPLIT_FONT) {
     if (glyphInTextureStartY > 4080.0) {
