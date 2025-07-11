@@ -3038,11 +3038,6 @@ int sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
                      float displayStartY, float displayEndX, float displayEndY,
                      int color, uint32_t opacity) {
 
-
-    if (textureId < 80) return 1;
-
-    if (textureId == 350) return 1;
-
   if (!HAS_SPLIT_FONT) {
     if (glyphInTextureStartY > 4080.0) {
       glyphInTextureStartY += 4080.0;
