@@ -2989,9 +2989,11 @@ int __cdecl sghdDrawLinkHighlightHook(int xOffset, int yOffset, int lineLength,
 
   if (selectedLink == NOT_A_LINK) return str.lines;
 
+  xOffset = currentGame == SGMDE ? -9 : 0;
+
   for (int i = 0; i < str.length; i++) {
     if (str.linkNumber[i] == selectedLink) {
-      gameExeDrawRectangle(str.displayStartX[i], str.displayStartY[i],
+      gameExeDrawRectangle(str.displayStartX[i] + xOffset, str.displayStartY[i],
                            str.displayEndX[i] - str.displayStartX[i],
                            str.displayEndY[i] - str.displayStartY[i], color,
                            opacity);
