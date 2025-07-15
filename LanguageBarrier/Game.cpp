@@ -46,6 +46,10 @@ typedef int(__cdecl* MountArchiveRNDProc)(int id, const char* mountPoint,
 static MountArchiveRNDProc gameExeMountArchiveRND = NULL;
 static MountArchiveRNDProc gameExeMountArchiveRNDReal = NULL;
 
+typedef int(__fastcall * MountArchiveSGEProc)(int id, const char* archiveName);
+static MountArchiveSGEProc gameExeMountArchiveSGE = NULL;
+static MountArchiveSGEProc gameExeMountArchiveSGEReal = NULL;
+
 typedef int(__thiscall* CloseAllSystemsProc)(void* pThis);
 static CloseAllSystemsProc gameExeCloseAllSystems = NULL;
 static CloseAllSystemsProc gameExeCloseAllSystemsReal = NULL;
@@ -312,7 +316,7 @@ int* gameExeScrWork = (int*)NULL;
 
 namespace lb {
 
-int SurfaceWrapper::game = 0;
+GameID SurfaceWrapper::game = GameID::SG;
 
 int __cdecl earlyInitHook(int unk0, int unk1);
 int __fastcall mpkFopenByIdHook(void* pThis, void* EDX, mpkObject* mpk,
@@ -336,7 +340,7 @@ int __cdecl mountArchiveHookRNE(int id, const char* mountPoint,
 int __cdecl mountArchiveHookRND(int id, const char* mountPoint, int unk01,
                                 int unk02, int unk03);
 unsigned int __cdecl DrawTriangleList(int a1, RNEVertex* a2, int a3, int a4);
-
+int __fastcall mountArchiveHookSGE(int id, const char* archiveName);
 void gameInit() {
   SetProcessDPIAware();
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
@@ -348,7 +352,12 @@ void gameInit() {
   in.close();
 
   globalTextReplacementsInit();
-
+  if (config["gamedef"].count("gameVideoMiddleware") &&
+      config["gamedef"]["gameVideoMiddleware"].get<std::string>() == "cri") {
+    criManaModInit();
+  } else {
+    binkModInit();
+  }
   gameExeTextureLoadInit1 = sigScan("game", "textureLoadInit1");
   gameExeTextureLoadInit2 = sigScan("game", "textureLoadInit2");
   gameExeGslPngload = sigScan("game", "gslPngload");
@@ -366,28 +375,40 @@ void gameInit() {
   if (config["gamedef"]["signatures"]["game"].count("useOfPShouldPlayBgm") == 1)
     gameExePShouldPlayBgm = sigScan("game", "useOfPShouldPlayBgm");
 
-  if (config["gamedef"].count("gameArchiveMiddleware") == 1 &&
-      config["gamedef"]["gameArchiveMiddleware"].get<std::string>() == "cri") {
-    if (config["gamedef"]["signatures"]["game"].count("mountArchiveRNE") == 1) {
-      if (!scanCreateEnableHook("game", "mountArchiveRNE",
-                                (uintptr_t*)&gameExeMountArchiveRNE,
-                                (LPVOID)mountArchiveHookRNE,
-                                (LPVOID*)&gameExeMountArchiveRNEReal))
-        return;
-    } else if (config["gamedef"]["signatures"]["game"].count(
-                   "mountArchiveRND") == 1) {
-      if (!scanCreateEnableHook("game", "mountArchiveRND",
-                                (uintptr_t*)&gameExeMountArchiveRND,
-                                (LPVOID)mountArchiveHookRND,
-                                (LPVOID*)&gameExeMountArchiveRNDReal))
-        return;
-    }
-  } else {
-    gameExeMpkMount = sigScan("game", "mpkMount");
-    gameExeMpkConstructor =
-        (MpkConstructorProc)sigScan("game", "mpkConstructor");
-  }
+  if (true) {
+    if (config["gamedef"].count("gameArchiveMiddleware") == 1 &&
+        config["gamedef"]["gameArchiveMiddleware"].get<std::string>() ==
+            "cri") {
+      if (config["gamedef"]["signatures"]["game"].count("mountArchiveRNE") ==
+          1) {
+        if (!scanCreateEnableHook("game", "mountArchiveRNE",
+                                  (uintptr_t*)&gameExeMountArchiveRNE,
+                                  (LPVOID)mountArchiveHookRNE,
+                                  (LPVOID*)&gameExeMountArchiveRNEReal))
+          return;
+      } else if (config["gamedef"]["signatures"]["game"].count(
+                     "mountArchiveRND") == 1) {
+        if (!scanCreateEnableHook("game", "mountArchiveRND",
+                                  (uintptr_t*)&gameExeMountArchiveRND,
+                                  (LPVOID)mountArchiveHookRND,
+                                  (LPVOID*)&gameExeMountArchiveRNDReal))
+          return;
+      } else if (config["gamedef"]["signatures"]["game"].count(
+                     "mountArchiveSGE") == 1) {
+        lb::SurfaceWrapper::game = SGE;
 
+        if (!scanCreateEnableHook("game", "mountArchiveSGE",
+                                  (uintptr_t*)&gameExeMountArchiveSGE,
+                                  (LPVOID)mountArchiveHookSGE,
+                                  (LPVOID*)&gameExeMountArchiveSGEReal))
+          return;
+      }
+    } else {
+      gameExeMpkMount = sigScan("game", "mpkMount");
+      gameExeMpkConstructor =
+          (MpkConstructorProc)sigScan("game", "mpkConstructor");
+    }
+  }
   gameExeGetFlag = (GetFlagProc)sigScan("game", "getFlag");
   gameExeSetFlag = (SetFlagProc)sigScan("game", "setFlag");
   gameExeChkViewDic = (ChkViewDicProc)sigScan("game", "chkViewDic");
@@ -395,9 +416,6 @@ void gameInit() {
   scanCreateEnableHook("game", "recreateDDSSurface",
                        (uintptr_t*)&gameExeGslDDSload,
                        (LPVOID)ReCreateLoadTextureDDS, NULL);
-
-  scanCreateEnableHook("game", "openMyGames", (uintptr_t*)&gameExeOpenMyGames,
-                       (LPVOID)openMyGamesHook, NULL);
 
   // TODO: fault tolerance - we don't need to call it quits entirely just
   // because one *feature* can't work
@@ -411,20 +429,24 @@ void gameInit() {
       !scanCreateEnableHook("game", "clibFopen", (uintptr_t*)&gameExeClibFopen,
                             (LPVOID)clibFopenHook,
                             (LPVOID*)&gameExeClibFopenReal))
-    return;
+
+    scanCreateEnableHook("game", "openMyGames", (uintptr_t*)&gameExeOpenMyGames,
+                         (LPVOID)openMyGamesHook, NULL);
 
   scanCreateEnableHook("game", "openFile", (uintptr_t*)&gameExeOpenFile,
                        (LPVOID)openFileHook, (LPVOID*)&gameExeOpenFileReal);
 
   memoryManagementInit();
-  scriptInit();
 
-  if (config["gamedef"]["gameDxVersion"].get<std::string>() == "dx9") {
-    gameExePMgsD3D9State =
-        *((MgsD3D9State**)sigScan("game", "useOfMgsD3D9State"));
-    gameExePpD3D9Ex = *((IDirect3D9Ex***)sigScan("game", "useOfD3D9Ex"));
-    gameExePPresentParameters =
-        *((D3DPRESENT_PARAMETERS**)sigScan("game", "useOfPresentParameters"));
+  if (lb::SurfaceWrapper::game != SGE) {
+    scriptInit();
+    if (config["gamedef"]["gameDxVersion"].get<std::string>() == "dx9") {
+      gameExePMgsD3D9State =
+          *((MgsD3D9State**)sigScan("game", "useOfMgsD3D9State"));
+      gameExePpD3D9Ex = *((IDirect3D9Ex***)sigScan("game", "useOfD3D9Ex"));
+      gameExePPresentParameters =
+          *((D3DPRESENT_PARAMETERS**)sigScan("game", "useOfPresentParameters"));
+    }
   }
 
   if (config["patch"]["textureFiltering"].get<bool>() == true) {
@@ -475,23 +497,23 @@ void gameInit() {
             (LPVOID)SNDgetPlayLevelHook, (LPVOID*)&gameExeSNDgetPlayLevelReal))
       return;
   }
+    gameExeScriptIdsToFileIds =
+        (int*)sigScan("game", "useOfScriptIdsToFileIds");
+    if (config["gamedef"]["signatures"]["game"].count("useOfAudioPlayers") == 1)
+      gameExeAudioPlayers = *(CPlayer**)sigScan("game", "useOfAudioPlayers");
+    if (config["gamedef"]["signatures"]["game"].count("useOfMpkObjects") == 1)
+      gameExeMpkObjects = (mpkObject*)sigScan("game", "useOfMpkObjects");
+    if (config["gamedef"]["signatures"]["game"].count("useOfFileObjects") == 1)
+      gameExeFileObjects = (mgsVFSObject*)sigScan("game", "useOfFileObjects");
 
-  gameExeScriptIdsToFileIds = (int*)sigScan("game", "useOfScriptIdsToFileIds");
-  if (config["gamedef"]["signatures"]["game"].count("useOfAudioPlayers") == 1)
-    gameExeAudioPlayers = *(CPlayer**)sigScan("game", "useOfAudioPlayers");
-  if (config["gamedef"]["signatures"]["game"].count("useOfMpkObjects") == 1)
-    gameExeMpkObjects = (mpkObject*)sigScan("game", "useOfMpkObjects");
-  if (config["gamedef"]["signatures"]["game"].count("useOfFileObjects") == 1)
-    gameExeFileObjects = (mgsVFSObject*)sigScan("game", "useOfFileObjects");
-
-  if (config["patch"].value<bool>("disableUnconfiguredControllers", true)) {
-    gameExeControllerGuid = sigScan("game", "useOfControllerGuid");
-    if (gameExeControllerGuid != NULL) {  // signatures present
-      scanCreateEnableHook(
-          "game", "PadUpdateDevice", (uintptr_t*)&gameExePadUpdateDevice,
-          (LPVOID)PadUpdateDeviceHook, (LPVOID*)&gameExePadUpdateDeviceReal);
+    if (config["patch"].value<bool>("disableUnconfiguredControllers", true)) {
+      gameExeControllerGuid = sigScan("game", "useOfControllerGuid");
+      if (gameExeControllerGuid != NULL) {  // signatures present
+        scanCreateEnableHook(
+            "game", "PadUpdateDevice", (uintptr_t*)&gameExePadUpdateDevice,
+            (LPVOID)PadUpdateDeviceHook, (LPVOID*)&gameExePadUpdateDeviceReal);
+      }
     }
-  }
 
   if (config["gamedef"].count("gameVideoMiddleware") &&
       config["gamedef"]["gameVideoMiddleware"].get<std::string>() == "cri") {
@@ -508,7 +530,7 @@ void gameInit() {
 
   if (config["patch"].value<bool>("enableDebugger", false)) {
     initScriptDebuggerHooks();
-}
+  }
 }
 
 // earlyInit is called after all the subsystems have been initialised but before
@@ -554,6 +576,14 @@ int __cdecl earlyInitHook(int unk0, int unk1) {
                      "mountArchiveRND") == 1) {
         gameExeMountArchiveRNDReal(C0DATA_MOUNT_ID, "languagebarrier\\c0data",
                                    0, 1, 0);
+      } else if (config["gamedef"]["signatures"]["game"].count(
+                     "mountArchiveSGE") == 1) {
+        C0DATA_MOUNT_ID++;
+        gameExeMountArchiveSGEReal(C0DATA_MOUNT_ID, "..\\languagebarrier\\c0data");
+        const int SGE_SCRIPT_ID = 3;
+        gameExeMountArchiveSGEReal(SGE_SCRIPT_ID,
+                                   "..\\languagebarrier\\enscript");
+
       }
       LanguageBarrierLog("c0data mounted");
 
@@ -708,6 +738,11 @@ std::string mountArchiveHookPart(const char* mountPoint) {
 
   return mountPoint;
 }
+
+int __fastcall mountArchiveHookSGE(int id, const char* archiveFile) {
+  return gameExeMountArchiveSGEReal(id, archiveFile);
+}
+
 
 int __cdecl mountArchiveHookRNE(int id, const char* mountPoint,
                                 const char* archiveName, int unk01) {

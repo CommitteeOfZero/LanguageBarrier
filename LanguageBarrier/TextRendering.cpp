@@ -53,10 +53,8 @@ TextRendering::TextRendering() {}
 
 void TextRendering::Init(void* widthData, void* widthData2,
                          FontDataLanguage language) {
-  auto charset = lb::config["patch"]["charset"].get<std::string>();
+  LoadCharset();
   this->fontPath = lb::config["patch"]["fontPath"].get<std::string>();
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  fullCharMap = converter.from_bytes(charset.c_str());
 
   currentCharMap = &fullCharMap;
   this->buildFont(32, true);
@@ -95,6 +93,14 @@ void TextRendering::Init(void* widthData, void* widthData2,
                       .get<uint16_t>()] =
       lb::config["patch"]["spaceWidthPixels"].get<uint16_t>();
   ;
+}
+
+void TextRendering::LoadCharset() {
+  if (lb::config["patch"].count("charset") > 0) {
+    auto charset = lb::config["patch"]["charset"].get<std::string>();
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    fullCharMap = converter.from_bytes(charset.c_str());
+  }
 }
 
 struct TextSize {
@@ -560,6 +566,7 @@ void TextRendering::RenderOutline(FontData* fontData, uint16_t n,
   FT_Done_Glyph(glyph);
 }
 FontData* TextRendering::getFont(int height, bool measure) {
+  if (!enabled) return nullptr;
   this->FONT_CELL_SIZE = height * 1.33;
   if (fontData.find(height) == fontData.end()) {
     fontData[height] = FontData();
