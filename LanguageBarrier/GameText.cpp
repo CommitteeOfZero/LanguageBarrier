@@ -2690,7 +2690,9 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
 
   if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
 
-    if (currentGame == SGMDE && lineLength == 252 && yOffset !=198) lineDisplayCount = 2;
+  // Fix mail receiver line being too long
+  if (currentGame == SGMDE && lineLength == 252 && yOffset != 198 && lineDisplayCount == 1) lineDisplayCount += 1;
+  // Fix body xOffset for Darling, for it to not be too far to the right
   if (xOffset == 913 && currentGame == SGMDE) xOffset -= 6;
 
 
@@ -2737,6 +2739,7 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
     int glyphYOffset = 0;
     char glyphChar = *currentChar;
 
+    //Fix timestamp offset for it to not be right next to the icon.
     if (xOffset == 931 && currentGame == SGMDE) xOffset += 8;
 
 
