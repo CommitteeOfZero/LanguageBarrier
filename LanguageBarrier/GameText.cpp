@@ -2734,7 +2734,9 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
 
   if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
 
-    if (currentGame == SGMDE && lineLength == 252 && yOffset !=198) lineDisplayCount = 2;
+  // Fix mail receiver line being too long
+  if (currentGame == SGMDE && lineLength == 252 && yOffset != 198 && lineDisplayCount == 1) lineDisplayCount += 1;
+  // Fix body xOffset for Darling, for it to not be too far to the right
   if (xOffset == 913 && currentGame == SGMDE) xOffset -= 6;
 
 
@@ -2761,101 +2763,114 @@ int __cdecl drawPhoneTextHook(int textureId, int xOffset, int yOffset,
   return min(lineDisplayCount, str.lines);
 }
 
-int __cdecl sgmdeDrawTextAsciiHook(int textureId,               // a1
-                                   int xOffset,                 // a2
-                                   int yOffset,                 // a3
-                                   char* asciiString,           // a4
-                                   int color,                   // a5
-                                   unsigned int lineLength,     // a6
-                                   unsigned int baseGlyphSize,  // a7
-                                   unsigned int maxChars)       // a8
-{
-  char* currentChar = asciiString;
-  unsigned int opacity = (maxChars <= 0xFF) ? maxChars : 255;
-  unsigned int processedChars = 0;
-  int characterIndex = 0;
-  int glyphYOffset = 0;
-  char glyphChar = *currentChar;
 
-  if (xOffset == 931 && currentGame == SGMDE) xOffset += 8;
 
-  auto* gameExeLookUpTable1 = gameExeLookUpTable + 1;
-  std::vector<char> sc3String;
-  for (characterIndex = 0; *currentChar;) {
-    if (processedChars >= lineLength) break;
+  int __cdecl sgmdeDrawTextAsciiHook(int textureId,               // a1
+                                     int xOffset,                 // a2
+                                     int yOffset,                 // a3
+                                     char* asciiString,           // a4
+                                     int color,                   // a5
+                                     unsigned int lineLength,  // a6
+                                     unsigned int baseGlyphSize,    // a7
+                                     unsigned int maxChars)       // a8
+  {
+    char* currentChar = asciiString;
+    unsigned int opacity = (maxChars <= 0xFF) ? maxChars : 255;
+    unsigned int processedChars = 0;
+    int characterIndex = 0;
+    int glyphYOffset = 0;
+    char glyphChar = *currentChar;
 
-    char lookupChar = gameExeLookUpTable[0];  // First lookup table char
-    unsigned int lookupIndex = 0;
-    unsigned int extraYOffset = 0;
+    //Fix timestamp offset for it to not be right next to the icon.
+    if (xOffset == 931 && currentGame == SGMDE) xOffset += 8;
 
-    if (!lookupChar) goto NoMatch;
 
-    // Search the character in lookup table
-    do {
-      if (lookupChar == glyphChar) break;
-      lookupChar = gameExeLookUpTable1[lookupIndex++];
-    } while (lookupChar);
+    auto * gameExeLookUpTable1 = gameExeLookUpTable+1;
+    std::vector<char> sc3String;
+    for (characterIndex = 0; *currentChar;) {
+      if (processedChars >= lineLength) break;
 
-    if (!lookupIndex) {
-    NoMatch:
-      lookupIndex = 66;  // fallback to index 66
-      extraYOffset = (15 * baseGlyphSize) >> 5;
+      char lookupChar = gameExeLookUpTable[0];  // First lookup table char
+      unsigned int lookupIndex = 0;
+      unsigned int extraYOffset = 0;
+
+      if (!lookupChar) goto NoMatch;
+
+      // Search the character in lookup table
+      do {
+        if (lookupChar == glyphChar) break;
+        lookupChar = gameExeLookUpTable1[lookupIndex++];
+      } while (lookupChar);
+
+      if (!lookupIndex) {
+      NoMatch:
+        lookupIndex = 66;  // fallback to index 66
+        extraYOffset = (15 * baseGlyphSize) >> 5;
+      }
+
+      unsigned int clampedIndex = (lookupIndex <= 0x54) ? lookupIndex : 0;
+
+
+
+      unsigned __int8 glyphWidth = (textureId == 79)
+                                       ? gameExeGlyphWidthsFont1[clampedIndex]
+                                       : gameExeGlyphWidthsFont2[clampedIndex];
+      float glyphWidthScaled = (float)glyphWidth * 1.5f;
+
+      float scaledStartX = (float)xOffset * 1.5f;
+      float scaledStartY = (float)yOffset * 1.5f;
+      float scaledEndX = (float)(((16 * baseGlyphSize) >> 5) + xOffset) * 1.5f;
+      float scaledEndY = (float)(baseGlyphSize + extraYOffset + yOffset) * 1.5f;
+
+      //gameExeDrawGlyph(textureId, (float)glyphXInTexture * 1.5f,
+      //          (float)(glyphYOffset + 1) * 1.5f, glyphWidthScaled, 45.0f,
+      //          scaledStartX, scaledStartY, scaledEndX, scaledEndY, color,
+      //          opacity);
+
+      processedChars = characterIndex + 1;
+      currentChar++;
+      glyphChar = *currentChar;
+      ++characterIndex;
+      sc3String.push_back(0x80);
+      sc3String.push_back(clampedIndex);
+
     }
 
-    unsigned int clampedIndex = (lookupIndex <= 0x54) ? lookupIndex : 0;
+      ProcessedSc3String_t str;
 
-    unsigned __int8 glyphWidth = (textureId == 79)
-                                     ? gameExeGlyphWidthsFont1[clampedIndex]
-                                     : gameExeGlyphWidthsFont2[clampedIndex];
-    float glyphWidthScaled = (float)glyphWidth * 1.5f;
+      int lineDisplayCount = 1;
+      int lineSkipCount = 0;
 
-    float scaledStartX = (float)xOffset * 1.5f;
-    float scaledStartY = (float)yOffset * 1.5f;
-    float scaledEndX = (float)(((16 * baseGlyphSize) >> 5) + xOffset) * 1.5f;
-    float scaledEndY = (float)(baseGlyphSize + extraYOffset + yOffset) * 1.5f;
+    if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
 
-    // gameExeDrawGlyph(textureId, (float)glyphXInTexture * 1.5f,
-    //           (float)(glyphYOffset + 1) * 1.5f, glyphWidthScaled, 45.0f,
-    //           scaledStartX, scaledStartY, scaledEndX, scaledEndY, color,
-    //           opacity);
+    if (currentGame == SGMDE && lineLength == 252) lineDisplayCount = 2;
+    sc3String.push_back(0xFF);
+    sc3String.push_back(0xFF);
+    std::list<StringWord_t> words;
+    semiTokeniseSc3String(sc3String.data(), words, baseGlyphSize, lineLength);
+    processSc3TokenList(xOffset, yOffset, lineLength, words, lineSkipCount,
+                        color, baseGlyphSize, &str, true, COORDS_MULTIPLIER, -1,
+                        NOT_A_LINK, color, baseGlyphSize, nullptr);
+    processSc3TokenList(xOffset, yOffset, lineLength, words, lineDisplayCount,
+                        color, baseGlyphSize, &str, false, COORDS_MULTIPLIER,
+                        str.linkCount - 1, str.curLinkNumber, str.curColor,
+                        baseGlyphSize, nullptr);
+    for (int i = 0; i < str.length; i++) {
+      gameExeDrawGlyph(textureId, str.textureStartX[i], str.textureStartY[i],
+                       str.textureWidth[i], str.textureHeight[i],
+                       str.displayStartX[i], str.displayStartY[i],
+                       str.displayEndX[i], str.displayEndY[i], str.color[i],
+                       opacity);
+    }
 
-    processedChars = characterIndex + 1;
-    currentChar++;
-    glyphChar = *currentChar;
-    ++characterIndex;
-    sc3String.push_back(0x80);
-    sc3String.push_back(clampedIndex);
+
+    return (baseGlyphSize >> 1);
   }
 
-  ProcessedSc3String_t str;
 
-  int lineDisplayCount = 1;
-  int lineSkipCount = 0;
 
-  if (!lineLength) lineLength = DEFAULT_LINE_LENGTH;
 
-  if (currentGame == SGMDE && lineLength == 252) lineDisplayCount = 2;
-  sc3String.push_back(0xFF);
-  sc3String.push_back(0xFF);
-  std::list<StringWord_t> words;
-  semiTokeniseSc3String(sc3String.data(), words, baseGlyphSize, lineLength);
-  processSc3TokenList(xOffset, yOffset, lineLength, words, lineSkipCount, color,
-                      baseGlyphSize, &str, true, COORDS_MULTIPLIER, -1,
-                      NOT_A_LINK, color, baseGlyphSize, nullptr);
-  processSc3TokenList(xOffset, yOffset, lineLength, words, lineDisplayCount,
-                      color, baseGlyphSize, &str, false, COORDS_MULTIPLIER,
-                      str.linkCount - 1, str.curLinkNumber, str.curColor,
-                      baseGlyphSize, nullptr);
-  for (int i = 0; i < str.length; i++) {
-    gameExeDrawGlyph(textureId, str.textureStartX[i], str.textureStartY[i],
-                     str.textureWidth[i], str.textureHeight[i],
-                     str.displayStartX[i], str.displayStartY[i],
-                     str.displayEndX[i], str.displayEndY[i], str.color[i],
-                     opacity);
-  }
 
-  return (baseGlyphSize >> 1);
-}
 
 signed int drawSingleTextLineHook(int textureId, int startX, signed int startY,
                                   unsigned int a4, char* string,
