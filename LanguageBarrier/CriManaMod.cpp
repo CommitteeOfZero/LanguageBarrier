@@ -108,14 +108,14 @@ typedef struct {
   CriManaFrameInfo criManaFrameInfo;
 } MgsMoviePlayerRNDObj_t;
 
-typedef struct {
+ struct CriManaModState_t {
   uint32_t lastFrameNum = 0;
   bool keepLastFrame = false;
   double time = 0;
   ID3D11Texture2D* stagingTexture = NULL;
   IDirect3DTexture9* stagingTexture9;
   csri_inst* csri = NULL;
-} CriManaModState_t;
+} ;
 
 static std::unordered_map<void*, CriManaModState_t*> stateMap;
 

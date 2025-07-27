@@ -101,6 +101,10 @@ void __cdecl sgpDrawMailTextContentHook(int startX, int startY, char* sc3String,
                                         unsigned int lineLength, int opacity,
                                         int a6, int a7);
 
+int __cdecl drawMdeHook(int a1, int a2, int a3, int a4, int a5, float a6,
+                        float a7, float a8, float a9, int a10, int a11,
+                        int a12);
+
 
 int __cdecl sgmdeDrawTextAsciiHook(int textureId,               // a1
                                           int xOffset,                 // a2
@@ -113,3 +117,5 @@ int __cdecl sgmdeDrawTextAsciiHook(int textureId,               // a1
 }  // namespace lb
 
 #endif  // !__GAMETEXT_H__
+
+void helpDispAlphaFixHook(int a1);

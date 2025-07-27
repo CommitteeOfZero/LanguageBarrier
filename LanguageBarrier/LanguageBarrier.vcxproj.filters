@@ -78,6 +78,18 @@
     <ClInclude Include="ScriptDebuggerHooks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Hooking.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NewHooks.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HookTypes.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LanguageBarrier.cpp">
@@ -141,6 +153,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Condition="'$(Configuration)'=='cryptbase-Debug' Or '$(Configuration)'=='cryptbase-Release'" Include="cryptbase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="NewHooks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

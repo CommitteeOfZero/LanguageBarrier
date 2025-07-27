@@ -13,15 +13,15 @@ enum class text_command_type {
   extra_word,
   expr,
 };
-typedef struct {
+struct TextReplacement_t {
   std::string From;
   std::string To;
   std::set<std::pair<int, int>> Excludes;
-} TextReplacement_t;
-typedef struct {
+} ;
+struct ProcessedString_t {
   std::string replaced;
   bool useOriginal = false;
-} ProcessedString_t;
+} ;
 
 class LazyAllocatingProcessedString {
   ProcessedString_t& result;

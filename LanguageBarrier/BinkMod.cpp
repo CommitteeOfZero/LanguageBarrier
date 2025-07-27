@@ -273,7 +273,7 @@ bool operator<(const BinkPartialRedirect_t& left,
   return left.startFrame < right.startFrame;
 }
 
-typedef struct {
+ struct BinkModState_t {
   void* framebuffer = NULL;
   uint32_t destwidth = 0;
   uint32_t destheight = 0;
@@ -283,7 +283,7 @@ typedef struct {
   size_t currentPartialRedirectPos = 0;
   BINK* nowRedirected = NULL;
   uint32_t redirectKeyFrame = 0;
-} BinkModState_t;
+} ;
 
 static std::unordered_map<BINK*, BinkModState_t*> stateMap;
 
