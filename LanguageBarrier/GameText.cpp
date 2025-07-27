@@ -429,7 +429,7 @@ extern "C" void GetOriginalAddress() {
 
 __declspec(naked) void helpDispAlphaFixHook(int a1) {
   __asm {
-        
+        push eax
         mov eax, [ebp+8]
         cmp eax,0
         je alpha_value_done  // Don't do anything if we come from F1 key 
