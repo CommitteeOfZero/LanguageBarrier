@@ -223,7 +223,7 @@ struct SurfaceWrapper {
   static lb::GameID game;
 
   static void* ptr(void* surfaceArray, int id) {
-    if (!game) {
+    if (game == RNE) {
       SurfaceStructRN* surfaceArrayRN = (SurfaceStructRN*)surfaceArray;
       return &surfaceArrayRN[id];
     } else {
@@ -233,7 +233,8 @@ struct SurfaceWrapper {
   };
 
   static ID3D11Texture2D* getTexPtr(void* surfaceArray, int id, int subindex) {
-    if (!game) {
+    
+    if (game == RNE) {
       SurfaceStructRN* surfaceArrayRN = (SurfaceStructRN*)surfaceArray;
       return surfaceArrayRN[id].texPtr[subindex];
     } else if (game == RND){
@@ -246,7 +247,7 @@ struct SurfaceWrapper {
   }
 
   static int width(void* surfaceArray, int id) {
-    if (!game) {
+    if (game == RNE) {
       SurfaceStructRN* surfaceArrayRN = (SurfaceStructRN*)surfaceArray;
       return surfaceArrayRN[id].width;
     } else {
@@ -256,7 +257,7 @@ struct SurfaceWrapper {
   }
 
   static void setHeight(void* surfaceArray, int id, int height) {
-    if (!game) {
+    if (game == RNE) {
       SurfaceStructRN* surfaceArrayRN = (SurfaceStructRN*)surfaceArray;
       surfaceArrayRN[id].height = height;
     } else {
@@ -266,7 +267,7 @@ struct SurfaceWrapper {
   }
 
   static void setWidth(void* surfaceArray, int id, int width) {
-    if (!game) {
+    if (game == RNE) {
       SurfaceStructRN* surfaceArrayRN = (SurfaceStructRN*)surfaceArray;
       surfaceArrayRN[id].width = width;
     } else {
@@ -275,7 +276,7 @@ struct SurfaceWrapper {
     }
   }
   static void setField_40(void* surfaceArray, int id, int field_40) {
-    if (!game) {
+    if (game == RNE) {
       SurfaceStructRN* surfaceArrayRN = (SurfaceStructRN*)surfaceArray;
       surfaceArrayRN[id].field_40 = field_40;
     } else {
@@ -284,7 +285,7 @@ struct SurfaceWrapper {
     }
   }
   static void setField_44(void* surfaceArray, int id, int field_44) {
-    if (!game) {
+    if (game == RNE) {
       SurfaceStructRN* surfaceArrayRN = (SurfaceStructRN*)surfaceArray;
       surfaceArrayRN[id].field_44 = field_44;
     } else {
@@ -294,7 +295,7 @@ struct SurfaceWrapper {
   }
   static void setShaderRscView(void* surfaceArray, int id,
                                ID3D11ShaderResourceView* rscView) {
-    if (!game) {
+    if (game == RNE) {
       SurfaceStructRN* surfaceArrayRN = (SurfaceStructRN*)surfaceArray;
       surfaceArrayRN[id].shaderRscView = rscView;
     } else {
@@ -304,7 +305,7 @@ struct SurfaceWrapper {
   }
   static void setTexPtr(void* surfaceArray, int id, int subIndex,
                         ID3D11Texture2D* texPtr) {
-    if (!game) {
+    if (game == RNE) {
       SurfaceStructRN* surfaceArrayRN = (SurfaceStructRN*)surfaceArray;
       surfaceArrayRN[id].texPtr[subIndex] = texPtr;
     } else {
@@ -313,7 +314,7 @@ struct SurfaceWrapper {
     }
   }
   static int height(void* surfaceArray, int id) {
-    if (!game) {
+    if (game == RNE) {
       SurfaceStructRN* surfaceArrayRN = (SurfaceStructRN*)surfaceArray;
       return surfaceArrayRN[id].height;
     } else {

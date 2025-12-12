@@ -212,8 +212,30 @@ typedef unsigned int(__cdecl* Sg0DrawGlyph3Proc)(
     int textureId, int maskTextureId, float textureStartX, float textureStartY,
     float textureSizeX, float textureSizeY, float startPosX, float startPosY,
     float EndPosX, float EndPosY, int color, int opacity);
+
+using Sg0DrawGlyph3_Int_t = unsigned int(__cdecl*)(
+    int textureId, int maskTextureId, int textureStartX, int textureStartY,
+    int textureSizeX, int textureSizeY, int startPosX, int startPosY,
+    int endPosX, int endPosY, int color, int opacity);
+
+using Sg0DrawGlyph3_Float_t = unsigned int(__cdecl*)(
+    int textureId, int maskTextureId, float textureStartX, float textureStartY,
+    float textureSizeX, float textureSizeY, float startPosX, float startPosY,
+    float endPosX, float endPosY, int color, int opacity);
 static Sg0DrawGlyph3Proc gameExeSg0DrawGlyph3 = NULL;
 static Sg0DrawGlyph3Proc gameExeSg0DrawGlyph3Real = NULL;
+
+
+
+static Sg0DrawGlyph3_Int_t gameExeSg0DrawGlyph3_Int_Real = nullptr;
+static Sg0DrawGlyph3_Float_t gameExeSg0DrawGlyph3_Float_Real = nullptr;
+
+
+
+static Sg0DrawGlyph3_Int_t gameExeSg0DrawGlyph3_Int = nullptr;
+static Sg0DrawGlyph3_Float_t gameExeSg0DrawGlyph3_Float = nullptr;
+
+
 
 typedef unsigned int(__cdecl* DrawSpriteMaskInternalProc)(float* a1, int a2,
                                                           float* a3, float* a4,
@@ -627,6 +649,18 @@ unsigned int __cdecl sg0DrawGlyph2Hook(int textureId, int a2,
 unsigned int sg0DrawGlyph3Hook(int textureId, int a2, float a3, float a4,
                                float a5, float a6, float a7, float a8, float a9,
                                float a10, int a11, int a12);
+unsigned int sg0DrawGlyph3HookFloat(int textureId, int maskTextureId,
+                                    float textureStartX, float textureStartY,
+                                    float textureSizeX, float textureSizeY,
+                                    float startPosX, float startPosY,
+                                    float EndPosX, float EndPosY, int color,
+                                    int opacity);
+unsigned int sg0DrawGlyph3HookInt(int textureId, int maskTextureId,
+                                  int textureStartX, int textureStartY,
+                                  int textureSizeX, int textureSizeY,
+                                  int startPosX, int startPosY, int EndPosX,
+                                  int EndPosY, int color, int opacity); 
+
 int __cdecl setTipContentHook(char* sc3string);
 void __cdecl drawTipContentHook(int textureId, int maskId, int startX,
                                 int startY, int maskStartY, int maskHeight,
@@ -807,9 +841,18 @@ void gameTextInit() {
         "game", "sg0DrawGlyph2", (uintptr_t*)&gameExeSg0DrawGlyph2,
         (LPVOID)sg0DrawGlyph2Hook, (LPVOID*)&gameExeSg0DrawGlyph2Real);
 
-    scanCreateEnableHook(
-        "game", "sg0DrawGlyph3", (uintptr_t*)&gameExeSg0DrawGlyph3,
-        (LPVOID)sg0DrawGlyph3Hook, (LPVOID*)&gameExeSg0DrawGlyph3Real);
+    if (currentGame == SGE || currentGame == SGLBP) {
+      scanCreateEnableHook(
+          "game", "sg0DrawGlyph3", (uintptr_t*)&gameExeSg0DrawGlyph3_Float,
+                           (LPVOID)sg0DrawGlyph3HookFloat,
+                           (LPVOID*)&gameExeSg0DrawGlyph3_Float_Real);
+    } else {
+      scanCreateEnableHook("game", "sg0DrawGlyph3",
+                           (uintptr_t*)&gameExeSg0DrawGlyph3_Int,
+                           (LPVOID)sg0DrawGlyph3HookInt,
+                           (LPVOID*)&gameExeSg0DrawGlyph3_Int_Real);
+    }
+
     GameExeDrawSpriteMaskInternal =
         (DrawSpriteMaskInternalProc)sigScan("game", "drawSpriteMaskInternal");
     GameExeGetShader = (GetShaderProc)sigScan("game", "getShader");
@@ -3127,7 +3170,7 @@ int rnDrawGlyphHook(int textureId, float glyphInTextureStartX,
       displayEndX, displayEndY, color, opacity);
 }
 
-int __cdecl rnDrawTextHook(signed int textureId, int xOffset, signed int startY,
+int __cdecl rnDrawTextHook(signed int textureId, int a2, signed int startY,
                            unsigned int lineSize, uint8_t* sc3,
                            signed int startX, int color, int height,
                            int opacity) {
@@ -3166,7 +3209,7 @@ int __cdecl rnDrawTextHook(signed int textureId, int xOffset, signed int startY,
     mData.displayYOffset = -6.0f * glyphSize / 48.0f;
     if (lineSize == 0) lineSize = 10000;
 
-    processSc3TokenList(xOffset, startY, lineSize * 2.5f, words, 1, color,
+    processSc3TokenList(a2, startY, lineSize * 2.5f, words, 1, color,
                         glyphSize, &str, false, COORDS_MULTIPLIER, 0, 0, color,
                         glyphSize, &mData);
 
@@ -3232,7 +3275,7 @@ int __cdecl rnDrawTextHook(signed int textureId, int xOffset, signed int startY,
 
             }*/
   } else {
-    rnDrawTextReal(textureId, xOffset, startY, lineSize, sc3, startX, color,
+    rnDrawTextReal(textureId, a2, startY, lineSize, sc3, startX, color,
                    height, opacity);
   }
   return 1;
@@ -3287,18 +3330,46 @@ unsigned int sg0DrawGlyph2Hook(int textureId, int a2,
   }
 }
 
-unsigned int sg0DrawGlyph3Hook(int textureId, int maskTextureId,
-                               float textureStartX, float textureStartY,
-                               float textureSizeX, float textureSizeY,
-                               float startPosX, float startPosY, float EndPosX,
-                               float EndPosY, int color, int opacity) {
-  return gameExeSg0DrawGlyph3Real(
+
+
+unsigned int sg0DrawGlyph3HookInt(int textureId, int maskTextureId,
+                                    int textureStartX, int textureStartY,
+                                    int textureSizeX, int textureSizeY,
+                                    int startPosX, int startPosY, int EndPosX,
+                                    int EndPosY, int color,
+                                    int opacity) {
+  return gameExeSg0DrawGlyph3_Int_Real(
       textureId, maskTextureId, textureStartX, textureStartY, textureSizeX,
       textureSizeY, startPosX, startPosY, EndPosX, EndPosY, color, opacity);
 }
 
+unsigned int sg0DrawGlyph3HookFloat(int textureId, int maskTextureId,
+                               float textureStartX, float textureStartY,
+                               float textureSizeX, float textureSizeY,
+                               float startPosX, float startPosY, float EndPosX,
+                               float EndPosY, int color, int opacity) {
+  return gameExeSg0DrawGlyph3_Float_Real(
+      textureId, maskTextureId, textureStartX, textureStartY, textureSizeX,
+      textureSizeY, startPosX, startPosY, EndPosX, EndPosY, color, opacity);
+}
+
+unsigned int sg0DrawGlyph3Hook(int textureId, int maskTextureId, float tx,
+                               float ty, float tw, float th, float sx, float sy,
+                               float ex, float ey, int color, int opacity) {
+  if (currentGame == SGLBP || currentGame == SGE) {
+    return gameExeSg0DrawGlyph3_Float_Real(textureId, maskTextureId, tx, ty, tw,
+                                           th, sx, sy, ex, ey, color, opacity);
+  } else {
+    return gameExeSg0DrawGlyph3_Int_Real(
+        textureId, maskTextureId, (int)tx, (int)ty, (int)tw, (int)th, (int)sx,
+        (int)sy, (int)ex, (int)ey, color, opacity);
+  }
+}
+
+
+
 int setTipContentHook(char* sc3string) {
-  if (TextRendering::Get().enabled && currentGame != SGLBP)
+  if (!TextRendering::Get().enabled && currentGame != SGLBP)
     return gameExeSetTipContentReal(sc3string);
   tipContent = sc3string;
   ProcessedSc3String_t str;
@@ -3473,9 +3544,7 @@ void drawTipContentHook(int textureId, int maskId, int startX, int startY,
   int dummy1;
   int dummy2;
   char name[256];
-  gameExeDrawTipContentReal(textureId, maskId, startX, startY, maskStartY,
-                            maskHeight, a7, color, shadowColor, opacity);
-  return;
+
   if (!TextRendering::Get().enabled && currentGame != SGLBP) {
     gameExeDrawTipContentReal(textureId, maskId, startX, startY, maskStartY,
                               maskHeight, a7, color, shadowColor, opacity);

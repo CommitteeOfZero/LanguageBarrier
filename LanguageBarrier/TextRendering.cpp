@@ -80,6 +80,7 @@ void TextRendering::Init(void* widthData, void* widthData2,
   this->widthData = (uint8_t*)widthData;
   this->widthData2 = (uint8_t*)widthData2;
   this->getFont(32, true);
+
   for (int i = 0; i < 351; i++) {
     newWidth[i] =
         this->getFont(32, true)->getGlyphInfo(i, FontType::Regular)->advance;
@@ -566,7 +567,6 @@ void TextRendering::RenderOutline(FontData* fontData, uint16_t n,
   FT_Done_Glyph(glyph);
 }
 FontData* TextRendering::getFont(int height, bool measure) {
-  if (!enabled) return nullptr;
   this->FONT_CELL_SIZE = height * 1.33;
   if (fontData.find(height) == fontData.end()) {
     fontData[height] = FontData();

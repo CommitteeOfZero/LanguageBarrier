@@ -283,6 +283,7 @@ endlocal</Command>
       <Optimization>MaxSpeed</Optimization>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
