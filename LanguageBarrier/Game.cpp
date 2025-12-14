@@ -515,12 +515,7 @@ void gameInit() {
       }
     }
 
-  if (config["gamedef"].count("gameVideoMiddleware") &&
-      config["gamedef"]["gameVideoMiddleware"].get<std::string>() == "cri") {
-    criManaModInit();
-  } else {
-    binkModInit();
-  }
+  
 
   if (config["patch"].count("overrideAreaParams")) {
     scanCreateEnableHook(
