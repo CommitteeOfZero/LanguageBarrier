@@ -833,6 +833,13 @@ void gameTextInit() {
     scanCreateEnableHook(
         "game", "sg0DrawGlyph2", (uintptr_t*)&gameExeSg0DrawGlyph2,
         (LPVOID)sg0DrawGlyph2Hook, (LPVOID*)&gameExeSg0DrawGlyph2Real);
+     
+      scanCreateEnableHook("game", "sg0DrawGlyph3",
+                           (uintptr_t*)&gameExeSg0DrawGlyph3_Int,
+                           (LPVOID)sg0DrawGlyph3HookInt,
+                           (LPVOID*)&gameExeSg0DrawGlyph3_Int_Real);
+    
+
   } else if (config["gamedef"]["drawGlyphVersion"].get<std::string>() == "rn") {
     scanCreateEnableHook("game", "drawGlyph", (uintptr_t*)&gameExeDrawGlyph,
                          (LPVOID)rnDrawGlyphHook,
@@ -841,17 +848,7 @@ void gameTextInit() {
         "game", "sg0DrawGlyph2", (uintptr_t*)&gameExeSg0DrawGlyph2,
         (LPVOID)sg0DrawGlyph2Hook, (LPVOID*)&gameExeSg0DrawGlyph2Real);
 
-    if (currentGame == SGE || currentGame == SGLBP) {
-      scanCreateEnableHook(
-          "game", "sg0DrawGlyph3", (uintptr_t*)&gameExeSg0DrawGlyph3_Float,
-                           (LPVOID)sg0DrawGlyph3HookFloat,
-                           (LPVOID*)&gameExeSg0DrawGlyph3_Float_Real);
-    } else {
-      scanCreateEnableHook("game", "sg0DrawGlyph3",
-                           (uintptr_t*)&gameExeSg0DrawGlyph3_Int,
-                           (LPVOID)sg0DrawGlyph3HookInt,
-                           (LPVOID*)&gameExeSg0DrawGlyph3_Int_Real);
-    }
+
 
     GameExeDrawSpriteMaskInternal =
         (DrawSpriteMaskInternalProc)sigScan("game", "drawSpriteMaskInternal");
@@ -872,6 +869,18 @@ void gameTextInit() {
       if (currentGame != SGMDE) currentGame = SGLBP;
       gameExeDrawLbpGlyphMask =
           (DrawLbpGlyphMaskProc)sigScan("game", "lbpDrawGlyph2");
+    }
+
+        if (currentGame == SGE || currentGame == SGLBP) {
+      scanCreateEnableHook("game", "sg0DrawGlyph3",
+                           (uintptr_t*)&gameExeSg0DrawGlyph3_Float,
+                           (LPVOID)sg0DrawGlyph3HookFloat,
+                           (LPVOID*)&gameExeSg0DrawGlyph3_Float_Real);
+    } else {
+      scanCreateEnableHook("game", "sg0DrawGlyph3",
+                           (uintptr_t*)&gameExeSg0DrawGlyph3_Int,
+                           (LPVOID)sg0DrawGlyph3HookInt,
+                           (LPVOID*)&gameExeSg0DrawGlyph3_Int_Real);
     }
 
     scanCreateEnableHook(
