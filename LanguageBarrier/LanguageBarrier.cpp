@@ -9,6 +9,8 @@
 #include "Script.h"
 #include "SigScan.h"
 #include <iomanip>
+#include "Hooking.h"
+#include "Utils.h"
 namespace lb {
 
 bool IsConfigured = false;
@@ -173,8 +175,11 @@ void loadJsonConstants() {
       config["gamedef"]["glyphIdFullwidthSpace"].get<uint16_t>();
   GLYPH_ID_HALFWIDTH_SPACE =
       config["gamedef"]["glyphIdHalfwidthSpace"].get<uint16_t>();
+
+  GLYPH_ID_DOT = config["gamedef"].value("glyphIdDot", 0);
   NEEDS_CLEARLIST_TEXT_POSITION_ADJUST =
-      config["gamedef"]["needsClearlistTextPositionAdjust"].get<bool>();
+      config["gamedef"]["needsClearlistTextPositionAdjust"].get<bool>()
+      ;
   if (config["gamedef"].count("needsCcBacklogNamePosAdjust") == 1) {
     NEEDS_CC_BACKLOG_NAME_POS_ADJUST =
         config["gamedef"]["needsCcBacklogNamePosAdjust"].get<bool>();
@@ -276,8 +281,15 @@ void LanguageBarrierLog(const std::string &text) {
   logFile << std::put_time(std::gmtime(&t), "[%D %r] ");
   logFile << text << std::endl;
 }
-bool scanCreateEnableHook(char *category, char *name, uintptr_t *ppTarget,
+bool scanCreateEnableHook(const char *category, const char *name, uintptr_t *ppTarget,
                           LPVOID pDetour, LPVOID *ppOriginal) {
+
+    if (HookManager::instance().isHookManaged(name)) {
+    return true;
+  }
+    
+
+
   *ppTarget = sigScan(category, name);
   if (*ppTarget == NULL) return false;
 
@@ -313,7 +325,7 @@ bool createEnableApiHook(LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour,
       MH_CreateHookApiEx(pszModule, pszProcName, pDetour, ppOriginal, &pTarget);
   if (mhStatus != MH_OK) {
     std::stringstream logstr;
-    logstr << "Failed to create API hook " << pszModule << "." << pszProcName
+    logstr << "Failed to create API hook " << WideToUtf8(pszModule) << "." << pszProcName
            << ": " << MH_StatusToString(mhStatus);
     LanguageBarrierLog(logstr.str());
     return false;
@@ -321,14 +333,15 @@ bool createEnableApiHook(LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour,
   mhStatus = MH_EnableHook(pTarget);
   if (mhStatus != MH_OK) {
     std::stringstream logstr;
-    logstr << "Failed to enable API hook " << pszModule << "." << pszProcName
+    logstr << "Failed to enable API hook " << WideToUtf8(pszModule) << "."
+           << pszProcName
            << ": " << MH_StatusToString(mhStatus);
     LanguageBarrierLog(logstr.str());
     return false;
   }
 
   std::stringstream logstr;
-  logstr << "Successfully hooked " << pszModule << "." << pszProcName;
+  logstr << "Successfully hooked " << WideToUtf8(pszModule) << "." << pszProcName;
   LanguageBarrierLog(logstr.str());
 
   return true;

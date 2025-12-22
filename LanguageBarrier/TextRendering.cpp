@@ -53,10 +53,8 @@ TextRendering::TextRendering() {}
 
 void TextRendering::Init(void* widthData, void* widthData2,
                          FontDataLanguage language) {
-  auto charset = lb::config["patch"]["charset"].get<std::string>();
+  LoadCharset();
   this->fontPath = lb::config["patch"]["fontPath"].get<std::string>();
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  fullCharMap = converter.from_bytes(charset.c_str());
 
   currentCharMap = &fullCharMap;
   this->buildFont(32, true);
@@ -82,6 +80,7 @@ void TextRendering::Init(void* widthData, void* widthData2,
   this->widthData = (uint8_t*)widthData;
   this->widthData2 = (uint8_t*)widthData2;
   this->getFont(32, true);
+
   for (int i = 0; i < 351; i++) {
     newWidth[i] =
         this->getFont(32, true)->getGlyphInfo(i, FontType::Regular)->advance;
@@ -95,6 +94,14 @@ void TextRendering::Init(void* widthData, void* widthData2,
                       .get<uint16_t>()] =
       lb::config["patch"]["spaceWidthPixels"].get<uint16_t>();
   ;
+}
+
+void TextRendering::LoadCharset() {
+  if (lb::config["patch"].count("charset") > 0) {
+    auto charset = lb::config["patch"]["charset"].get<std::string>();
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    fullCharMap = converter.from_bytes(charset.c_str());
+  }
 }
 
 struct TextSize {

@@ -150,6 +150,7 @@ struct TextRendering {
   uint8_t* widthData;
   uint8_t* widthData2;
   void Init(void* widthData, void* widthData2, FontDataLanguage language);
+  void LoadCharset();
   void buildFont(int fontSize, bool measure);
 
   void initFT(int fontSize);

@@ -41,7 +41,7 @@ std::wstring GetGameDirectoryPath();
 
 void LanguageBarrierInit();
 void LanguageBarrierLog(const std::string &text);
-bool scanCreateEnableHook(char *category, char *name, uintptr_t *ppTarget,
+bool scanCreateEnableHook(const char *category, const char *name, uintptr_t *ppTarget,
                           LPVOID pDetour, LPVOID *ppOriginal);
 bool createEnableApiHook(LPCWSTR pszModule, LPCSTR pszProcName, LPVOID pDetour,
                          LPVOID *ppOriginal);
