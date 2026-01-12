@@ -115,6 +115,14 @@ void loadJsonConstants() {
   // GameText.h
   FIRST_FONT_ID = config["gamedef"]["firstFontId"].get<uint8_t>();
   COORDS_MULTIPLIER = config["gamedef"]["coordsMultiplier"].get<float>();
+  FONT_X_OFFSET = 0.0f;
+  if (config["gamedef"].count("fontXOffset") == 1) {
+    FONT_X_OFFSET = config["gamedef"]["fontXOffset"].get<float>();
+  }
+  FONT_Y_OFFSET = 0.0f;
+  if (config["gamedef"].count("fontYOffset") == 1) {
+    FONT_Y_OFFSET = config["gamedef"]["fontYOffset"].get<float>();
+  }
   FONT_CELL_WIDTH = config["gamedef"]["fontCellWidth"].get<uint8_t>();
   FONT_CELL_HEIGHT = config["gamedef"]["fontCellHeight"].get<uint8_t>();
   FONT_ROW_LENGTH = config["gamedef"]["fontRowLength"].get<uint8_t>();

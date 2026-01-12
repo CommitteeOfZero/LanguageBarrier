@@ -2539,9 +2539,9 @@ float addCharacter(ProcessedSc3String_t* result, int baseGlyphSize, int glyphId,
       result->linkNumber[i] = curLinkNumber;
       result->glyph[i] = glyphId;
       result->textureStartX[i] =
-          FONT_CELL_WIDTH * multiplier * (glyphId % FONT_ROW_LENGTH);
+          FONT_CELL_WIDTH * multiplier * (glyphId % FONT_ROW_LENGTH) + FONT_X_OFFSET;
       result->textureStartY[i] =
-          FONT_CELL_HEIGHT * multiplier * (glyphId / FONT_ROW_LENGTH);
+          FONT_CELL_HEIGHT * multiplier * (glyphId / FONT_ROW_LENGTH) + FONT_Y_OFFSET;
       result->textureWidth[i] = widths[glyphId] * multiplier;
       result->textureHeight[i] = FONT_CELL_HEIGHT * multiplier;
       result->displayStartX[i] =
@@ -2735,9 +2735,9 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
               result->glyph[i] = glyphId;
 
               result->textureStartX[i] =
-                  FONT_CELL_WIDTH * multiplier * (glyphId % FONT_ROW_LENGTH);
+                  FONT_CELL_WIDTH * multiplier * (glyphId % FONT_ROW_LENGTH) + FONT_X_OFFSET;
               result->textureStartY[i] =
-                  FONT_CELL_HEIGHT * multiplier * (glyphId / FONT_ROW_LENGTH);
+                  FONT_CELL_HEIGHT * multiplier * (glyphId / FONT_ROW_LENGTH) + FONT_Y_OFFSET;
               result->textureWidth[i] = widths[glyphId] * multiplier;
               result->textureHeight[i] = FONT_CELL_HEIGHT * multiplier;
               result->displayStartX[i] =
@@ -3135,12 +3135,7 @@ int sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
                      float glyphInTextureHeight, float displayStartX,
                      float displayStartY, float displayEndX, float displayEndY,
                      int color, uint32_t opacity) {
-  if (!HAS_SPLIT_FONT) {
-    if (glyphInTextureStartY > 4080.0) {
-      glyphInTextureStartY += 4080.0;
-      --textureId;
-    }
-  } else if (textureId == OUTLINE_TEXTURE_ID) {
+ if (textureId == OUTLINE_TEXTURE_ID) {
     float origStartY = glyphInTextureStartY;
     // undo the game's splitting
     if (glyphInTextureStartY > 4080.0) {
@@ -3155,8 +3150,9 @@ int sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
   }
 
   return gameExeDrawGlyphReal(
-      textureId, glyphInTextureStartX, glyphInTextureStartY,
-      glyphInTextureWidth, glyphInTextureHeight, displayStartX, displayStartY,
+      textureId, glyphInTextureStartX + FONT_X_OFFSET,
+      glyphInTextureStartY + FONT_Y_OFFSET, glyphInTextureWidth,
+      glyphInTextureHeight, displayStartX, displayStartY,
       displayEndX, displayEndY, color, opacity);
 }
 
@@ -3365,6 +3361,9 @@ unsigned int sg0DrawGlyph3HookFloat(int textureId, int maskTextureId,
 unsigned int sg0DrawGlyph3Hook(int textureId, int maskTextureId, float tx,
                                float ty, float tw, float th, float sx, float sy,
                                float ex, float ey, int color, int opacity) {
+  tx += FONT_X_OFFSET;
+  ty += FONT_Y_OFFSET;
+
   if (currentGame == SGLBP || currentGame == SGE) {
     return gameExeSg0DrawGlyph3_Float_Real(textureId, maskTextureId, tx, ty, tw,
                                            th, sx, sy, ex, ey, color, opacity);
