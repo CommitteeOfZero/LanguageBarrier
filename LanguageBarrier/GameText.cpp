@@ -742,19 +742,24 @@ GameID currentGame;
 bool UseNewTextSystem = false;
 
 void gameTextInit() {
+
     auto& gameName = configGetGameName();
       if (gameName == std::string("STEINS;GATE")) currentGame = SG;
+
   if (config["gamedef"].count("dialoguePageVersion") == 1) {
-    if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
+    auto& dialoguePageVersion =
+        config["gamedef"]["dialoguePageVersion"].get<std::string>();
+    if (dialoguePageVersion == "rn") {
       currentGame = RNE;
-    } else if (config["gamedef"]["dialoguePageVersion"].get<std::string>() ==
+    } else if (dialoguePageVersion ==
                "rnd") {
       currentGame = RND;
-    } else if (config["gamedef"]["dialoguePageVersion"].get<std::string>() ==
+    } else if (dialoguePageVersion ==
                "sgmde") {
       currentGame = SGMDE;
     }
   }
+
   if (config["patch"].count("useNewTextSystem") == 1)
     UseNewTextSystem = config["patch"]["useNewTextSystem"].get<bool>();
 
@@ -885,9 +890,7 @@ void gameTextInit() {
                            (LPVOID*)&gameExeSg0DrawGlyph3_Int_Real);
     }
 
-    scanCreateEnableHook(
-        "game", "sg0DrawGlyph3", (uintptr_t*)&gameExeSg0DrawGlyph3,
-        (LPVOID)sg0DrawGlyph3Hook, (LPVOID*)&gameExeSg0DrawGlyph3Real);
+
 
     uintptr_t gameExeSgpDrawMailTextHook;
     scanCreateEnableHook("game", "sgpDrawMailText",
@@ -2737,9 +2740,9 @@ void processSc3TokenList(int xOffset, int yOffset, int lineLength,
               result->glyph[i] = glyphId;
 
               result->textureStartX[i] =
-                  FONT_CELL_WIDTH * multiplier * (glyphId % FONT_ROW_LENGTH) + FONT_X_OFFSET;
+                  FONT_CELL_WIDTH * multiplier * (glyphId % FONT_ROW_LENGTH);
               result->textureStartY[i] =
-                  FONT_CELL_HEIGHT * multiplier * (glyphId / FONT_ROW_LENGTH) + FONT_Y_OFFSET;
+                  FONT_CELL_HEIGHT * multiplier * (glyphId / FONT_ROW_LENGTH);
               result->textureWidth[i] = widths[glyphId] * multiplier;
               result->textureHeight[i] = FONT_CELL_HEIGHT * multiplier;
               result->displayStartX[i] =
@@ -3137,7 +3140,9 @@ int sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
                      float glyphInTextureHeight, float displayStartX,
                      float displayStartY, float displayEndX, float displayEndY,
                      int color, uint32_t opacity) {
- if (textureId == OUTLINE_TEXTURE_ID) {
+  if (!HAS_SPLIT_FONT) {
+
+  } else if (textureId == OUTLINE_TEXTURE_ID) {
     float origStartY = glyphInTextureStartY;
     // undo the game's splitting
     if (glyphInTextureStartY > 4080.0) {
@@ -3367,8 +3372,7 @@ unsigned int sg0DrawGlyph3HookFloat(int textureId, int maskTextureId,
 unsigned int sg0DrawGlyph3Hook(int textureId, int maskTextureId, float tx,
                                float ty, float tw, float th, float sx, float sy,
                                float ex, float ey, int color, int opacity) {
-  tx += FONT_X_OFFSET;
-  ty += FONT_Y_OFFSET;
+
 
   if (currentGame == SGLBP || currentGame == SGE) {
     return gameExeSg0DrawGlyph3_Float_Real(textureId, maskTextureId, tx, ty, tw,

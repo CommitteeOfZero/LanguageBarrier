@@ -138,6 +138,7 @@ void loadJsonConstants() {
     SGHD_LINK_UNDERLINE_GLYPH_Y =
         config["gamedef"]["sghdLinkUnderlineGlyphY"].get<float>();
     SGHD_PHONE_X_PADDING = config["patch"]["sghdPhoneXPadding"].get<int>();
+    SGHD_PHONE_X_PADDING += FONT_X_OFFSET;
   }
   // these are default true for backwards compatibility with S;G0 patch config
   HAS_DOUBLE_GET_SC3_STRING_DISPLAY_WIDTH = true;
