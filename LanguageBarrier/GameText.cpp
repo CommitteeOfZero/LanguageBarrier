@@ -742,6 +742,8 @@ GameID currentGame;
 bool UseNewTextSystem = false;
 
 void gameTextInit() {
+    auto& gameName = configGetGameName();
+      if (gameName == std::string("STEINS;GATE")) currentGame = SG;
   if (config["gamedef"].count("dialoguePageVersion") == 1) {
     if (config["gamedef"]["dialoguePageVersion"].get<std::string>() == "rn") {
       currentGame = RNE;
@@ -871,7 +873,7 @@ void gameTextInit() {
           (DrawLbpGlyphMaskProc)sigScan("game", "lbpDrawGlyph2");
     }
 
-        if (currentGame == SGE || currentGame == SGLBP) {
+        if (currentGame == SGE || currentGame == SGLBP || currentGame == SG) {
       scanCreateEnableHook("game", "sg0DrawGlyph3",
                            (uintptr_t*)&gameExeSg0DrawGlyph3_Float,
                            (LPVOID)sg0DrawGlyph3HookFloat,
@@ -3343,6 +3345,8 @@ unsigned int sg0DrawGlyph3HookInt(int textureId, int maskTextureId,
                                     int startPosX, int startPosY, int EndPosX,
                                     int EndPosY, int color,
                                     int opacity) {
+  textureStartX += FONT_X_OFFSET;
+  textureStartY += FONT_Y_OFFSET;
   return gameExeSg0DrawGlyph3_Int_Real(
       textureId, maskTextureId, textureStartX, textureStartY, textureSizeX,
       textureSizeY, startPosX, startPosY, EndPosX, EndPosY, color, opacity);
@@ -3353,6 +3357,8 @@ unsigned int sg0DrawGlyph3HookFloat(int textureId, int maskTextureId,
                                float textureSizeX, float textureSizeY,
                                float startPosX, float startPosY, float EndPosX,
                                float EndPosY, int color, int opacity) {
+  textureStartX += FONT_X_OFFSET;
+  textureStartY += FONT_Y_OFFSET;
   return gameExeSg0DrawGlyph3_Float_Real(
       textureId, maskTextureId, textureStartX, textureStartY, textureSizeX,
       textureSizeY, startPosX, startPosY, EndPosX, EndPosY, color, opacity);
