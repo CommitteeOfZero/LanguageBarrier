@@ -564,16 +564,6 @@ void gameInit() {
   }
 
   if (config["patch"].count("fglUrl") == 1) {
-    scanCreateEnableHook(
-        "game", "installMouseHitboxesSG",
-        reinterpret_cast<uintptr_t*>(&gameExeInstallMouseHitboxesSG),
-        reinterpret_cast<LPVOID>(installMouseHitboxesSGHook),
-        reinterpret_cast<LPVOID*>(&gameExeInstallMouseHitboxesSGReal));
-    scanCreateEnableHook("game", "handlePhoneMenuInput",
-        reinterpret_cast<uintptr_t*>(&gameExeHandlePhoneMenuInput),
-        reinterpret_cast<LPVOID>(handlePhoneMenuInputHook),
-        reinterpret_cast<LPVOID*>(&gameExeHandlePhoneMenuInputReal));
-
     gameExeCheckHitboxPressSG = 
         reinterpret_cast<CheckHitboxPressSGProc>(sigScan("game", "checkHitboxPressSG"));
     PhoneHitboxesSG = reinterpret_cast<SGMouseHitbox*>(sigScan("game", "useOfPhoneHitboxesSG"));
@@ -583,6 +573,17 @@ void gameInit() {
     PhoneMenuUnk = reinterpret_cast<int*>(sigScan("game", "useOfPhoneMenuUnk"));
     gameExePhoneMenuFlagCheckUnk =
         reinterpret_cast<PhoneMenuFlagCheckUnkProc>(sigScan("game", "phoneMenuFlagCheckUnk"));
+
+    scanCreateEnableHook(
+        "game", "installMouseHitboxesSG",
+        reinterpret_cast<uintptr_t*>(&gameExeInstallMouseHitboxesSG),
+        reinterpret_cast<LPVOID>(installMouseHitboxesSGHook),
+        reinterpret_cast<LPVOID*>(&gameExeInstallMouseHitboxesSGReal));
+    scanCreateEnableHook(
+        "game", "handlePhoneMenuInput",
+        reinterpret_cast<uintptr_t*>(&gameExeHandlePhoneMenuInput),
+        reinterpret_cast<LPVOID>(handlePhoneMenuInputHook),
+        reinterpret_cast<LPVOID*>(&gameExeHandlePhoneMenuInputReal));
   }
 }
 
