@@ -314,6 +314,38 @@ void* surfaceArray;
 
 int* gameExeScrWork = (int*)NULL;
 
+typedef struct {
+  uint32_t id;
+  uint32_t within;
+  uint32_t level;
+  uint32_t x;
+  uint32_t y;
+  uint32_t width;
+  uint32_t height;
+  uint32_t key;
+} SGMouseHitbox;
+
+static SGMouseHitbox *PhoneHitboxesSG = NULL;
+
+typedef void (__cdecl* InstallMouseHitboxesSGProc)(unsigned int, SGMouseHitbox *);
+static InstallMouseHitboxesSGProc gameExeInstallMouseHitboxesSG = NULL;
+static InstallMouseHitboxesSGProc gameExeInstallMouseHitboxesSGReal = NULL;
+
+typedef void (*HandlePhoneMenuInputProc)(void);
+static HandlePhoneMenuInputProc gameExeHandlePhoneMenuInput = NULL;
+static HandlePhoneMenuInputProc gameExeHandlePhoneMenuInputReal = NULL;
+
+typedef BOOL (__cdecl *CheckHitboxPressSGProc)(int, int, int);
+static CheckHitboxPressSGProc gameExeCheckHitboxPressSG = NULL;
+
+typedef int (*PhoneMenuFlagCheckUnkProc)(void);
+static PhoneMenuFlagCheckUnkProc gameExePhoneMenuFlagCheckUnk = NULL;
+
+static uint32_t *PadRef = NULL;
+static uint32_t* PadCustom = NULL;
+static BOOL *PhoneMenuOptionSelectedSG = NULL;
+static int *PhoneMenuUnk = NULL;
+
 namespace lb {
 
 GameID SurfaceWrapper::game = GameID::SG;
@@ -341,6 +373,10 @@ int __cdecl mountArchiveHookRND(int id, const char* mountPoint, int unk01,
                                 int unk02, int unk03);
 unsigned int __cdecl DrawTriangleList(int a1, RNEVertex* a2, int a3, int a4);
 int __fastcall mountArchiveHookSGE(int id, const char* archiveName);
+
+void __cdecl installMouseHitboxesSGHook(unsigned int, SGMouseHitbox *);
+void handlePhoneMenuInputHook(void);
+
 void gameInit() {
   SetProcessDPIAware();
   std::ifstream in("languagebarrier\\stringReplacementTable.bin",
@@ -525,6 +561,28 @@ void gameInit() {
 
   if (config["patch"].value<bool>("enableDebugger", false)) {
     initScriptDebuggerHooks();
+  }
+
+  if (config["patch"].count("fglUrl") == 1) {
+    scanCreateEnableHook(
+        "game", "installMouseHitboxesSG",
+        reinterpret_cast<uintptr_t*>(&gameExeInstallMouseHitboxesSG),
+        reinterpret_cast<LPVOID>(installMouseHitboxesSGHook),
+        reinterpret_cast<LPVOID*>(&gameExeInstallMouseHitboxesSGReal));
+    scanCreateEnableHook("game", "handlePhoneMenuInput",
+        reinterpret_cast<uintptr_t*>(&gameExeHandlePhoneMenuInput),
+        reinterpret_cast<LPVOID>(handlePhoneMenuInputHook),
+        reinterpret_cast<LPVOID*>(&gameExeHandlePhoneMenuInputReal));
+
+    gameExeCheckHitboxPressSG = 
+        reinterpret_cast<CheckHitboxPressSGProc>(sigScan("game", "checkHitboxPressSG"));
+    PhoneHitboxesSG = reinterpret_cast<SGMouseHitbox*>(sigScan("game", "useOfPhoneHitboxesSG"));
+    PadRef = reinterpret_cast<uint32_t*>(sigScan("game", "useOfPadRef"));
+    PadCustom = reinterpret_cast<uint32_t*>(sigScan("game", "useOfPadCustom"));
+    PhoneMenuOptionSelectedSG = reinterpret_cast<BOOL*>(sigScan("game", "useOfPhoneMenuOptionSelectedSG"));
+    PhoneMenuUnk = reinterpret_cast<int*>(sigScan("game", "useOfPhoneMenuUnk"));
+    gameExePhoneMenuFlagCheckUnk =
+        reinterpret_cast<PhoneMenuFlagCheckUnkProc>(sigScan("game", "phoneMenuFlagCheckUnk"));
   }
 }
 
@@ -911,12 +969,12 @@ void setSamplerStateWrapperHook(int sampler, int flags) {
                                                 D3DTEXF_LINEAR);
   // TODO: Implement mipmapping specifically for font textures
 #if 0
-		gameExePMgsD3D9State->device->SetSamplerState(sampler, D3DSAMP_MIPFILTER,
-			D3DTEXF_LINEAR);
-		gameExePMgsD3D9State->device->SetSamplerState(sampler, D3DSAMP_MAXMIPLEVEL, 0);
-		float mipmapBias = 0.0f;
-		gameExePMgsD3D9State->device->SetSamplerState(sampler, D3DSAMP_MIPMAPLODBIAS,
-			*(DWORD*)&mipmapBias);
+        gameExePMgsD3D9State->device->SetSamplerState(sampler, D3DSAMP_MIPFILTER,
+            D3DTEXF_LINEAR);
+        gameExePMgsD3D9State->device->SetSamplerState(sampler, D3DSAMP_MAXMIPLEVEL, 0);
+        float mipmapBias = 0.0f;
+        gameExePMgsD3D9State->device->SetSamplerState(sampler, D3DSAMP_MIPMAPLODBIAS,
+            *(DWORD*)&mipmapBias);
 #endif
 }
 
@@ -1037,14 +1095,14 @@ mpkObject* gameMountMpk(char const* mountpoint, char const* directory,
   void* retval = calloc(1, 0x3a8);
   gameExeMpkConstructor(retval);
   __asm {
-			push ecx
-			mov ecx, retval
-			push 0
-			push filename
-			push directory
-			push mountpoint
-			call gameExeMpkMount
-			pop ecx
+            push ecx
+            mov ecx, retval
+            push 0
+            push filename
+            push directory
+            push mountpoint
+            call gameExeMpkMount
+            pop ecx
   }
   return (mpkObject*)retval;
 }
@@ -1090,5 +1148,104 @@ unsigned int __cdecl DrawTriangleList(int a1, RNEVertex* a2, int a3, int a4) {
                                 *gameExeScreenHeight);
 
   return gameExeDrawTriangleListReal(a1, a2, a3, a4);
+}
+
+void __cdecl installMouseHitboxesSGHook(unsigned int id, SGMouseHitbox *arr) {
+  // Initialize copy of hitboxes and insert internet one
+  // Only runs the first time the function is called
+  static auto patchedPhoneHitboxes = [&]()->std::vector<SGMouseHitbox> {
+    // 128 entries + terminator
+    constexpr size_t oldSize = 128 + 1;
+    constexpr size_t newSize = oldSize + 1;
+
+    auto ret = std::vector<SGMouseHitbox>(newSize);
+
+    std::memcpy(&ret[0], &PhoneHitboxesSG[0], sizeof(SGMouseHitbox) * oldSize);
+
+    // Actual button hitbox
+    ret[newSize - 1] = {999, 1, 1, 85, 199, 88, 88, 9};
+
+    // Swap termintator with new entry to make sure it's at the end
+    std::swap(ret[newSize - 1], ret[oldSize - 1]);
+
+    return std::move(ret);
+  }();
+
+  return gameExeInstallMouseHitboxesSGReal(id, id == 20 ? patchedPhoneHitboxes.data() : arr);
+}
+
+void handlePhoneMenuInputHook(void) {
+  int *menuId = &gameExeScrWork[6802];
+  int *currentOption = &gameExeScrWork[6812];
+
+  // Back 
+  if (*PadRef & PadCustom[6]) {
+    *menuId = 0;
+    *currentOption = 0xFF;
+    return;
+  }
+  
+  *PhoneMenuOptionSelectedSG = FALSE;
+  if (*PhoneMenuUnk) {
+    *currentOption = 0xFF;
+    for (int i = 0; i < 4; i++) {
+      // Check already present buttons, and then our own
+      if (gameExeCheckHitboxPressSG(20, i < 3 ? i + 2 : 999, 1)) {
+        *PhoneMenuOptionSelectedSG = TRUE;
+
+        // Options
+        // i == 0 -> Option 0 : Open Mailbox
+        // i == 1 -> Option 1 : Open address book
+        // i == 2 -> Option 3 : Change settings
+        // i == 3 -> Option 2 : Connect to the network <--- Ours
+
+        // --- Overrides ---
+        // Don't ask me why, that's how it is in the executable
+        // and we need to keep this to maintain the existing behavior
+        // i == 2 -> currentOption == 3
+        // i == 3 -> currentOption == 2 <--- Ours
+        *currentOption = i < 2 ? i : i ^ 1;
+      }
+    }
+    for (int i = 0; i < 4; i++) {
+      if (gameExeCheckHitboxPressSG(20, i < 3 ? i + 2 : 999, 8)) {
+        *PadRef |= PadCustom[5];
+      }
+    }
+  }
+
+  if (*PadRef & PadCustom[5]) {
+    switch (*currentOption) {
+      case 0:
+        gameExeScrWork[6803] = *PhoneMenuUnk ? 0xFF : 0;
+        *menuId = 1;
+        break;
+      case 1:
+        gameExeScrWork[6821] = *PhoneMenuUnk ? 0xFF : 0;
+        *menuId = 6;
+        break;
+      case 2:
+        // TODO: Handle our case
+        break;
+      case 3:
+        gameExeScrWork[6843] = *PhoneMenuUnk ? 0xFF : 0;
+        *menuId = 13;
+        static_cast<void>(gameExePhoneMenuFlagCheckUnk());
+        break;
+      case 0xFF:
+      default:  // Just in case
+        break;
+    }
+  } else {
+    if (*PadRef & (PadCustom[2] | PadCustom[3])) {
+      // Left or Right
+      *currentOption = *currentOption == 0xFF ? 0 : *currentOption ^ 0b01;
+    }
+    if (*PadRef & (PadCustom[0] | PadCustom[1])) {
+      // Up or Down
+      *currentOption = *currentOption == 0xFF ? 0 : *currentOption ^ 0b10;
+    }
+  }
+
 }
 }  // namespace lb
