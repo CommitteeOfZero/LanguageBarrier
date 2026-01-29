@@ -22,6 +22,8 @@
 #include "CustomInputRNE.h"
 #include "CustomInputRND.h"
 #include "ScriptDebuggerHooks.h"
+#include "shellapi.h"
+#include "tchar.h"
 
 typedef int(__cdecl* EarlyInitProc)(int unk0, int unk1);
 static EarlyInitProc gameExeEarlyInit = NULL;
@@ -346,6 +348,9 @@ static uint32_t* PadCustom = NULL;
 static BOOL *PhoneMenuOptionSelectedSG = NULL;
 static int *PhoneMenuUnk = NULL;
 
+static std::filesystem::path fglUrl = std::filesystem::current_path();
+static HWND *WindowHandle = NULL;
+
 namespace lb {
 
 GameID SurfaceWrapper::game = GameID::SG;
@@ -564,6 +569,9 @@ void gameInit() {
   }
 
   if (config["patch"].count("fglUrl") == 1) {
+    fglUrl /= config["patch"]["fglUrl"].get<std::string>();
+    WindowHandle =
+        reinterpret_cast<HWND*>(sigScan("game", "useOfWindowHandle"));
     gameExeCheckHitboxPressSG = 
         reinterpret_cast<CheckHitboxPressSGProc>(sigScan("game", "checkHitboxPressSG"));
     PhoneHitboxesSG = reinterpret_cast<SGMouseHitbox*>(sigScan("game", "useOfPhoneHitboxesSG"));
@@ -1226,7 +1234,8 @@ void handlePhoneMenuInputHook(void) {
         *menuId = 6;
         break;
       case 2:
-        // TODO: Handle our case
+        ShellExecute(*WindowHandle, _T("open"), fglUrl.c_str(), NULL,
+                     fglUrl.parent_path().c_str(), SW_NORMAL);
         break;
       case 3:
         gameExeScrWork[6843] = *PhoneMenuUnk ? 0xFF : 0;
