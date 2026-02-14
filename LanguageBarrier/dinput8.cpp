@@ -1,7 +1,7 @@
 #include "LanguageBarrier.h"
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
-#include "game.h"
+#include "Game.h"
 
 BOOL WINAPI DllMain(HINSTANCE hInst, DWORD reason, LPVOID reserved) {
   if (!lb::IsInitialised) {
