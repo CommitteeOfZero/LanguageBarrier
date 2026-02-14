@@ -3,7 +3,7 @@
 #include <freetype/ftstroke.h>
 #include "Game.h"
 #include <d3d11.h>
-#include <directxtex.h>
+#include <DirectXTex.h>
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <codecvt>
