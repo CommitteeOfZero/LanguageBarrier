@@ -957,6 +957,15 @@ void gameTextInit() {
     call = (void*)sigScan("game", "rineMessageShadowCall");
     memset_perms(call, INST_NOP, INST_CALL_LEN);
   }
+
+  if (currentGame == SG) {
+    uint8_t* clearMenuPatch = (uint8_t*)sigScan("game", "clearMenuFix");
+    if (clearMenuPatch != NULL) {
+      const uint8_t subEax2f[] = { 0x83, 0xE8, 0x2F };
+      memcpy_perms(clearMenuPatch, subEax2f, 3);
+    }
+  }
+
   gameExeGlyphWidthsFont1 = (uint8_t*)sigScan("game", "useOfGlyphWidthsFont1");
   gameExeGlyphWidthsFont2 = (uint8_t*)sigScan("game", "useOfGlyphWidthsFont2");
   gameExeColors = (int*)sigScan("game", "useOfColors");
