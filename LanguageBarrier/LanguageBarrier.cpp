@@ -115,6 +115,14 @@ void loadJsonConstants() {
   // GameText.h
   FIRST_FONT_ID = config["gamedef"]["firstFontId"].get<uint8_t>();
   COORDS_MULTIPLIER = config["gamedef"]["coordsMultiplier"].get<float>();
+  FONT_X_OFFSET = 0.0f;
+  if (config["gamedef"].count("fontXOffset") == 1) {
+    FONT_X_OFFSET = config["gamedef"]["fontXOffset"].get<float>();
+  }
+  FONT_Y_OFFSET = 0.0f;
+  if (config["gamedef"].count("fontYOffset") == 1) {
+    FONT_Y_OFFSET = config["gamedef"]["fontYOffset"].get<float>();
+  }
   FONT_CELL_WIDTH = config["gamedef"]["fontCellWidth"].get<uint8_t>();
   FONT_CELL_HEIGHT = config["gamedef"]["fontCellHeight"].get<uint8_t>();
   FONT_ROW_LENGTH = config["gamedef"]["fontRowLength"].get<uint8_t>();
@@ -130,6 +138,7 @@ void loadJsonConstants() {
     SGHD_LINK_UNDERLINE_GLYPH_Y =
         config["gamedef"]["sghdLinkUnderlineGlyphY"].get<float>();
     SGHD_PHONE_X_PADDING = config["patch"]["sghdPhoneXPadding"].get<int>();
+    SGHD_PHONE_X_PADDING += FONT_X_OFFSET;
   }
   // these are default true for backwards compatibility with S;G0 patch config
   HAS_DOUBLE_GET_SC3_STRING_DISPLAY_WIDTH = true;
