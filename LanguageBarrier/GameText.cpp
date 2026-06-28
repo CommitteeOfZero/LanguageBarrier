@@ -11,6 +11,7 @@
 #include "SigScan.h"
 #include "TextRendering.h"
 #include <d3d9.h>
+#include <cmath>
 #include <string_view>
 #include <string>
 #include "Hooking.h"
@@ -770,14 +771,15 @@ void integerToMagesGlyphs(int value, std::uint8_t* output, int digitCount,
     const char ch = text[start + i];
 
     const std::uint16_t glyph =
-        ch == ' ' ? (alternateSpace ? 0x8001 : 0x8001)
+        ch == ' ' ? (alternateSpace ? 0x8000 : 0x8000)
                   : static_cast<std::uint16_t>(0x8001 + ch - '0');
     *output++ = static_cast<std::uint8_t>(glyph >> 8);
     *output++ = static_cast<std::uint8_t>(glyph & 0xFF);
   }
 
   *output = 0xFF;
-}
+ }
+
 
 int __cdecl gslFillHook(int id, int a1, int a2, int a3, int a4, int r, int g,
                         int b, int a) {
@@ -798,7 +800,7 @@ void gameTextInit() {
   if (gameName == std::string("STEINS;GATE")) currentGame = SG;
 
   if (config["gamedef"].count("dialoguePageVersion") == 1) {
-    auto& dialoguePageVersion =
+    auto dialoguePageVersion =
         config["gamedef"]["dialoguePageVersion"].get<std::string>();
     if (dialoguePageVersion == "rn") {
       currentGame = RNE;
@@ -3186,10 +3188,13 @@ unsigned int sglbpGlyphMask(int textureId, int a2, float glyphInTextureStartX,
                             float glyphInTextureHeight, float a7, float a8,
                             float a9, float a10, float a11, float a12,
                             signed int inColor, signed int opacity) {
+  constexpr float gutter = 1.5f;
+  const float x = glyphInTextureStartX + FONT_X_OFFSET - gutter;
+  const float y = glyphInTextureStartY + FONT_Y_OFFSET - gutter;
+  const float w = glyphInTextureWidth + 2.0f * gutter;
+  const float h = glyphInTextureHeight + 2.0f * gutter;
   return gameExeDrawLbpGlyphMaskReal(
-      textureId, a2, glyphInTextureStartX + FONT_X_OFFSET,
-      glyphInTextureStartY + FONT_Y_OFFSET, glyphInTextureWidth,
-      glyphInTextureHeight, a7, a8, a9, a10, a11, a12, inColor, opacity);
+      textureId, a2, x, y, w, h, a7, a8, a9, a10, a11, a12, inColor, opacity);
 }
 
 int sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
@@ -3197,45 +3202,37 @@ int sg0DrawGlyphHook(int textureId, float glyphInTextureStartX,
                      float glyphInTextureHeight, float displayStartX,
                      float displayStartY, float displayEndX, float displayEndY,
                      int color, uint32_t opacity) {
-  if (!HAS_SPLIT_FONT) {
-  } else if (textureId == OUTLINE_TEXTURE_ID) {
-    float origStartY = glyphInTextureStartY;
-    // undo the game's splitting
-    if (glyphInTextureStartY > 4080.0) {
-      glyphInTextureStartY += 4080.0;
+  if (HAS_SPLIT_FONT && textureId == OUTLINE_TEXTURE_ID) {
+    const float originalStartY = glyphInTextureStartY;
+
+    if (glyphInTextureStartY > 4080.0f) {
+      glyphInTextureStartY += 4080.0f;
       --textureId;
     }
-    // split it ourselves
-    if (origStartY >= SPLIT_FONT_OUTLINE_A_HEIGHT) {
+
+    if (originalStartY >= SPLIT_FONT_OUTLINE_A_HEIGHT) {
       glyphInTextureStartY -= SPLIT_FONT_OUTLINE_A_HEIGHT;
       ++textureId;
     }
   }
 
-  float x = glyphInTextureStartX + FONT_X_OFFSET;
-  float y = glyphInTextureStartY + FONT_Y_OFFSET;
-  float w = glyphInTextureWidth;
-  float h = glyphInTextureHeight;
+  constexpr float gutter = 1.5f;
 
-  if (w >= 1.0f) {
-    x += 0.5f;
-    w += 1.0f;
-  }
-  if (h >= 1.0f) {
-    y += 0.5f;
-    h += 1.0f;
-  }
+  const float x = glyphInTextureStartX + FONT_X_OFFSET - gutter;
+  const float y = glyphInTextureStartY + FONT_Y_OFFSET - gutter;
+  const float w = glyphInTextureWidth + 2.0f * gutter;
+  const float h = glyphInTextureHeight + 2.0f * gutter;
 
-  return gameExeDrawGlyphReal(textureId, x, y, w, h, displayStartX,
-                              displayStartY, displayEndX, displayEndY, color,
-                              opacity);
+  return gameExeDrawGlyphReal(
+      textureId, x, y, w, h,
+      displayStartX, displayStartY, displayEndX, displayEndY,
+      color, opacity);
 }
-
 int rnDrawGlyphHook(int textureId, float glyphInTextureStartX,
-                    float glyphInTextureStartY, float glyphInTextureWidth,
-                    float glyphInTextureHeight, float displayStartX,
-                    float displayStartY, float displayEndX, float displayEndY,
-                    int color, uint32_t opacity) {
+                     float glyphInTextureStartY, float glyphInTextureWidth,
+                     float glyphInTextureHeight, float displayStartX,
+                     float displayStartY, float displayEndX, float displayEndY,
+                     int color, uint32_t opacity) {
   if (TextRendering::Get().enabled) {
     //	if (textureId == FIRST_FONT_ID)
     //		textureId = TextRendering::Get().FONT_TEXTURE_ID;
@@ -3244,9 +3241,14 @@ int rnDrawGlyphHook(int textureId, float glyphInTextureStartX,
     //	TextRendering::Instance().replaceFontSurface(glyphInTextureHeight);
   }
 
+  constexpr float gutter = 1.5f;
+  const float x = glyphInTextureStartX - gutter;
+  const float y = glyphInTextureStartY - gutter;
+  const float w = glyphInTextureWidth + 2.0f * gutter;
+  const float h = glyphInTextureHeight + 2.0f * gutter;
+
   return gameExeDrawGlyphReal(
-      textureId, glyphInTextureStartX, glyphInTextureStartY,
-      glyphInTextureWidth, glyphInTextureHeight, displayStartX, displayStartY,
+      textureId, x, y, w, h, displayStartX, displayStartY,
       displayEndX, displayEndY, color, opacity);
 }
 
@@ -3388,24 +3390,30 @@ unsigned int sg0DrawGlyph2Hook(int textureId, int a2,
     }
   }
 
+  constexpr float gutter = 1.5f;
+  const float sx = glyphInTextureStartX - gutter;
+  const float sy = glyphInTextureStartY - gutter;
+  const float sw = glyphInTextureWidth + 2.0f * gutter;
+  const float sh = glyphInTextureHeight + 2.0f * gutter;
+
   if (TextRendering::Get().enabled)
     if (currentGame == RNE) {
       return gameExeSg0DrawGlyph2Real(
-          TextRendering::Get().FONT_TEXTURE_ID, a2, glyphInTextureStartX / 1.5f,
-          glyphInTextureStartY / 1.5f, glyphInTextureWidth / 1.5f,
-          glyphInTextureHeight / 1.5f, a7 / 2.0f, a8 / 2.0f, a9 / 2.0f,
+          TextRendering::Get().FONT_TEXTURE_ID, a2, sx / 1.5f,
+          sy / 1.5f, sw / 1.5f,
+          sh / 1.5f, a7 / 2.0f, a8 / 2.0f, a9 / 2.0f,
           a10 / 2.0f, a11 / 2.0f, a12 / 2.0f, inColor, opacity, a15, a16);
     } else {
       return gameExeSg0DrawGlyph2Real(
-          TextRendering::Get().FONT_TEXTURE_ID, a2, glyphInTextureStartX,
-          glyphInTextureStartY, glyphInTextureWidth, glyphInTextureHeight, a7,
+          TextRendering::Get().FONT_TEXTURE_ID, a2, sx,
+          sy, sw, sh, a7,
           a8, a9, a10, a11, a12, inColor, opacity, a15, a16);
     }
 
   else {
-    return gameExeSg0DrawGlyph2Real(textureId, a2, glyphInTextureStartX,
-                                    glyphInTextureStartY, glyphInTextureWidth,
-                                    glyphInTextureHeight, a7, a8, a9 + 0, a10,
+    return gameExeSg0DrawGlyph2Real(textureId, a2, sx,
+                                    sy, sw,
+                                    sh, a7, a8, a9 + 0, a10,
                                     a11, a12, inColor, opacity, a15, a16);
   }
 }
@@ -3415,11 +3423,14 @@ unsigned int sg0DrawGlyph3HookInt(int textureId, int maskTextureId,
                                   int textureSizeX, int textureSizeY,
                                   int startPosX, int startPosY, int EndPosX,
                                   int EndPosY, int color, int opacity) {
-  textureStartX += FONT_X_OFFSET;
-  textureStartY += FONT_Y_OFFSET;
+  constexpr float gutter = 1.0f;
+  const float x = textureStartX + FONT_X_OFFSET - gutter;
+  const float y = textureStartY + FONT_Y_OFFSET - gutter;
+  const float w = textureSizeX + 2.0f * gutter;
+  const float h = textureSizeY + 2.0f * gutter;
   return gameExeSg0DrawGlyph3_Int_Real(
-      textureId, maskTextureId, textureStartX, textureStartY, textureSizeX,
-      textureSizeY, startPosX, startPosY, EndPosX, EndPosY, color, opacity);
+      textureId, maskTextureId, (int)x, (int)y, (int)w,
+      (int)h, startPosX, startPosY, EndPosX, EndPosY, color, opacity);
 }
 
 unsigned int sg0DrawGlyph3HookFloat(int textureId, int maskTextureId,
@@ -3428,11 +3439,14 @@ unsigned int sg0DrawGlyph3HookFloat(int textureId, int maskTextureId,
                                     float startPosX, float startPosY,
                                     float EndPosX, float EndPosY, int color,
                                     int opacity) {
-  textureStartX += FONT_X_OFFSET;
-  textureStartY += FONT_Y_OFFSET;
+  constexpr float gutter = 1.5f;
+  const float x = textureStartX + FONT_X_OFFSET - gutter;
+  const float y = textureStartY + FONT_Y_OFFSET - gutter;
+  const float w = textureSizeX + 2.0f * gutter;
+  const float h = textureSizeY + 2.0f * gutter;
   return gameExeSg0DrawGlyph3_Float_Real(
-      textureId, maskTextureId, textureStartX, textureStartY, textureSizeX,
-      textureSizeY, startPosX, startPosY, EndPosX, EndPosY, color, opacity);
+      textureId, maskTextureId, x, y, w, h,
+      startPosX, startPosY, EndPosX, EndPosY, color, opacity);
 }
 
 unsigned int sg0DrawGlyph3Hook(int textureId, int maskTextureId, float tx,
