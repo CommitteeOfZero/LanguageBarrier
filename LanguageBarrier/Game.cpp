@@ -328,10 +328,15 @@ typedef struct {
 } SGMouseHitbox;
 
 static SGMouseHitbox *PhoneHitboxesSG = NULL;
+static std::vector<SGMouseHitbox> PatchedPhoneHitboxesSG; // Should have no memory footprint unless used
 
 typedef void (__cdecl* InstallMouseHitboxesSGProc)(unsigned int, SGMouseHitbox *);
 static InstallMouseHitboxesSGProc gameExeInstallMouseHitboxesSG = NULL;
 static InstallMouseHitboxesSGProc gameExeInstallMouseHitboxesSGReal = NULL;
+
+typedef uint32_t (*ReplaceMailReplyHitboxPlaceholdersSGProc)(void);
+static ReplaceMailReplyHitboxPlaceholdersSGProc gameExeReplaceMailReplyHitboxPlaceholdersSG = NULL;
+static ReplaceMailReplyHitboxPlaceholdersSGProc gameExeReplaceMailReplyHitboxPlaceholdersSGReal = NULL;
 
 typedef void (*HandlePhoneMenuInputProc)(void);
 static HandlePhoneMenuInputProc gameExeHandlePhoneMenuInput = NULL;
@@ -380,6 +385,7 @@ unsigned int __cdecl DrawTriangleList(int a1, RNEVertex* a2, int a3, int a4);
 int __fastcall mountArchiveHookSGE(int id, const char* archiveName);
 
 void __cdecl installMouseHitboxesSGHook(unsigned int, SGMouseHitbox *);
+uint32_t replaceMailReplyHitboxPlaceholdersSGHook(void);
 void handlePhoneMenuInputHook(void);
 
 void gameInit() {
@@ -587,11 +593,35 @@ void gameInit() {
         reinterpret_cast<uintptr_t*>(&gameExeInstallMouseHitboxesSG),
         reinterpret_cast<LPVOID>(installMouseHitboxesSGHook),
         reinterpret_cast<LPVOID*>(&gameExeInstallMouseHitboxesSGReal));
+
+    scanCreateEnableHook(
+        "game", "replaceMailReplyHitboxPlaceholdersSG",
+        reinterpret_cast<uintptr_t*>(&gameExeReplaceMailReplyHitboxPlaceholdersSG),
+        reinterpret_cast<LPVOID>(replaceMailReplyHitboxPlaceholdersSGHook),
+        reinterpret_cast<LPVOID*>(&gameExeReplaceMailReplyHitboxPlaceholdersSGReal));
+
     scanCreateEnableHook(
         "game", "handlePhoneMenuInput",
         reinterpret_cast<uintptr_t*>(&gameExeHandlePhoneMenuInput),
         reinterpret_cast<LPVOID>(handlePhoneMenuInputHook),
         reinterpret_cast<LPVOID*>(&gameExeHandlePhoneMenuInputReal));
+
+    // Initialize copy of hitboxes and insert internet one
+
+    // 128 entries + terminator
+    constexpr size_t oldSize = 128 + 1;
+    constexpr size_t newSize = oldSize + 1;
+
+    PatchedPhoneHitboxesSG.reserve(newSize);
+
+    std::memcpy(&PatchedPhoneHitboxesSG[0], &PhoneHitboxesSG[0], sizeof(SGMouseHitbox) * oldSize);
+
+    // Actual button hitbox
+    PatchedPhoneHitboxesSG[newSize - 1] = {999, 1, 1, 85, 199, 88, 88, 9};
+
+    // Swap termintator with new entry to make sure it's at the end
+    std::swap(PatchedPhoneHitboxesSG[newSize - 1], PatchedPhoneHitboxesSG[oldSize - 1]);
+
   }
 }
 
@@ -1159,28 +1189,14 @@ unsigned int __cdecl DrawTriangleList(int a1, RNEVertex* a2, int a3, int a4) {
   return gameExeDrawTriangleListReal(a1, a2, a3, a4);
 }
 
-void __cdecl installMouseHitboxesSGHook(unsigned int id, SGMouseHitbox *arr) {
-  // Initialize copy of hitboxes and insert internet one
-  // Only runs the first time the function is called
-  static auto patchedPhoneHitboxes = [&]()->std::vector<SGMouseHitbox> {
-    // 128 entries + terminator
-    constexpr size_t oldSize = 128 + 1;
-    constexpr size_t newSize = oldSize + 1;
+void __cdecl installMouseHitboxesSGHook(unsigned int id, SGMouseHitbox* arr) {
+  return gameExeInstallMouseHitboxesSGReal(id, id == 20 ? PatchedPhoneHitboxesSG.data() : arr);
+}
 
-    auto ret = std::vector<SGMouseHitbox>(newSize);
-
-    std::memcpy(&ret[0], &PhoneHitboxesSG[0], sizeof(SGMouseHitbox) * oldSize);
-
-    // Actual button hitbox
-    ret[newSize - 1] = {999, 1, 1, 85, 199, 88, 88, 9};
-
-    // Swap termintator with new entry to make sure it's at the end
-    std::swap(ret[newSize - 1], ret[oldSize - 1]);
-
-    return std::move(ret);
-  }();
-
-  return gameExeInstallMouseHitboxesSGReal(id, id == 20 ? patchedPhoneHitboxes.data() : arr);
+uint32_t replaceMailReplyHitboxPlaceholdersSGHook(void) {
+  uint32_t ret = gameExeReplaceMailReplyHitboxPlaceholdersSGReal();
+  std::memcpy(&PatchedPhoneHitboxesSG[48], &PhoneHitboxesSG[48], sizeof(SGMouseHitbox) * 80);
+  return ret;
 }
 
 void handlePhoneMenuInputHook(void) {
@@ -1256,6 +1272,5 @@ void handlePhoneMenuInputHook(void) {
       *currentOption = *currentOption == 0xFF ? 0 : *currentOption ^ 0b10;
     }
   }
-
 }
 }  // namespace lb
