@@ -33,6 +33,9 @@
     <ClInclude Include="lbjson.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AudioDeviceFix.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="BinkMod.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -87,6 +90,9 @@
     <ClInclude Include="HookTypes.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="XAudio2Abi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -105,6 +111,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="lbjson.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioDeviceFix.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="BinkMod.cpp">

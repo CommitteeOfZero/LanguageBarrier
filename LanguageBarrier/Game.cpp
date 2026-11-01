@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include "AudioDeviceFix.h"
 #include "BinkMod.h"
 #include "CriManaMod.h"
 #include "Config.h"
@@ -404,6 +405,10 @@ void gameInit() {
     criManaModInit();
   } else {
     binkModInit();
+  }
+
+  if (config["patch"].value<bool>("followDefaultAudioDevice", true)) {
+    audioDeviceFixInit();
   }
   gameExeTextureLoadInit1 = sigScan("game", "textureLoadInit1");
   gameExeTextureLoadInit2 = sigScan("game", "textureLoadInit2");

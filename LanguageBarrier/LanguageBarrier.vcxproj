@@ -344,6 +344,7 @@ endlocal</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="AudioDeviceFix.h" />
     <ClInclude Include="BinkMod.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="contrib\include\stb_vorbis.h" />
@@ -367,9 +368,11 @@ endlocal</Command>
     <ClInclude Include="SigScan.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TextReplace.h" />
+    <ClInclude Include="XAudio2Abi.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AudioDeviceFix.cpp" />
     <ClCompile Include="BinkMod.cpp" />
     <ClCompile Include="Config.cpp" />
     <ClCompile Include="contrib\speexdsp\resample.c" />
